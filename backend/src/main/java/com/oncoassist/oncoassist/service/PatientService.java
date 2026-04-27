@@ -10,7 +10,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +23,7 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final DossierMedicalRepository dossierMedicalRepository;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public Patient creer(Patient patient) {
@@ -57,7 +60,7 @@ public class PatientService {
         return patientRepository.findByMedecinActif(medecinId);
     }
 
-    public Patient modifier(UUID id, Patient data) {
+    public Patient modifier(UUID id, Patient data, MultipartFile photo) throws IOException {
         Patient patient = findById(id);
         patient.setNom(data.getNom());
         patient.setPrenom(data.getPrenom());
@@ -65,6 +68,12 @@ public class PatientService {
         patient.setAdresse(data.getAdresse());
         patient.setDateNaissance(data.getDateNaissance());
         patient.setPersonneConfiance(data.getPersonneConfiance());
+
+        if (photo != null && !photo.isEmpty()) {
+            fileStorageService.supprimerPhoto(patient.getPhotoProfil());
+            patient.setPhotoProfil(fileStorageService.sauvegarderPhoto(photo));
+        }
+
         return patientRepository.save(patient);
     }
 

@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,7 @@ public class Patient extends Utilisateur {
     private String personneConfiance;
 
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private DossierMedical dossierMedical;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

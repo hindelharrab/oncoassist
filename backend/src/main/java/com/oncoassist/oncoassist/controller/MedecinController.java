@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,13 +42,16 @@ public class MedecinController {
         return ResponseEntity.ok(medecinService.findBySpecialite(specialiteId));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Medecin> modifier(
             @PathVariable UUID id,
-            @RequestBody Medecin medecin,
-            @RequestParam(required = false) UUID specialiteId) {
-        return ResponseEntity.ok(medecinService.modifier(id, medecin, specialiteId));
+            @RequestPart("data") Medecin medecin,
+            @RequestPart(value = "specialiteId", required = false) String specialiteId,
+            @RequestPart(value = "photo", required = false) MultipartFile photo) throws IOException {
+
+        UUID specId = specialiteId != null ? UUID.fromString(specialiteId) : null;
+        return ResponseEntity.ok(medecinService.modifier(id, medecin, specId, photo));
     }
 
     @DeleteMapping("/{id}")

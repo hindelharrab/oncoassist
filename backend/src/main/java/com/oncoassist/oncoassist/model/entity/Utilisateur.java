@@ -37,4 +37,7 @@ public abstract class Utilisateur {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RoleEnum role;
+
+    @Column(name = "photo_profil")
+    private String photoProfil;
 }
