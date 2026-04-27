@@ -105,21 +105,14 @@ const Navbar = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <button  onClick={() => navigate('/login')} className="px-6 py-2.5 border-2 border-[#F9A8D4] text-[#EC4899] font-bold rounded-lg hover:bg-pink-50 transition-all text-sm uppercase tracking-wide">
-              Connexion
-            </button>
-        
-            
-            {/* BOUTON NOIR COMME DEMANDÉ */}
-            <motion.button 
-              whileHover={{ scale: 1.05, backgroundColor: "#222" }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-3 bg-black text-white font-black rounded-lg shadow-xl text-sm uppercase tracking-widest flex items-center gap-2"
-            >
-              S'inscrire 
-            </motion.button>
-          </div>
+          <motion.button
+  onClick={() => navigate('/login')}
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  className="px-8 py-3 bg-[#e8208eea] text-white font-black rounded-lg shadow-xl text-sm uppercase tracking-widest flex items-center gap-2"
+>
+  Se connecter <ArrowRight size={16} />
+</motion.button>
 
           {/* Mobile Menu Icon */}
           <div className="md:hidden">
