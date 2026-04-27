@@ -32,4 +32,4 @@ build/
 ### VS Code ###
 .vscode/
 backend/uploads/photos/
-git rm --cached *.properties
+src/main/resources/application.properties
