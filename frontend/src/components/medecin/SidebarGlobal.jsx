@@ -1,3 +1,4 @@
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -63,7 +64,7 @@ export default function SidebarGlobal() {
 
       <button
         onClick={logout}
-        className="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl text-gray-500 hover:bg-pink-50 hover:text-pink-500 transition-all duration-200 text-sm"
+        className="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl text-gray-500 hover:bg-pink-50 hover:text-pink-500 transition-all duration-200 text-sm mt-4"
       >
         <LogOut size={18} className="text-gray-400" />
         <span className="font-medium">Déconnexion</span>

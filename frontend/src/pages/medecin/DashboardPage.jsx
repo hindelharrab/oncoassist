@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import React from 'react';
+import { motion } from "framer-motion";
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -43,7 +44,7 @@ const StatCard = ({ title, value, badge, icon: Icon, color, delay }) => {
   );
 };
 
-export default function DashboardPage() {
+const DashboardPage = () => {
   const { setPatientSelectionne } = useOutletContext();
   const { user } = useAuth();
 
@@ -129,7 +130,7 @@ export default function DashboardPage() {
                   idx === 2 ? 'bg-purple-100 text-purple-600' :
                               'bg-gray-100 text-gray-600'
                 }`}>
-                  {apt.name.split(' ').map(n => n[0]).join('')}
+                  {apt.name.split(' ').map(n => n[0] || '').join('')}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-gray-800">{apt.name}</p>
@@ -170,4 +171,6 @@ export default function DashboardPage() {
       </div>
     </motion.div>
   );
-}
+};
+
+export default DashboardPage;
