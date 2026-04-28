@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.controller;
 
+import com.oncoassist.oncoassist.model.dto.PatientListItemDTO;
 import com.oncoassist.oncoassist.model.entity.Patient;
 import com.oncoassist.oncoassist.service.PatientService;
 import lombok.RequiredArgsConstructor;
@@ -61,5 +62,11 @@ public class PatientController {
     public ResponseEntity<Void> supprimer(@PathVariable UUID id) {
         patientService.supprimer(id);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/medecin/{medecinId}/avec-statut")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<List<PatientListItemDTO>> findPatientsAvecStatut(
+            @PathVariable UUID medecinId) {
+        return ResponseEntity.ok(patientService.findByMedecinAvecStatut(medecinId));
     }
 }

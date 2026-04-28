@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.oncoassist.oncoassist.model.entity.enums.RolePECEnum;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,10 +42,12 @@ public class PriseEnCharge {
     private Boolean accesEcriture = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
     @JoinColumn(name = "medecin_id", nullable = false)
     private Medecin medecin;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 }
