@@ -7,7 +7,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.security.crypto.password.PasswordEncoder;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -19,16 +19,23 @@ public class MedecinService {
     private final MedecinRepository medecinRepository;
     private final SpecialiteService specialiteService;
     private final FileStorageService fileStorageService;
+    private final PasswordEncoder passwordEncoder;
 
     public Medecin creer(Medecin medecin, UUID specialiteId) {
         if (medecinRepository.existsByEmail(medecin.getEmail())) {
             throw new IllegalArgumentException("Email déjà utilisé : " + medecin.getEmail());
         }
+
         if (medecin.getNumeroOrdre() != null && medecinRepository.existsByNumeroOrdre(medecin.getNumeroOrdre())) {
             throw new IllegalArgumentException("Numéro d'ordre déjà utilisé");
         }
+
         Specialite specialite = specialiteService.findById(specialiteId);
         medecin.setSpecialite(specialite);
+
+        // 🔐 Chiffrement du mot de passe
+        medecin.setMotDePasse(passwordEncoder.encode(medecin.getMotDePasse()));
+
         return medecinRepository.save(medecin);
     }
 
@@ -59,6 +66,9 @@ public class MedecinService {
         if (photo != null && !photo.isEmpty()) {
             fileStorageService.supprimerPhoto(medecin.getPhotoProfil());
             medecin.setPhotoProfil(fileStorageService.sauvegarderPhoto(photo));
+        }
+        if (data.getMotDePasse() != null && !data.getMotDePasse().isBlank()) {
+            medecin.setMotDePasse(passwordEncoder.encode(data.getMotDePasse()));
         }
 
         return medecinRepository.save(medecin);

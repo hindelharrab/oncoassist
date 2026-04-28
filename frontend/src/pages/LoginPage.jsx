@@ -16,23 +16,41 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const auth = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    try {
-      const data = await loginUser(email, password);
-      auth.login(data.token);
-      navigate('/dashboard');
-    } catch (err) {
-      // Axios met l'erreur dans err.response.data
-      const message = err.response?.data?.message || 'Email ou mot de passe incorrect.';
-      setError(message);
-    } finally {
-      setLoading(false);
+  try {
+    const data = await loginUser(email, password);
+
+    // On passe tout l'objet data (token + user info + role)
+    auth.login(data);
+
+    // Redirection selon le rôle
+    switch (data.role) {
+      case 'MEDECIN':
+        navigate('/medecin/dashboard');
+        break;
+      case 'SECRETAIRE':
+        navigate('/secretaire/dashboard');
+        break;
+      case 'ADMIN':
+        navigate('/admin/dashboard');
+        break;
+      default:
+        navigate('/');
     }
-  };
+
+  } catch (err) {
+    const message = err.response?.data?.error
+      || err.response?.data?.message
+      || 'Email ou mot de passe incorrect.';
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="w-full h-screen bg-white flex overflow-hidden font-sans select-none">

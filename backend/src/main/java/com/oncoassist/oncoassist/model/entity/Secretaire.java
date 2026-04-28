@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +20,7 @@ import java.util.List;
 public class Secretaire extends Utilisateur {
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
     @JoinColumn(name = "specialite_id")
     private Specialite specialite;
 
