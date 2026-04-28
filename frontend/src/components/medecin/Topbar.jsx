@@ -1,26 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Topbar() {
+export default function Topbar({ recherche, setRecherche }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, getInitiales } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
-
-  const getTitle = () => {
-    const path = location.pathname;
-    if (path.includes('dashboard')) return 'Tableau de bord';
-    if (path.includes('patients')) return 'Mes Patients';
-    if (path.includes('agenda')) return 'Agenda';
-    if (path.includes('alertes')) return 'Alertes';
-    if (path.includes('settings')) return 'Paramètres';
-    if (path.includes('dossier')) return 'Dossier Patient';
-    return 'OncoAssist';
-  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -39,20 +28,29 @@ export default function Topbar() {
     <header className="bg-white border-b border-gray-100 px-6 h-16 flex items-center justify-between sticky top-0 z-30">
 
       {/* Titre page */}
-      <h1 className="text-xl font-black text-gray-800 uppercase tracking-tight">
-        {getTitle()}
-      </h1>
+      <div className="flex flex-col">
+        <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">
+          {location.pathname.includes('patients') ? 'Mes Patientes' : 
+            location.pathname.includes('dashboard') ? 'Tableau de Bord' : 
+            location.pathname.includes('agenda') ? 'Agenda' :
+            location.pathname.includes('alertes') ? 'Alertes' :
+            location.pathname.includes('settings') ? 'Paramètres' : 
+            location.pathname.includes('dossier') ? 'Dossier Patient' : 'OncoAssist'}
+        </h1>
+      </div>
 
       {/* Droite */}
       <div className="flex items-center gap-6">
 
         {/* Barre de recherche */}
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-64 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-          <Search size={18} className="text-gray-400" />
+        <div className="hidden md:flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 w-64 focus-within:border-gray-300 transition-all">
+          <Search size={14} className="text-gray-400 group-focus-within:text-black transition-colors" />
           <input
             type="text"
-            placeholder="Rechercher un patient..."
-            className="bg-transparent outline-none text-sm text-gray-600 flex-1"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Rechercher une patiente..."
+            className="bg-transparent outline-none text-xs font-semibold text-gray-800 placeholder-gray-400 flex-1"
           />
         </div>
 
@@ -87,11 +85,11 @@ export default function Topbar() {
                   <div className="w-14 h-14 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 font-bold text-xl mb-3">
                     {getInitiales()}
                   </div>
-                  <p className="font-bold text-gray-800 text-sm">{nomComplet}</p>
-                  <p className="text-[10px] text-gray-400 font-medium mb-2">{specialite}</p>
-                  <div className="flex items-center gap-1.5 bg-green-50 px-2 py-0.5 rounded-full ring-1 ring-green-100">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    <span className="text-[10px] font-bold text-green-600">En ligne</span>
+                  <p className="font-bold text-gray-800 text-base">{nomComplet}</p>
+                  <p className="text-[11px] text-gray-400 font-medium mb-2">{specialite}</p>
+                  <div className="flex items-center gap-1.5 bg-green-50 px-2.5 py-0.5 rounded-full ring-1 ring-green-100">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-[11px] font-bold text-green-600">En ligne</span>
                   </div>
                 </div>
 
