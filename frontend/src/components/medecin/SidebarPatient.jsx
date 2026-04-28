@@ -1,3 +1,4 @@
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -49,22 +50,25 @@ export default function SidebarPatient({ patient, onRetour }) {
       </button>
 
       {/* Badge patient */}
-      <div className="mx-3 mb-4 p-4 bg-pink-50 rounded-2xl border border-pink-100 flex items-center gap-3 shadow-sm">
-        <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+      <div className="mx-3 mb-6 p-4 bg-pink-50/70 rounded-2xl border border-pink-100 flex items-center gap-3 shadow-xs">
+        <div className="w-10 h-10 rounded-full bg-white border border-pink-100 flex items-center justify-center text-gray-900 font-bold text-sm flex-shrink-0 shadow-xs">
           {getInitials(patient)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-sm text-gray-800 leading-tight truncate">
+          <p className="font-black text-sm text-gray-900 leading-tight truncate uppercase tracking-tight">
             {patient.prenom} {patient.nom}
           </p>
-          <span className="mt-1 inline-block bg-green-100 text-green-600 rounded-full px-2 py-0.5 text-[10px] font-bold">
-            Dossier actif
-          </span>
+          <div className="flex items-center gap-1.5 mt-1">
+            <div className="w-1 h-1 rounded-full bg-brandPink animate-pulse" />
+            <span className="text-[9px] font-black text-pink-600 uppercase tracking-tighter">
+              Dossier actif
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Label section */}
-      <p className="px-5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+      <p className="px-5 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
         Dossier Médical
       </p>
 

@@ -1,4 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion, AnimatePresence } from  "framer-motion";
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SidebarGlobal from './SidebarGlobal';
@@ -12,7 +13,10 @@ export default function Sidebar({ patientSelectionne, setPatientSelectionne }) {
 
       {/* Logo */}
       <div className="p-6 flex items-center gap-3">
-        <img src="/favicon.svg" alt="OncoAssist" className="w-8 h-8" />
+        <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+          <path d="M50 20C35 20 25 35 25 50C25 65 35 80 50 95C65 80 75 65 75 50C75 35 65 20 50 20Z" stroke="#EC4899" strokeWidth="8"/>
+          <path d="M35 88L50 68L65 88" stroke="#EC4899" strokeWidth="8"/>
+        </svg>
         <div className="flex flex-col leading-none">
           <span className="text-gray-400 font-bold text-[10px] tracking-widest uppercase">ONCO</span>
           <div className="h-[1px] bg-pink-400 w-full my-0.5"></div>
@@ -21,7 +25,7 @@ export default function Sidebar({ patientSelectionne, setPatientSelectionne }) {
       </div>
 
       {/* Contenu switchable */}
-      <div className="flex-1 overflow-y-auto py-2">
+      <div className="flex-1 overflow-y-auto py-2 scrollbar-hide">
         <AnimatePresence mode="wait">
           {!patientSelectionne ? (
             <motion.div
