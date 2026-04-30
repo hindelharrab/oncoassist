@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { getPatientsAvecStatut } from '../../services/patientService';
 import { 
   Search, 
   ChevronRight, 
@@ -17,46 +19,22 @@ import {
   FileText,
   Calendar,
   Activity,
-  User
+  User,
+  Loader2
 } from 'lucide-react';
 
-const patientsData = [
-  { 
-    id: "1", nom: "Alaoui", prenom: "Fatima", email: "f.alaoui@gmail.com", age: "52 ans", 
-    status: "CRITIQUE", lastRdv: "24/04/2026", 
-    telephone: "06 12 34 56 78", dateNaissance: "12/03/1974", 
-    adresse: "Quartier Gauthier, Casablanca", personneConfiance: "M. Alaoui (Époux)",
-    examsCount: 8, historyCount: 3, treatmentPlansCount: 2, followUpsCount: 12
-  },
-  { 
-    id: "2", nom: "Benali", prenom: "Nadia", email: "n.benali@gmail.com", age: "47 ans", 
-    status: "STABLE", lastRdv: "15/04/2026",
-    telephone: "06 23 45 67 89", dateNaissance: "05/08/1978", 
-    adresse: "Hay Riad, Rabat", personneConfiance: "Mme Benali (Sœur)",
-    examsCount: 4, historyCount: 1, treatmentPlansCount: 1, followUpsCount: 5
-  },
-  { 
-    id: "3", nom: "Idrissi", prenom: "Sara", email: "s.idrissi@gmail.com", age: "61 ans", 
-    status: "À SURVEILLER", lastRdv: "26/04/2026",
-    telephone: "06 34 56 78 90", dateNaissance: "22/11/1964", 
-    adresse: "Hivernage, Marrakech", personneConfiance: "Dr. Idrissi (Fils)",
-    examsCount: 12, historyCount: 5, treatmentPlansCount: 3, followUpsCount: 18
-  },
-  { 
-    id: "4", nom: "Moussaoui", prenom: "Khadija", email: "k.moussaoui@gmail.com", age: "55 ans", 
-    status: "EN SUIVI", lastRdv: "20/04/2026",
-    telephone: "06 45 67 89 01", dateNaissance: "18/06/1970", 
-    adresse: "Agdal, Rabat", personneConfiance: "Mme Moussaoui (Fille)",
-    examsCount: 6, historyCount: 2, treatmentPlansCount: 1, followUpsCount: 8
-  },
-  { 
-    id: "5", nom: "Tazi", prenom: "Amina", email: "a.tazi@gmail.com", age: "43 ans", 
-    status: "NOUVEAU", lastRdv: "-",
-    telephone: "06 56 78 90 12", dateNaissance: "30/01/1983", 
-    adresse: "Tanger City Center, Tanger", personneConfiance: "M. Tazi (Père)",
-    examsCount: 1, historyCount: 0, treatmentPlansCount: 1, followUpsCount: 2
-  },
-];
+// Map des statuts backend → labels affichés
+const mapStatut = (statut) => {
+  const map = {
+    NOUVELLE:     'NOUVEAU',
+    STABLE:       'STABLE',
+    EN_SUIVI:     'EN SUIVI',
+    A_SURVEILLER: 'À SURVEILLER',
+    CRITIQUE:     'CRITIQUE',
+    ARCHIVEE:     'ARCHIVÉ',
+  };
+  return map[statut] ?? 'NOUVEAU';
+};
 
 const StatCard = ({ title, value, icon: Icon, colorClass, trend }) => (
   <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 transition-all">
@@ -92,32 +70,104 @@ const StatusBadge = ({ status }) => {
 export default function PatientsPage() {
   const navigate = useNavigate();
   const { setPatientSelectionne, recherche } = useOutletContext();
-  const [filtreStatus, setFiltreStatus] = useState('TOUTES');
-  const [patientSelectionneLocal, setPatientSelectionneLocal] = useState(patientsData[0] || null);
+  const { user } = useAuth();
 
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filtreStatus, setFiltreStatus] = useState('TOUTES');
+  const [patientSelectionneLocal, setPatientSelectionneLocal] = useState(null);
+
+  // Charger les patients depuis le backend
+  useEffect(() => {
+    const charger = async () => {
+      if (!user?.id) return;
+      try {
+        setLoading(true);
+        const data = await getPatientsAvecStatut(user.id);
+
+        // Adapter les données backend au format attendu par l'UI
+        const patientsAdaptes = data.map(p => ({
+          id: p.id,
+          nom: p.nom,
+          prenom: p.prenom,
+          email: p.email,
+          age: p.age ? `${p.age} ans` : '—',
+          status: mapStatut(p.statut),
+          lastRdv: '-', // sera rempli plus tard quand RDV implémenté
+          telephone: p.telephone ?? '—',
+          dateNaissance: p.dateNaissance ?? '—',
+          adresse: p.adresse ?? '—',
+          personneConfiance: p.personneConfiance ?? '—',
+          examsCount: p.nombreExamens ?? 0,
+          historyCount: 0,
+          treatmentPlansCount: 0,
+          followUpsCount: p.suiviActif ? 1 : 0,
+          dernierBIRADS: p.dernierBIRADS ?? 'Non évalué',
+          suiviActif: p.suiviActif,
+        }));
+
+        setPatients(patientsAdaptes);
+        setPatientSelectionneLocal(patientsAdaptes[0] || null);
+      } catch (err) {
+        setError('Impossible de charger les patientes.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    charger();
+  }, [user?.id]);
+
+  // Filtrage
   const patientsFiltres = useMemo(() => {
-    return patientsData.filter(p => {
+    return patients.filter(p => {
       const nomComplet = `${p.prenom} ${p.nom}`.toLowerCase();
       const matchSearch = recherche ? nomComplet.includes(recherche.toLowerCase()) : true;
       const matchStatus = filtreStatus === 'TOUTES' || p.status === filtreStatus;
       return matchSearch && matchStatus;
     });
-  }, [recherche, filtreStatus]);
+  }, [recherche, filtreStatus, patients]);
+
+  // Stats calculées dynamiquement
+  const stats = useMemo(() => ({
+    total:     patients.length,
+    nouveau:   patients.filter(p => p.status === 'NOUVEAU').length,
+    critique:  patients.filter(p => p.status === 'CRITIQUE').length,
+    actifs:    patients.filter(p => p.status !== 'ARCHIVÉ').length,
+  }), [patients]);
 
   const handleOpenDossier = (p) => {
     setPatientSelectionne(p);
     navigate(`/medecin/dossier/${p.id}/vue-ensemble`);
   };
 
+  // État chargement
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-pink-400" size={32} />
+      </div>
+    );
+  }
+
+  // État erreur
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-red-400 font-medium">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-full mx-auto space-y-2.5 animate-in fade-in duration-500">
       
       {/* STATS - Tighter Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <StatCard title="Total Patientes" value="1,247" icon={Users} colorClass="bg-gray-100 text-gray-600" trend="+3.2%" />
-        <StatCard title="Nouveautés" value="86" icon={UserPlus} colorClass="bg-blue-50 text-blue-500" trend="+12.4%" />
-        <StatCard title="Cas Critiques" value="12" icon={AlertCircle} colorClass="bg-rose-50 text-rose-600" />
-        <StatCard title="Dossiers Actifs" value="1,192" icon={FolderCheck} colorClass="bg-emerald-50 text-emerald-600" />
+        <StatCard title="Total Patientes" value={stats.total} icon={Users} colorClass="bg-gray-100 text-gray-600" />
+        <StatCard title="Nouveautés" value={stats.nouveau} icon={UserPlus} colorClass="bg-blue-50 text-blue-500" />
+        <StatCard title="Cas Critiques" value={stats.critique} icon={AlertCircle} colorClass="bg-rose-50 text-rose-600" />
+        <StatCard title="Dossiers Actifs" value={stats.actifs} icon={FolderCheck} colorClass="bg-emerald-50 text-emerald-600" />
       </div>
 
       {/* FILTERS */}
@@ -247,7 +297,7 @@ export default function PatientsPage() {
                         { icon: Calendar, label: "Naissance", value: patientSelectionneLocal.dateNaissance },
                         { icon: Mail, label: "Email", value: patientSelectionneLocal.email, full: true },
                         { icon: Phone, label: "Mobile", value: patientSelectionneLocal.telephone },
-                        { icon: MapPin, label: "Ville", value: "Casablanca" },
+                        { icon: MapPin, label: "Adresse", value: patientSelectionneLocal.adresse },
                         { icon: Users, label: "Urgence", value: patientSelectionneLocal.personneConfiance, full: true },
                       ].map((item, i) => (
                         <div key={i} className={`flex items-start gap-3 ${item.full ? 'col-span-2' : 'col-span-1'}`}>
