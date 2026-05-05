@@ -5,19 +5,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "attributions_questionnaire")
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = {"medecin", "patient", "questionnaires"})
-
+@ToString(exclude = {"medecin", "patient"})
 public class AttributionQuestionnaire {
 
     @Id
@@ -45,7 +40,4 @@ public class AttributionQuestionnaire {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
-
-    @OneToMany(mappedBy = "attribution", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<QuestionnaireSuivi> questionnaires;
 }

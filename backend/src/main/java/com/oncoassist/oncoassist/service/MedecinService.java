@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.service;
 
+import com.oncoassist.oncoassist.model.dto.*;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.model.entity.Specialite;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
@@ -76,4 +77,38 @@ public class MedecinService {
     public void supprimer(UUID id) {
         medecinRepository.delete(findById(id));
     }
+    // Modifier son propre profil
+    public Medecin modifierProfil(UUID id, MedecinProfilDTO data, MultipartFile photo)
+            throws IOException {
+        Medecin medecin = findById(id);
+        medecin.setNom(data.getNom());
+        medecin.setPrenom(data.getPrenom());
+        medecin.setTelephone(data.getTelephone());
+
+        if (photo != null && !photo.isEmpty()) {
+            fileStorageService.supprimerPhoto(medecin.getPhotoProfil());
+            medecin.setPhotoProfil(fileStorageService.sauvegarderPhoto(photo));
+        }
+
+        return medecinRepository.save(medecin);
+    }
+
+    // Changer mot de passe
+    public void changerMotDePasse(UUID id, ChangePasswordDTO dto) {
+        Medecin medecin = findById(id);
+
+        // Vérifier l'ancien mot de passe
+        if (!passwordEncoder.matches(dto.getAncienMotDePasse(), medecin.getMotDePasse())) {
+            throw new IllegalArgumentException("Ancien mot de passe incorrect");
+        }
+
+        // Vérifier que le nouveau est différent
+        if (dto.getNouveauMotDePasse().length() < 8) {
+            throw new IllegalArgumentException("Le mot de passe doit contenir au moins 8 caractères");
+        }
+
+        medecin.setMotDePasse(passwordEncoder.encode(dto.getNouveauMotDePasse()));
+        medecinRepository.save(medecin);
+    }
+
 }
