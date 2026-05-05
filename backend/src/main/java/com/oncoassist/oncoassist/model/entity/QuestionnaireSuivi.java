@@ -3,19 +3,14 @@ package com.oncoassist.oncoassist.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "questionnaires_suivi")
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "questions_suivi")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = "attribution")
-
 public class QuestionnaireSuivi {
 
     @Id
@@ -23,16 +18,22 @@ public class QuestionnaireSuivi {
     @EqualsAndHashCode.Include
     private UUID id;
 
-    @Column(name = "date_remplissage", nullable = false)
-    private LocalDate dateRemplissage;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String texte;
 
-    @Column(columnDefinition = "TEXT")
-    private String reponses;
+    @ElementCollection
+    @CollectionTable(
+            name = "question_suivi_choix",
+            joinColumns = @JoinColumn(name = "question_id")
+    )
+    @Column(name = "choix")
+    private List<String> choix;
 
     @Column(nullable = false)
-    private Boolean complete = false;
+    private Integer ordre = 0;
 
+    // NULL = globale, sinon = custom pour ce patient
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attribution_id", nullable = false)
-    private AttributionQuestionnaire attribution;
+    @JoinColumn(name = "patient_id", nullable = true)
+    private Patient patient;
 }
