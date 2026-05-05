@@ -26,7 +26,7 @@ export default function Breadcrumb() {
     section = "Compte";
     page = "Paramètres";
   } else if (path.includes('dossier')) {
-    section = "Vue générale"; // Or "Clinique" depending on how you view it, let's stick to the user's logic
+    section = "Clinique"; // Or "Clinique" depending on how you view it, let's stick to the user's logic
     page = "Dossier Patient";
   }
 

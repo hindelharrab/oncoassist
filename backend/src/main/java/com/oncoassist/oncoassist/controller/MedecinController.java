@@ -1,5 +1,7 @@
 package com.oncoassist.oncoassist.controller;
 
+import com.oncoassist.oncoassist.model.dto.ChangePasswordDTO;
+import com.oncoassist.oncoassist.model.dto.MedecinProfilDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.service.MedecinService;
 import lombok.RequiredArgsConstructor;
@@ -59,5 +61,24 @@ public class MedecinController {
     public ResponseEntity<Void> supprimer(@PathVariable UUID id) {
         medecinService.supprimer(id);
         return ResponseEntity.noContent().build();
+    }
+    // Médecin modifie son propre profil
+    @PutMapping(value = "/profil/{id}", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<Medecin> modifierProfil(
+            @PathVariable UUID id,
+            @RequestPart("data") MedecinProfilDTO data,
+            @RequestPart(value = "photo", required = false) MultipartFile photo) throws IOException {
+        return ResponseEntity.ok(medecinService.modifierProfil(id, data, photo));
+    }
+
+    // Médecin change son mot de passe
+    @PutMapping("/profil/{id}/change-password")
+    @PreAuthorize("hasRole('MEDECIN')")
+    public ResponseEntity<Void> changerMotDePasse(
+            @PathVariable UUID id,
+            @RequestBody ChangePasswordDTO dto) {
+        medecinService.changerMotDePasse(id, dto);
+        return ResponseEntity.ok().build();
     }
 }
