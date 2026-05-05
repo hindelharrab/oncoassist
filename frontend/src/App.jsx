@@ -14,6 +14,8 @@ import PatientsPage from './pages/medecin/PatientsPage';
 import AgendaPage from './pages/medecin/AgendaPage';
 import AlertesPage from './pages/medecin/AlertesPage';
 import SettingsPage from './pages/medecin/SettingsPage';
+import QuestionnairesPage from './pages/medecin/QuestionnairesPage';
+import PatientQuestionnairePage from './pages/medecin/PatientQuestionnairePage';
 import MedecinLayout from './layouts/MedecinLayout';
 
 export default function App() {
@@ -32,7 +34,9 @@ export default function App() {
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="alertes" element={<AlertesPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="questionnaires" element={<QuestionnairesPage />} />
         <Route path="dossier/:id/vue-ensemble" element={<div className="p-8 font-sans"><h2 className="text-2xl font-black uppercase tracking-tighter">Dossier Patient</h2><p className="text-gray-400 mt-2 font-bold uppercase tracking-widest text-[10px]">Contenu détaillé en développement</p></div>} />
+        <Route path="dossier/:id/questionnaires" element={<PatientQuestionnairePage />} />
       </Route>
 
       <Route path="/dashboard" element={<Navigate to="/medecin/dashboard" replace />} />
