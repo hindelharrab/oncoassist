@@ -13,15 +13,15 @@ import {
 
 const StatCard = ({ title, value, badge, icon: Icon, color, delay }) => {
   const badgeColor =
-    badge.includes('+') ? 'green' :
+    badge.includes('+') ? 'sky' :
     badge.includes('attente') ? 'yellow' :
     badge.includes('dépassé') || badge.includes('Urgent') ? 'red' : 'purple';
 
   const badgeClasses = {
-    green: 'bg-green-100 text-green-600',
-    yellow: 'bg-yellow-100 text-yellow-600',
-    red: 'bg-red-100 text-red-500',
-    purple: 'bg-purple-100 text-purple-600',
+    sky: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400',
+    yellow: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
+    red: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400',
+    purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   };
 
   return (
@@ -30,16 +30,16 @@ const StatCard = ({ title, value, badge, icon: Icon, color, delay }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      className={`bg-white p-5 rounded-2xl shadow-sm border-l-4 ${color}`}
+      className={`bg-white dark:bg-gray-900 p-5 rounded-2xl shadow-sm border-l-4 ${color} transition-all`}
     >
       <div className="flex items-center justify-between mb-2">
-        <Icon size={20} strokeWidth={2.5} className="text-gray-400" />
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${badgeClasses[badgeColor]}`}>
+        <Icon size={20} strokeWidth={2.5} className="text-gray-400 dark:text-gray-600" />
+        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${badgeClasses[badgeColor]}`}>
           {badge}
         </span>
       </div>
-      <div className="text-3xl font-black text-gray-800">{value}</div>
-      <div className="text-xs text-gray-400 font-medium uppercase tracking-tight mt-1">{title}</div>
+      <div className="text-3xl font-black text-gray-800 dark:text-white">{value}</div>
+      <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-tight mt-1">{title}</div>
     </motion.div>
   );
 };
@@ -60,18 +60,18 @@ const DashboardPage = () => {
   };
 
   const appointments = [
-    { time: "09:00", name: "Fatima Alaoui",    reason: "Consultation initiale",   status: "Planifié",   statusColor: "bg-blue-50 text-blue-600"   },
-    { time: "10:30", name: "Nadia Benali",     reason: "Résultats mammographie",  status: "Effectué",   statusColor: "bg-green-50 text-green-600"  },
-    { time: "14:00", name: "Sara Idrissi",     reason: "Suivi traitement",        status: "En attente", statusColor: "bg-yellow-50 text-yellow-600"},
-    { time: "15:30", name: "Khadija Moussaoui",reason: "Biopsie",                 status: "Planifié",   statusColor: "bg-blue-50 text-blue-600"   },
+    { time: "09:00", name: "Fatima Alaoui",    reason: "Consultation initiale",   status: "Planifié",   statusColor: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"   },
+    { time: "10:30", name: "Nadia Benali",     reason: "Résultats mammographie",  status: "Effectué",   statusColor: "bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400"  },
+    { time: "14:00", name: "Sara Idrissi",     reason: "Suivi traitement",        status: "En attente", statusColor: "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400"},
+    { time: "15:30", name: "Khadija Moussaoui",reason: "Biopsie",                 status: "Planifié",   statusColor: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"   },
   ];
 
   const lastPatients = [
-    { name: "Fatima Alaoui",     lastVisit: "Il y a 2h",   dot: "bg-green-500",  initials: "FA", color: "bg-pink-100 text-pink-600"   },
-    { name: "Nadia Benali",      lastVisit: "Hier",        dot: "bg-green-500",  initials: "NB", color: "bg-blue-100 text-blue-600"   },
-    { name: "Sara Idrissi",      lastVisit: "24/04/2026",  dot: "bg-red-500",    initials: "SI", color: "bg-orange-100 text-orange-600"},
-    { name: "Khadija Moussaoui", lastVisit: "22/04/2026",  dot: "bg-orange-500", initials: "KM", color: "bg-purple-100 text-purple-600"},
-    { name: "Amina Tazi",        lastVisit: "20/04/2026",  dot: "bg-green-500",  initials: "AT", color: "bg-teal-100 text-teal-600"   },
+    { name: "Fatima Alaoui",     lastVisit: "Il y a 2h",   dot: "bg-pink-500",  initials: "FA", color: "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400"   },
+    { name: "Nadia Benali",      lastVisit: "Hier",        dot: "bg-sky-500",   initials: "NB", color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"   },
+    { name: "Sara Idrissi",      lastVisit: "24/04/2026",  dot: "bg-red-500",    initials: "SI", color: "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"},
+    { name: "Khadija Moussaoui", lastVisit: "22/04/2026",  dot: "bg-orange-500", initials: "KM", color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"},
+    { name: "Amina Tazi",        lastVisit: "20/04/2026",  dot: "bg-sky-500",   initials: "AT", color: "bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"   },
   ];
 
   return (
@@ -83,10 +83,10 @@ const DashboardPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-black text-gray-800">
+          <h2 className="text-2xl font-black text-gray-800 dark:text-white">
             Bonjour, Dr. {prenomMedecin} 👋
           </h2>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 dark:text-gray-500 text-sm">
             Voici un aperçu de votre activité aujourd'hui.
           </p>
         </div>
@@ -111,30 +111,30 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Rendez-vous */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-black text-lg text-gray-800">Rendez-vous d'aujourd'hui</h3>
+            <h3 className="font-black text-lg text-gray-800 dark:text-white">Rendez-vous d'aujourd'hui</h3>
             <button className="text-pink-500 text-sm font-bold hover:underline flex items-center gap-1">
               Voir tout <ChevronRight size={16} />
             </button>
           </div>
           <div className="space-y-1">
             {appointments.map((apt, idx) => (
-              <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 rounded-xl transition-colors">
-                <span className="w-14 bg-pink-50 text-pink-600 font-black text-[10px] text-center py-1.5 rounded-lg shrink-0">
+              <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 px-2 rounded-xl transition-colors">
+                <span className="w-14 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 font-black text-[10px] text-center py-1.5 rounded-lg shrink-0">
                   {apt.time}
                 </span>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                  idx === 0 ? 'bg-blue-100 text-blue-600' :
-                  idx === 1 ? 'bg-orange-100 text-orange-600' :
-                  idx === 2 ? 'bg-purple-100 text-purple-600' :
-                              'bg-gray-100 text-gray-600'
+                  idx === 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                  idx === 1 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                  idx === 2 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                              'bg-gray-100 dark:bg-gray-800 text-gray-600'
                 }`}>
                   {apt.name.split(' ').map(n => n[0] || '').join('')}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-800">{apt.name}</p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-tight">{apt.reason}</p>
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{apt.name}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-tight">{apt.reason}</p>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${apt.statusColor}`}>
                   {apt.status}
@@ -145,8 +145,8 @@ const DashboardPage = () => {
         </div>
 
         {/* Derniers patients */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-black text-lg text-gray-800 mb-6">Mes derniers patients</h3>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+          <h3 className="font-black text-lg text-gray-800 dark:text-white mb-6">Mes derniers patients</h3>
           <div className="space-y-4">
             {lastPatients.map((p, idx) => (
               <div key={idx} className="flex items-center gap-3 py-1 group cursor-pointer">
@@ -154,16 +154,16 @@ const DashboardPage = () => {
                   {p.initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 group-hover:text-pink-500 transition-colors">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-pink-500 transition-colors">
                     {p.name}
                   </p>
-                  <p className="text-[10px] text-gray-400">{p.lastVisit}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{p.lastVisit}</p>
                 </div>
                 <div className={`w-2 h-2 rounded-full ${p.dot}`}></div>
               </div>
             ))}
           </div>
-          <button className="w-full mt-6 py-3 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 text-xs font-bold hover:border-pink-200 hover:text-pink-400 transition-all">
+          <button className="w-full mt-6 py-3 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-2xl text-gray-400 dark:text-gray-600 text-xs font-bold hover:border-pink-200 dark:hover:border-pink-900 hover:text-pink-400 transition-all">
             Explorer tous les patients
           </button>
         </div>
