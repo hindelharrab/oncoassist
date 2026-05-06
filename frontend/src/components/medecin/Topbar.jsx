@@ -4,14 +4,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+
+
 export default function Topbar({ recherche, setRecherche }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, getInitiales } = useAuth();
+  const { user, logout, getInitiales, getPhotoUrl } = useAuth(); // ← ajouter getPhotoUrl
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
+
+  const showSearch = location.pathname === '/medecin/patients' || location.pathname === '/medecin/dossiers';
+
+  
+
+const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
 
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'Résultat analyse critique', time: '10 min', unread: true },
@@ -39,8 +47,25 @@ export default function Topbar({ recherche, setRecherche }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+ 
+
+ 
+
   const nomComplet = user ? `Dr. ${user.prenom} ${user.nom}` : 'Dr. Médecin';
   const specialite = user?.role === 'MEDECIN' ? 'Médecin Sénologue' : user?.role ?? 'Oncologue';
+
+  const pageTitle = () => {
+    const p = location.pathname;
+    if (p.includes('patients')) return 'Mes Patientes';
+    if (p.includes('dossiers')) return 'Dossiers médicaux';
+    if (p.includes('dashboard')) return 'Tableau de Bord';
+    if (p.includes('agenda')) return 'Agenda';
+    if (p.includes('alertes')) return 'Alertes';
+    if (p.includes('questionnaires')) return 'Questionnaires';
+    if (p.includes('settings')) return 'Paramètres';
+    if (p.includes('dossier')) return 'Dossier Patient';
+    return 'OncoAssist';
+  };
 
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 h-16 flex items-center justify-between sticky top-0 z-30 transition-colors">
@@ -48,35 +73,30 @@ export default function Topbar({ recherche, setRecherche }) {
       {/* Titre page */}
       <div className="flex flex-col">
         <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">
-          {location.pathname.includes('patients') ? 'Mes Patientes' : 
-            location.pathname.includes('dossiers') ? 'Dossiers médicaux' :
-            location.pathname.includes('dashboard') ? 'Tableau de Bord' : 
-            location.pathname.includes('agenda') ? 'Agenda' :
-            location.pathname.includes('alertes') ? 'Alertes' :
-            location.pathname.includes('questionnaires') ? 'Questionnaires' :
-            location.pathname.includes('settings') ? 'Paramètres' : 
-            location.pathname.includes('dossier') ? 'Dossier Patient' : 'OncoAssist'}
+          {pageTitle()}
         </h1>
       </div>
 
       {/* Droite */}
       <div className="flex items-center gap-6">
 
-        {/* Barre de recherche */}
-        <div className="hidden md:flex items-center gap-2 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-700/50 rounded-lg px-3 py-1.5 w-64 focus-within:border-pink-300 dark:focus-within:border-pink-500 transition-all shadow-sm">
-          <Search size={14} className="text-gray-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" />
-          <input
-            type="text"
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            placeholder="Rechercher une patiente..."
-            className="bg-transparent outline-none text-xs font-semibold text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 flex-1"
-          />
-        </div>
+        {/* Barre de recherche — uniquement sur /medecin/patients */}
+        {showSearch && (
+          <div className="hidden md:flex items-center gap-2 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-700/50 rounded-lg px-3 py-1.5 w-64 focus-within:border-pink-300 dark:focus-within:border-pink-500 transition-all shadow-sm">
+            <Search size={14} className="text-gray-400 transition-colors" />
+            <input
+              type="text"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher une patiente..."
+              className="bg-transparent outline-none text-xs font-semibold text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 flex-1"
+            />
+          </div>
+        )}
 
         {/* Cloche notification */}
         <div className="relative" ref={notifRef}>
-          <button 
+          <button
             onClick={() => setShowNotifDropdown(!showNotifDropdown)}
             className="text-gray-500 hover:text-pink-500 transition-colors p-1"
           >
@@ -100,7 +120,7 @@ export default function Topbar({ recherche, setRecherche }) {
                 </div>
                 <div className="max-h-80 overflow-y-auto space-y-1">
                   {notifications.map((notif) => (
-                    <button 
+                    <button
                       key={notif.id}
                       onClick={() => markAsRead(notif.id)}
                       className={`w-full text-left p-3 rounded-xl transition-all group flex items-start gap-3 ${notif.unread ? 'bg-pink-50/30 dark:bg-pink-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
@@ -114,7 +134,7 @@ export default function Topbar({ recherche, setRecherche }) {
                   ))}
                 </div>
                 <div className="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
-                  <button 
+                  <button
                     onClick={() => { navigate('/medecin/alertes'); setShowNotifDropdown(false); }}
                     className="w-full py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-900/10 rounded-xl transition-all"
                   >
@@ -130,9 +150,19 @@ export default function Topbar({ recherche, setRecherche }) {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="w-9 h-9 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-500 dark:text-pink-400 font-bold text-sm hover:ring-2 hover:ring-pink-200 dark:hover:ring-pink-800 transition-all"
+            className="w-9 h-9 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-500 dark:text-pink-400 font-bold text-sm hover:ring-2 hover:ring-pink-200 dark:hover:ring-pink-800 transition-all overflow-hidden"
           >
-            {getInitiales()}
+            {photoUrl ? (
+              <img
+               key={photoUrl}    
+                src={photoUrl}
+                alt="Profil"
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              getInitiales()
+            )}
           </button>
 
           <AnimatePresence>
@@ -142,12 +172,22 @@ export default function Topbar({ recherche, setRecherche }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-12 bg-white dark:bg-gray-900 shadow-xl rounded-2xl border border-gray-100 dark:border-gray-800 w-64 p-2 z-50 origin-top-right scale-100"
+                className="absolute right-0 top-12 bg-white dark:bg-gray-900 shadow-xl rounded-2xl border border-gray-100 dark:border-gray-800 w-64 p-2 z-50 origin-top-right"
               >
                 {/* Header dropdown */}
                 <div className="p-4 flex flex-col items-center border-b border-gray-50 dark:border-gray-800 mb-1">
-                  <div className="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-500 dark:text-pink-400 font-bold text-xl mb-3">
-                    {getInitiales()}
+                  <div className="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-500 dark:text-pink-400 font-bold text-xl mb-3 overflow-hidden">
+                    {photoUrl ? (
+                      <img
+                       key={photoUrl}    
+                        src={photoUrl}
+                        alt="Profil"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      getInitiales()
+                    )}
                   </div>
                   <p className="font-bold text-gray-800 dark:text-white text-base">{nomComplet}</p>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mb-2">{specialite}</p>
@@ -172,7 +212,6 @@ export default function Topbar({ recherche, setRecherche }) {
                   <LogOut size={18} className="text-gray-400 dark:text-gray-500" />
                   <span>Se déconnecter</span>
                 </button>
-
               </motion.div>
             )}
           </AnimatePresence>

@@ -1,12 +1,14 @@
 import React from 'react';
-import { motion, AnimatePresence } from  "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SidebarGlobal from './SidebarGlobal';
 import SidebarPatient from './SidebarPatient';
 
 export default function Sidebar({ patientSelectionne, setPatientSelectionne }) {
-  const { user, logout, getInitiales } = useAuth();
+  const { user, logout, getInitiales, getPhotoUrl } = useAuth(); // ← getPhotoUrl
+
+  const photoUrl = getPhotoUrl(); // ← centralisé
 
   return (
     <aside className="w-64 bg-white h-screen flex flex-col border-r border-gray-100 flex-shrink-0">
@@ -57,10 +59,20 @@ export default function Sidebar({ patientSelectionne, setPatientSelectionne }) {
       {/* Profil médecin */}
       <div className="border-t border-gray-100 p-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-pink-500 font-bold text-sm">
-              {getInitiales()}
-            </span>
+          <div className="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {photoUrl ? (
+              <img
+                key={photoUrl}              // ← key force le re-render quand l'URL change
+                src={photoUrl}
+                alt="Profil"
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <span className="text-pink-500 font-bold text-sm">
+                {getInitiales()}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-800 truncate">
@@ -79,7 +91,6 @@ export default function Sidebar({ patientSelectionne, setPatientSelectionne }) {
           </button>
         </div>
       </div>
-
     </aside>
   );
 }
