@@ -2,6 +2,7 @@ package com.oncoassist.oncoassist.controller;
 
 import com.oncoassist.oncoassist.model.dto.ChangePasswordDTO;
 import com.oncoassist.oncoassist.model.dto.MedecinProfilDTO;
+import com.oncoassist.oncoassist.model.dto.MedecinResponseDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.service.MedecinService;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +36,8 @@ public class MedecinController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Medecin> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(medecinService.findById(id));
+    public ResponseEntity<MedecinResponseDTO> findById(@PathVariable UUID id) {
+        return ResponseEntity.ok(medecinService.findByIdDTO(id));
     }
 
     @GetMapping("/specialite/{specialiteId}")
