@@ -14,3 +14,4 @@ export const resetPassword = async (token, newPassword) => {
   const { data } = await axiosInstance.post('/auth/reset-password', { token, nouveauMotDePasse : newPassword });
   return data;
 };
+
