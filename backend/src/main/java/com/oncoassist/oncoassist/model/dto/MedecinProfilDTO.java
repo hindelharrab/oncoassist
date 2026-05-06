@@ -11,5 +11,5 @@ public class MedecinProfilDTO {
     private String nom;
     private String prenom;
     private String telephone;
-    private String bio;
+
 }

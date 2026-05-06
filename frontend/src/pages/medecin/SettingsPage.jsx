@@ -32,22 +32,22 @@ const SettingsPage = () => {
 
   // ── Chargement profil ──────────────────────────────────────────────────
   useEffect(() => {
-    const loadProfil = async () => {
-      try {
-        if (!user?.id) return;
+  const loadProfil = async () => {
+    try {
+      if (!user?.id) return;
+      const res = await medecinService.findById(user.id);
+      
+      const medecin = res.data;
 
-        const res    = await medecinService.findById(user.id);
-        const medecin = res.data;
-
-        setDoctorInfo({
-          nom:        medecin.nom           || '',
-          prenom:     medecin.prenom        || '',
-          specialite: medecin.specialite?.nom || '',
-          numOrdre:   medecin.numeroOrdre   || '',
-          email:      medecin.email         || '',
-          tel:        medecin.telephone     || '',
-          photoProfil: medecin.photoProfil  || '',
-        });
+       setDoctorInfo({
+    nom:         medecin.nom           || user.nom     || '',
+    prenom:      medecin.prenom        || user.prenom  || '',
+    specialite:  medecin.specialiteNom || '',  // ✅ changé
+    numOrdre:    medecin.numeroOrdre   || '',
+    email:       medecin.email         || user.email   || '',
+    tel:         medecin.telephone     || '',
+    photoProfil: medecin.photoProfil   || '',
+});
 
         if (medecin.photoProfil) {
           const fileName = medecin.photoProfil.split('/').pop();
