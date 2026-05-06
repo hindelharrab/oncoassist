@@ -1,5 +1,7 @@
 package com.oncoassist.oncoassist.service;
 
+import com.oncoassist.oncoassist.model.dto.RendezVousDTO;
+import com.oncoassist.oncoassist.model.entity.Patient;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
 import com.oncoassist.oncoassist.model.entity.enums.StatutRDVEnum;
 import com.oncoassist.oncoassist.repository.RendezVousRepository;
@@ -19,6 +21,7 @@ public class RendezVousService {
     private final MedecinService medecinService;
     private final PatientService patientService;
 
+    // ── Mutations (restent avec RendezVous) ──────────────────────────────
     public RendezVous demander(UUID medecinId, UUID patientId, String motif) {
         RendezVous rdv = new RendezVous();
         rdv.setMedecin(medecinService.findById(medecinId));
@@ -49,24 +52,54 @@ public class RendezVousService {
         return rendezVousRepository.save(rdv);
     }
 
+    // ── findById (usage interne uniquement) ─────────────────────────────
     public RendezVous findById(UUID id) {
         return rendezVousRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Rendez-vous non trouvé : " + id));
     }
 
-    public List<RendezVous> findAll() {
-        return rendezVousRepository.findAll();
+    // ── Conversion ───────────────────────────────────────────────────────
+    public RendezVousDTO toDTO(RendezVous rdv) {
+        Patient patient = rdv.getPatient();
+        return RendezVousDTO.builder()
+                .id(rdv.getId())
+                .motif(rdv.getMotif())
+                .statut(rdv.getStatut())
+                .date(rdv.getDate())
+                .lieu(rdv.getLieu())
+                .dateCreation(rdv.getDateCreation())
+                .patientNom(patient    != null ? patient.getNom()    : null)
+                .patientPrenom(patient != null ? patient.getPrenom() : null)
+                .patientId(patient     != null ? patient.getId()     : null)
+                .build();
     }
 
-    public List<RendezVous> findByMedecin(UUID medecinId) {
-        return rendezVousRepository.findByMedecinId(medecinId);
+    // ── Lectures (retournent RendezVousDTO) ──────────────────────────────
+    public List<RendezVousDTO> findAll() {
+        return rendezVousRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public List<RendezVous> findByPatient(UUID patientId) {
-        return rendezVousRepository.findByPatientId(patientId);
+    public List<RendezVousDTO> findByMedecin(UUID medecinId) {
+        return rendezVousRepository.findByMedecinId(medecinId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public List<RendezVous> findEnAttente() {
-        return rendezVousRepository.findByStatut(StatutRDVEnum.EN_ATTENTE);
+    public List<RendezVousDTO> findByPatient(UUID patientId) {
+        return rendezVousRepository.findByPatientId(patientId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    public List<RendezVousDTO> findEnAttente() {
+        return rendezVousRepository.findByStatut(StatutRDVEnum.EN_ATTENTE)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 }

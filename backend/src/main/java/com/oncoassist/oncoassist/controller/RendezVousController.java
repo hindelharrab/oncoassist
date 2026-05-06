@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.controller;
 
+import com.oncoassist.oncoassist.model.dto.RendezVousDTO;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
 import com.oncoassist.oncoassist.service.RendezVousService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class RendezVousController {
 
     private final RendezVousService rendezVousService;
 
+    // ── Mutations (retournent RendezVous directement) ────────────────────
     @PostMapping("/demander")
     @PreAuthorize("hasRole('MEDECIN')")
     public ResponseEntity<RendezVous> demander(@RequestBody Map<String, String> body) {
@@ -51,28 +53,29 @@ public class RendezVousController {
         return ResponseEntity.ok(rendezVousService.annuler(id));
     }
 
+    // ── Lectures (retournent RendezVousDTO) ──────────────────────────────
     @GetMapping
-    public ResponseEntity<List<RendezVous>> findAll() {
+    public ResponseEntity<List<RendezVousDTO>> findAll() {
         return ResponseEntity.ok(rendezVousService.findAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RendezVous> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(rendezVousService.findById(id));
+    public ResponseEntity<RendezVousDTO> findById(@PathVariable UUID id) {
+        return ResponseEntity.ok(rendezVousService.toDTO(rendezVousService.findById(id)));
     }
 
     @GetMapping("/medecin/{medecinId}")
-    public ResponseEntity<List<RendezVous>> findByMedecin(@PathVariable UUID medecinId) {
+    public ResponseEntity<List<RendezVousDTO>> findByMedecin(@PathVariable UUID medecinId) {
         return ResponseEntity.ok(rendezVousService.findByMedecin(medecinId));
     }
 
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<List<RendezVous>> findByPatient(@PathVariable UUID patientId) {
+    public ResponseEntity<List<RendezVousDTO>> findByPatient(@PathVariable UUID patientId) {
         return ResponseEntity.ok(rendezVousService.findByPatient(patientId));
     }
 
     @GetMapping("/en-attente")
-    public ResponseEntity<List<RendezVous>> findEnAttente() {
+    public ResponseEntity<List<RendezVousDTO>> findEnAttente() {
         return ResponseEntity.ok(rendezVousService.findEnAttente());
     }
 }

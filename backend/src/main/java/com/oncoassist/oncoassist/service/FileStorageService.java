@@ -37,7 +37,7 @@ public class FileStorageService {
         Path chemin = dossier.resolve(nomFichier);
         Files.copy(file.getInputStream(), chemin, StandardCopyOption.REPLACE_EXISTING);
 
-        return uploadDir + "/" + nomFichier;
+        return nomFichier;
     }
 
     public void supprimerPhoto(String chemin) {
