@@ -8,36 +8,25 @@ import {
   History, 
   Users, 
   Clipboard, 
-  FileText,
   Calendar,
   CheckCircle2,
-  TrendingUp,
-  ArrowUpRight,
-  TrendingDown
+  Droplets,
+  FlaskConical,
+  Scissors,
+  FileSearch
 } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area
-} from 'recharts';
+
 
 const VueEnsemblePage = () => {
   const { id } = useParams();
 
-  // Mock data for the demonstration
   const patient = {
-    id: id,
+    id: id?.slice(-8) || 'D-8921-X',
     nom: 'Harrab',
     prenom: 'Hind',
     age: 42,
     doctors: [
-      { name: 'Dr. Jean Dupont', specialty: 'OncologueRéférent' },
+      { name: 'Dr. Jean Dupont', specialty: 'Oncologue Référent' },
       { name: 'Dr. Sarah Martin', specialty: 'Radiologue' }
     ]
   };
@@ -53,232 +42,197 @@ const VueEnsemblePage = () => {
   ];
 
   const exams = [
-    { type: 'Consultation Initiale', date: '10/03/2026', status: 'Complété', result: 'Masse palpable QSE gauche' },
-    { type: 'Mammographie', date: '15/03/2026', status: 'Complété', result: 'ACR 5 - Opacité spiculée' },
-    { type: 'Biopsie', date: '20/03/2026', status: 'Complété', result: 'Grade II - HER2+' },
-    { type: 'IRM Mammaire', date: '25/03/2026', status: 'Complété', result: 'Extension 2.5cm' }
+    { type: 'Examen Manuel', date: '10/03/2026', result: 'Masse palpable QSE gauche - 2cm' },
+    { type: 'Mammographie', date: '15/03/2026', result: 'ACR 5 - Score BIRADS VI' },
+    { type: 'Échographie', date: '18/03/2026', result: 'Structure hétérogène hypoéchogène' },
+    { type: 'Biopsie', date: '21/03/2026', result: 'Carcinome Infiltrant - HER2+' },
+    { type: 'IRM Mammaire', date: '25/03/2026', result: 'Prise de contraste intense - 2.5cm' }
   ];
 
-  const treatmentPlan = [
-    { phase: 'Chirurgie', status: 'Terminé', date: '05/04/2026' },
-    { phase: 'Radiothérapie', status: 'En cours', progress: 65 },
-    { phase: 'Hormonothérapie', status: 'À venir', date: '01/06/2026' }
+  const upcomingRendezVous = [
+    { id: 1, date: '12/05/2026', motif: 'Contrôle Post-Op', statut: 'Confirmé', lieu: 'Service Oncologie' },
+    { id: 2, date: '19/05/2026', motif: 'Séance Radiothérapie', statut: 'Planifié', lieu: 'Plateau Technique' }
   ];
 
-  const graphData = [
-    { name: 'Sem 1', fatigue: 4, douleur: 2, moral: 8 },
-    { name: 'Sem 2', fatigue: 5, douleur: 3, moral: 7 },
-    { name: 'Sem 3', fatigue: 7, douleur: 6, moral: 5 },
-    { name: 'Sem 4', fatigue: 6, douleur: 4, moral: 6 },
-    { name: 'Sem 5', fatigue: 4, douleur: 2, moral: 8 },
-    { name: 'Sem 6', fatigue: 3, douleur: 1, moral: 9 },
+  const timelineData = [
+    { 
+      month: 'JANVIER', 
+      tasks: [
+        { id: 1, title: 'Biopsie', subtitle: 'Prélèvement tissulaire', date: '07 JAN', type: 'biopsy', color: '#ec4899', completed: true },
+        { id: 2, title: 'Chimio C1', subtitle: 'Protocole EC-100', date: '18 JAN', type: 'chemo', color: '#f43f5e', completed: true },
+        { id: 3, title: 'Aromasin', subtitle: 'Traitement Oral', date: '24 JAN', type: 'pill', color: '#d946ef', completed: true },
+      ]
+    },
+    { 
+      month: 'FÉVRIER', 
+      tasks: [
+        { id: 4, title: 'Bisphospho', subtitle: 'Perfusion osseuse', date: '05 FÉV', type: 'pill', color: '#a855f7', completed: true },
+        { id: 5, title: 'Radiation P1', subtitle: 'Séance ciblée', date: '19 FÉV', type: 'radiation', color: '#7c3aed', completed: true },
+      ]
+    },
+    { 
+      month: 'MARS', 
+      tasks: [
+        { id: 6, title: 'Scanner', subtitle: 'Contrôle TAP', date: '17 MAR', type: 'scan', color: '#94a3b8', completed: false },
+        { id: 7, title: 'Chirurgie', subtitle: 'Tumorectomie QSE', date: '21 MAR', type: 'surgery', color: '#94a3b8', completed: false },
+      ]
+    }
   ];
 
   return (
-    <div className="p-8 space-y-6 bg-white dark:bg-black min-h-full font-sans">
-      {/* Patient Profile Header - More Clinical/Serious */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-50 dark:bg-slate-800/30 -skew-x-12 translate-x-20"></div>
-        
+    <div className="p-8 space-y-8 bg-white dark:bg-black min-h-full font-sans transition-all">
+      {/* Patient Profile Header */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-50/30 dark:bg-slate-800/20 -skew-x-12 translate-x-20"></div>
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="flex items-center gap-8">
-            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-200 dark:border-slate-700 shadow-inner">
-              <User size={40} strokeWidth={1.5} />
+            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-100 dark:border-slate-700 shadow-sm">
+              <User size={32} strokeWidth={1} />
             </div>
             <div>
               <div className="flex items-center gap-4 mb-2">
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{patient.nom} {patient.prenom}</h1>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">{patient.nom} {patient.prenom}</h1>
                 <div className="h-4 w-px bg-slate-200 dark:bg-slate-700"></div>
-                <span className="text-slate-500 font-bold text-xs uppercase tracking-widest">ID Dossier: {patient.id}</span>
+                <span className="text-slate-400 font-bold text-xs uppercase tracking-widest leading-none">ID: {patient.id}</span>
               </div>
               <div className="flex items-center gap-6">
                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">
-                  <Calendar size={12} className="text-slate-400" /> {patient.age} ans
+                  <Calendar size={12} className="text-slate-400" /> {patient.age} ANS
                 </p>
                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">
-                  <Activity size={12} className="text-slate-400" /> Groupe A+
+                  <Activity size={12} className="text-slate-400" /> O+
                 </p>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-md border border-emerald-100 dark:border-emerald-800/50">
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                  <span className="text-[9px] font-black uppercase tracking-widest">Protocol Actif</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100/50 dark:border-emerald-800/30">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-[9px] font-black uppercase tracking-widest">SUIVI ACTIF</span>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="space-y-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-1 mb-2">Équipe de Soins</p>
-              <div className="flex -space-x-2 h-8">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+            <div className="text-right">
+              <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1.5 text-right">ÉQUIPE DE RÉFÉRENCE</p>
+              <div className="flex -space-x-1.5 h-7 justify-end">
                 {patient.doctors.map((doc, i) => (
-                  <div key={i} title={`${doc.name} - ${doc.specialty}`} className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase">
+                  <div key={i} title={`${doc.name} - ${doc.specialty}`} className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-gray-900 flex items-center justify-center text-[9px] font-black text-slate-700 dark:text-slate-400 uppercase shadow-sm">
                     {doc.name.split(' ').pop().charAt(0)}
                   </div>
                 ))}
-                <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-black text-slate-400 italic">
-                  +1
-                </div>
               </div>
             </div>
+            <button className="h-11 px-6 rounded-xl bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-900/5">
+                NOUVEAU COMPTE RENDU
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Section - Clinical Data (8 cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* Bento Grid for History */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Medical History */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-md">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg">
-                    <History size={18} />
-                  </div>
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Antécédents Médicaux</h2>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Top Section - History & Appointments */}
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Medical History */}
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+                <History size={18} />
               </div>
-              
-              <div className="space-y-3">
-                {medicalHistory.map((item, i) => (
-                  <div key={i} className="p-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">{item.maladie}</h3>
-                      <span className="text-[8px] font-black text-slate-400 uppercase">{item.dateDiagnostic}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium mb-2">{item.traitements}</p>
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${item.statut === 'En cours' ? 'bg-amber-400' : 'bg-slate-300'}`}></div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.statut}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Family History */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-md">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg">
-                    <Users size={18} />
-                  </div>
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Antécédents Familiaux</h2>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                {familyHistory.map((item, i) => (
-                  <div key={i} className="p-4 border-l-2 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-900/10 rounded-r-xl">
-                    <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-1">{item.lienFamilial}</p>
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white mb-1">{item.maladie}</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Âge: {item.ageSurvenue} ans</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Evolution Chart - Precise View */}
-          <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-md">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg">
-                  <TrendingUp size={18} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Cinétique de la Qualité de Vie</h2>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Données issues des questionnaires hebdomadaires</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-rose-500 rounded-sm"></div>
-                    <span>Fatigue (VAS)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-sky-500 rounded-sm"></div>
-                    <span>Score Moral</span>
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Antécédents Médicaux</h2>
             </div>
-            
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={graphData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 9, fontWeight: 800, fill: '#94a3b8' }}
-                    dy={10}
-                  />
-                  <YAxis 
-                    domain={[0, 10]}
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 9, fontWeight: 800, fill: '#94a3b8' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: '12px', 
-                      border: '1px solid #f1f5f9', 
-                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      textTransform: 'uppercase'
-                    }} 
-                    itemStyle={{ padding: '2px 0' }}
-                  />
-                  <Line type="monotone" dataKey="fatigue" stroke="#f43f5e" strokeWidth={3} dot={{ fill: '#f43f5e', strokeWidth: 2, r: 4, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="moral" stroke="#0ea5e9" strokeWidth={3} dot={{ fill: '#0ea5e9', strokeWidth: 2, r: 4, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="space-y-4">
+              {medicalHistory.map((item, i) => (
+                <div key={i} className="p-5 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800 group hover:border-slate-300 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.maladie}</h3>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">{item.dateDiagnostic}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mb-4 italic leading-relaxed">"{item.traitements}"</p>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${item.statut === 'En cours' ? 'bg-amber-400' : 'bg-emerald-500'}`}></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.statut}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
-
-          {/* Detailed Exams Section */}
-          <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-md">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg">
-                  <Clipboard size={18} />
-                </div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Examens Cliniques & Imagerie</h2>
+          {/* Family History */}
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+                <Users size={18} />
               </div>
-              <button className="text-[10px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest flex items-center gap-1">
-                Voir tout l'historique <ArrowUpRight size={14} />
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Antécédents Familiaux</h2>
+            </div>
+            <div className="space-y-4">
+              {familyHistory.map((item, i) => (
+                <div key={i} className="p-5 border-l-4 border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 rounded-r-2xl hover:bg-slate-50 transition-all">
+                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">{item.lienFamilial}</p>
+                  <h3 className="text-xs font-black text-slate-900 dark:text-white mb-2 uppercase leading-none">{item.maladie}</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Diagnostic: {item.ageSurvenue} ans</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Right Column - Appointments */}
+        <div className="lg:col-span-4">
+          <section className="bg-slate-900 text-white rounded-3xl p-8 shadow-2xl h-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-sky-500/10 rounded-full -mr-24 -mt-24 blur-3xl"></div>
+            <div className="flex items-center gap-3 mb-10 relative">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5"><Calendar size={20} className="text-sky-400" /></div>
+              <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-sky-400">Rendez-vous</h2>
+            </div>
+            <div className="space-y-8 relative">
+              {upcomingRendezVous.map((rdv) => (
+                <div key={rdv.id} className="relative pl-8 border-l-2 border-white/5 hover:border-sky-500 transition-all group">
+                  <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-sky-500 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(14,165,233,0.3)]"></div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-white/30 tracking-widest italic">{rdv.date}</span>
+                    <span className="text-[9px] font-black px-3 py-1 bg-white/5 text-sky-400 rounded-full border border-white/5 uppercase tracking-tighter">{rdv.statut}</span>
+                  </div>
+                  <h4 className="text-[12px] font-black uppercase tracking-widest mb-1 text-white">{rdv.motif}</h4>
+                  <p className="text-[9px] text-white/20 italic uppercase tracking-widest">{rdv.lieu}</p>
+                </div>
+              ))}
+              <button className="w-full mt-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] text-sky-500 transition-all">
+                Gérer l'agenda
+              </button>
+            </div>
+          </section>
+        </div>
+
+        {/* Full Width Exams Section */}
+        <div className="lg:col-span-12">
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-10 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between mb-12 pb-8 border-b border-slate-50 dark:border-slate-800">
+              <div className="flex items-center gap-6">
+                <div className="p-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-xl">
+                  <Clipboard size={24} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-[0.1em] text-slate-900 dark:text-white">Examens & Imagerie Médicale</h2>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Séquençage chronologique • Protocoles hospitaliers</p>
+                </div>
+              </div>
+              <button className="px-6 py-3 bg-slate-50 dark:bg-slate-800 text-[10px] font-black uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-slate-100 transition-all">
+                TÉLÉCHARGER TOUT (.ZIP)
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
               {exams.map((exam, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase">
-                      {i + 1}
-                    </div>
-                    {i !== exams.length - 1 && <div className="flex-1 w-px bg-slate-100 dark:bg-slate-800 my-2"></div>}
+                <div key={i} className="group p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-900 dark:hover:border-slate-600 transition-all shadow-sm hover:shadow-xl">
+                  <div className="flex justify-between items-start mb-6">
+                    <span className="text-[11px] font-black px-3 py-1 bg-slate-900 text-white rounded-lg uppercase tracking-widest">RAPPORT 0{i + 1}</span>
+                    <span className="text-[10px] font-bold text-slate-300 italic tracking-widest text-right">{exam.date}</span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">{exam.type}</h3>
-                      <span className="text-[10px] font-bold text-slate-300">{exam.date}</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 font-medium mb-2 leading-relaxed">{exam.result}</p>
-                    <div className="flex gap-3">
-                      <button className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-widest border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-md hover:bg-slate-50 transition-colors">
-                        CR Complet
-                      </button>
-                      <button className="text-[9px] font-black text-sky-600 uppercase tracking-widest px-3 py-1 rounded-md bg-sky-50 dark:bg-sky-900/20 hover:bg-sky-100 transition-colors">
-                        Imagerie
-                      </button>
-                    </div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-4 leading-tight">{exam.type}</h3>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl mb-6 border border-slate-50 dark:border-slate-800">
+                    <p className="text-[12px] text-slate-600 dark:text-slate-400 font-medium italic leading-relaxed">"{exam.result}"</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <button className="flex-1 text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest border border-slate-200 dark:border-slate-700 py-3 rounded-xl hover:bg-slate-50 transition-all shadow-sm">Consulter</button>
+                    <button className="flex-1 text-[10px] font-black text-sky-600 uppercase tracking-widest bg-sky-50 dark:bg-sky-900/20 py-3 rounded-xl hover:bg-sky-100 transition-all shadow-sm">Visualiser</button>
                   </div>
                 </div>
               ))}
@@ -286,113 +240,63 @@ const VueEnsemblePage = () => {
           </section>
         </div>
 
-        {/* Right Section - Plan & Metrics (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Treatment Plan - Highlighted */}
-          <section className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-            
-            <div className="flex items-center gap-3 mb-6 relative">
-              <div className="p-1.5 bg-white/10 rounded-lg">
-                <Activity size={16} />
-              </div>
-              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Parcours Thérapeutique</h2>
-            </div>
-            
-            <div className="space-y-4 relative">
-              {treatmentPlan.map((phase, i) => (
-                <div key={i} className={`p-4 rounded-xl border ${phase.status === 'En cours' ? 'bg-white/10 border-white/20' : 'bg-transparent border-white/5'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                      {phase.phase}
-                    </h4>
-                    {phase.status === 'Terminé' ? (
-                      <CheckCircle2 size={14} className="text-emerald-400" />
-                    ) : phase.status === 'En cours' ? (
-                      <span className="flex h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse"></span>
-                    ) : (
-                      <span className="text-[9px] font-bold text-white/30 italic uppercase">{phase.status}</span>
-                    )}
+        {/* ── PARCOURS DE SOIN TIMELINE (COMPACT BUT BALANCED) ── */}
+        <div className="lg:col-span-12">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative">
+            <div className="flex items-start overflow-x-auto no-scrollbar gap-12 pb-4 relative min-h-[220px]">
+              {timelineData.map((month, mIdx) => (
+                <div key={mIdx} className="flex-none w-[220px] relative">
+                  <div className="flex items-center gap-3 mb-6">
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{month.month}</span>
+                    <div className="flex-1 h-px bg-slate-50 dark:bg-slate-800"></div>
                   </div>
-                  
-                  {phase.progress ? (
-                    <div className="space-y-2">
-                      <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-sky-400" 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${phase.progress}%` }}
-                        />
+
+                  <div className="space-y-5">
+                    {month.tasks.map((task) => (
+                      <div key={task.id} className="flex items-center gap-4 relative group">
+                        <div className="relative">
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
+                            style={{ 
+                              backgroundColor: task.completed ? task.color : '#f8fafc',
+                              color: task.completed ? 'white' : '#cbd5e1'
+                            }}
+                          >
+                            {task.type === 'biopsy' && <FlaskConical size={18} />}
+                            {task.type === 'chemo' && <Droplets size={18} />}
+                            {task.type === 'pill' && <Stethoscope size={18} />}
+                            {task.type === 'radiation' && <Activity size={18} />}
+                            {task.type === 'scan' && <FileSearch size={18} />}
+                            {task.type === 'surgery' && <Scissors size={18} />}
+                          </div>
+                          {task.completed && (
+                            <div className="absolute -top-1 -left-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-white shadow-sm">
+                              <CheckCircle2 size={8} strokeWidth={4} />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-tight leading-none mb-1">{task.title}</h4>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{task.date}</p>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-white/40">
-                        <span>Progression au protocole</span>
-                        <span className="text-sky-400">{phase.progress}%</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
-                      {phase.status === 'Terminé' ? `Clôturé: ${phase.date}` : `Estimation: ${phase.date}`}
-                    </p>
-                  )}
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
-            
-            <button className="w-full mt-6 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-sky-50 transition-all">
-              Éditer la Stratégie
-            </button>
-          </section>
 
-          {/* Clinical Parameters */}
-          <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-md">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Paramètres Cliniques</h2>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl">
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">IMC</p>
-                  <p className="text-lg font-black text-slate-900 dark:text-white tracking-tighter">24.2 <span className="text-[10px] font-bold text-slate-400 ml-1">kg/m²</span></p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1 text-rose-500 font-black text-[10px]">
-                    <TrendingUp size={12} />
-                    <span>+1.2</span>
+            <div className="mt-6 bg-slate-50/50 dark:bg-slate-800/20 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-50/50">
+               <div className="flex items-center gap-6 flex-1 w-full">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">AVANCEMENT : 65%</span>
+                  <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                     <div className="h-full bg-emerald-500 w-[65%]" />
                   </div>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase">vs dernier</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl">
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sommeil</p>
-                  <p className="text-lg font-black text-slate-900 dark:text-white tracking-tighter">06:30 <span className="text-[10px] font-bold text-slate-400 ml-1">h/j</span></p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1 text-emerald-500 font-black text-[10px]">
-                    <CheckCircle2 size={12} />
-                    <span>Stabilité</span>
-                  </div>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase">7 derniers jours</p>
-                </div>
-              </div>
+               </div>
+               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] whitespace-nowrap">PROTOCOLE ACTIF</span>
             </div>
-          </section>
-
-          {/* Quick Notes/Observations */}
-          <section className="bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl p-6 border border-amber-100 dark:border-amber-900/30 shadow-md">
-            <div className="flex items-center gap-2 mb-4">
-              <Clipboard size={14} className="text-amber-600" />
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-amber-900 dark:text-amber-400">Observations de synthèse</h2>
-            </div>
-            <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed italic border-l-2 border-amber-200 dark:border-amber-800 pl-3">
-              "Patiente stable sous radiothérapie. Fatigue en légère hausse (Cycle 4). Moral satisfaisant. Soutien nutritionnel à envisager si l'IMC continue la hausse."
-            </p>
-            <button className="mt-4 text-[9px] font-black uppercase text-amber-700 dark:text-amber-500 tracking-[0.2em] hover:underline">
-              Modifier la note de synthèse
-            </button>
-          </section>
-
+          </div>
         </div>
       </div>
     </div>
