@@ -110,5 +110,18 @@ public class MedecinService {
         medecin.setMotDePasse(passwordEncoder.encode(dto.getNouveauMotDePasse()));
         medecinRepository.save(medecin);
     }
+    public MedecinResponseDTO findByIdDTO(UUID id) {
+        Medecin m = findById(id);
+        MedecinResponseDTO dto = new MedecinResponseDTO();
+        dto.setId(m.getId());
+        dto.setNom(m.getNom());
+        dto.setPrenom(m.getPrenom());
+        dto.setEmail(m.getEmail());
+        dto.setTelephone(m.getTelephone());
+        dto.setPhotoProfil(m.getPhotoProfil());
+        dto.setNumeroOrdre(m.getNumeroOrdre());
+        dto.setSpecialiteNom(m.getSpecialite() != null ? m.getSpecialite().getNom() : null);
+        return dto;
+    }
 
 }
