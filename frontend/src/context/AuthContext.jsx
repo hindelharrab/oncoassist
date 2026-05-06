@@ -1,20 +1,40 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
+const API_BASE = 'http://localhost:8080';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [user, setUser] = useState(() => {
-    // Récupère les infos user depuis localStorage si elles existent
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
+  // ── Charge la photo au démarrage ─────────────────────────────────────
+  useEffect(() => {
+    const chargerPhoto = async () => {
+      if (!user?.id || !token || user?.photoProfil) return;
+      try {
+        const res = await axios.get(`${API_BASE}/api/medecins/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.photoProfil) {
+          const updatedUser = { ...user, photoProfil: res.data.photoProfil };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
+      } catch (e) {
+        console.error('Erreur chargement photo profil:', e);
+      }
+    };
+    chargerPhoto();
+  }, [user?.id]);
+
   const login = (authResponse) => {
-    // authResponse = { token, id, nom, prenom, email, role }
-    localStorage.setItem('token', authResponse.token);
+    localStorage.setItem('token', authResponse.token ?? token);
     localStorage.setItem('user', JSON.stringify(authResponse));
-    setToken(authResponse.token);
+    setToken(authResponse.token ?? token);
     setUser(authResponse);
   };
 
@@ -26,10 +46,28 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';
   };
 
-  // Initiales du médecin pour l'avatar
   const getInitiales = () => {
     if (!user) return 'Dr';
     return `${user.prenom?.[0] ?? ''}${user.nom?.[0] ?? ''}`.toUpperCase();
+  };
+
+  // ── Fonction centralisée pour obtenir l'URL photo ─────────────────────
+  // Accepte un timestamp optionnel pour forcer le rechargement
+  const getPhotoUrl = (timestamp = null) => {
+    if (!user?.photoProfil) return null;
+
+    const val = user.photoProfil;
+
+    // Si c'est déjà un blob URL (preview local) → retourner tel quel
+    if (val.startsWith('blob:')) return val;
+
+    // Si c'est une URL complète (http...) → extraire le nom de fichier
+    const fileName = val.includes('/')
+      ? val.split('/').pop()
+      : val;
+
+    const url = `${API_BASE}/uploads/${fileName}`;
+    return timestamp ? `${url}?t=${timestamp}` : url;
   };
 
   return (
@@ -40,12 +78,11 @@ export const AuthProvider = ({ children }) => {
       logout,
       isAuthenticated: !!token,
       getInitiales,
+      getPhotoUrl,   // ← exposé à tous les composants
     }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

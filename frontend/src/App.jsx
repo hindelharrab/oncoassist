@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
@@ -15,6 +10,7 @@ import AgendaPage from './pages/medecin/AgendaPage';
 import AlertesPage from './pages/medecin/AlertesPage';
 import SettingsPage from './pages/medecin/SettingsPage';
 import QuestionnairesPage from './pages/medecin/QuestionnairesPage';
+import VueEnsemblePage from './pages/medecin/dossier/VueEnsemblePage';
 import PatientQuestionnairePage from './pages/medecin/PatientQuestionnairePage';
 import MedecinLayout from './layouts/MedecinLayout';
 
@@ -35,7 +31,7 @@ export default function App() {
         <Route path="alertes" element={<AlertesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="questionnaires" element={<QuestionnairesPage />} />
-        <Route path="dossier/:id/vue-ensemble" element={<div className="p-8 font-sans"><h2 className="text-2xl font-black uppercase tracking-tighter">Dossier Patient</h2><p className="text-gray-400 mt-2 font-bold uppercase tracking-widest text-[10px]">Contenu détaillé en développement</p></div>} />
+        <Route path="dossier/:id/vue-ensemble" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/questionnaires" element={<PatientQuestionnairePage />} />
       </Route>
 
