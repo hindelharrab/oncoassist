@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
@@ -18,6 +13,8 @@ import QuestionnairesPage from './pages/medecin/QuestionnairesPage';
 import PatientQuestionnairePage from './pages/medecin/PatientQuestionnairePage';
 import VueEnsemblePage from './pages/medecin/dossier/VueEnsemblePage';
 import ConsultationPage from './pages/medecin/dossier/ConsultationPage';
+import EchographiePage from './pages/medecin/dossier/EchographiePage';
+import IRMPage from './pages/medecin/dossier/IRMPage';
 import MedecinLayout from './layouts/MedecinLayout';
 
 export default function App() {
@@ -45,6 +42,8 @@ export default function App() {
         
         {/* Placeholders for other dossiers routes to avoid blank pages */}
         <Route path="dossier/:id/consultation" element={<ConsultationPage />} />
+        <Route path="dossier/:id/echographie" element={<EchographiePage />} />
+        <Route path="dossier/:id/irm" element={<IRMPage />} />
         <Route path="dossier/:id/mammographie" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/biopsie" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/resultats" element={<VueEnsemblePage />} />
