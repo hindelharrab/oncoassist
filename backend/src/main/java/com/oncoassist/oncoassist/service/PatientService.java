@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.service;
 
+import com.oncoassist.oncoassist.model.dto.PatientDetailDTO;
 import com.oncoassist.oncoassist.model.entity.AttributionQuestionnaire;
 import com.oncoassist.oncoassist.model.entity.DossierMedical;
 import com.oncoassist.oncoassist.model.entity.Patient;
@@ -196,5 +197,25 @@ public class PatientService {
         return patient.getAttributions() != null &&
                 patient.getAttributions().stream()
                         .anyMatch(AttributionQuestionnaire::getActif);
+    }
+    @Transactional(readOnly = true)
+    public PatientDetailDTO findByIdDetail(UUID id) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Patient introuvable : " + id));
+
+        PatientDetailDTO dto = new PatientDetailDTO();
+        dto.setId(patient.getId());
+        dto.setNom(patient.getNom());
+        dto.setPrenom(patient.getPrenom());
+        dto.setEmail(patient.getEmail());
+        dto.setTelephone(patient.getTelephone());
+        dto.setDateNaissance(patient.getDateNaissance());
+        dto.setAdresse(patient.getAdresse());
+        dto.setPersonneConfiance(patient.getPersonneConfiance());
+
+        if (patient.getDossierMedical() != null) {
+            dto.setDossierMedicalId(patient.getDossierMedical().getId());
+        }
+        return dto;
     }
 }
