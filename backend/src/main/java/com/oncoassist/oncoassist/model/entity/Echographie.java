@@ -7,35 +7,47 @@ import lombok.*;
 @Entity
 @Table(name = "echographies")
 @DiscriminatorValue("ECHOGRAPHIE")
+
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+
 public class Echographie extends Examen {
 
-    @Column(name = "image_radio", nullable = false)
+    // ── Image ─────────────────────────────────────────────────
+    @Column(name = "image_radio")
     private String imageRadio;
 
-    // ── Déjà présent ──────────────────────────────
-    @Column(name = "type_structure")
-    private String typeStructure; // KYSTE_SIMPLE / NODULE_SOLIDE / LESION_COMPLEXE
+    // ── Localisation ──────────────────────────────────────────
+    // "Droit" / "Gauche" / "Bilatéral" — vient du front comme String
+    @Column(name = "sein_examine")
+    private String seinExamine;
 
     @Column(name = "quadrant")
-    private String quadrant;             // QSE / QSI / QIE / QII / CSE / CSI
+    private String quadrant;
 
     @Column(name = "distance_mamelon_cm")
-    private Double distanceMamelon;      // en cm
+    private Double distanceMamelon;
 
-    // ── Morphologie ───────────────────────────────
+    // ── Type de structure ─────────────────────────────────────
+    @Column(name = "type_structure")
+    private String typeStructure;
+
+    // ── Morphologie ───────────────────────────────────────────
     @Column(name = "forme")
-    private String forme;                // OVALE / RONDE / IRREGULIERE
+    private String forme;
 
     @Column(name = "orientation")
-    private String orientation;          // PARALLELE / NON_PARALLELE
+    private String orientation;
 
     @Column(name = "contours")
-    private String contours;             // CIRCONSCRITS / INDISTINCTS / SPICULES
+    private String contours;
 
     @Column(name = "echostructure")
-    private String echostructure;        // ANECHOGENE / HYPOECHOGENE / HETEROGENE
+    private String echostructure;
 
-    // ── Dimensions (mm) ───────────────────────────
+    // ── Dimensions (mm) ───────────────────────────────────────
     @Column(name = "taille_axe1_mm")
     private Double tailleAxe1;
 
@@ -45,33 +57,33 @@ public class Echographie extends Examen {
     @Column(name = "taille_axe3_mm")
     private Double tailleAxe3;
 
-    // ── Acoustique ────────────────────────────────
+    // ── Acoustique ────────────────────────────────────────────
     @Column(name = "effets_posterieurs")
-    private String effetsPosterieurs;    // RENFORCEMENT / ATTENUATION / ABSENT
+    private String effetsPosterieurs;
 
-    // ── Doppler ───────────────────────────────────
+    // ── Doppler ───────────────────────────────────────────────
     @Column(name = "vascularisation_doppler")
-    private String vascularisationDoppler; // ABSENTE / PERILESIONNELLE / INTRALESIONNELLE
+    private String vascularisationDoppler;
 
-    // ── Calcifications ────────────────────────────
+    // ── Calcifications ────────────────────────────────────────
+    // Stocké Boolean en base mais le front envoie "Oui"/"Non"
     @Column(name = "calcifications_presentes")
     private Boolean calcificationsPresentes;
 
-    // ── Ganglions ─────────────────────────────────
+    // ── Ganglions ─────────────────────────────────────────────
     @Column(name = "adenopathie_axillaire")
     private Boolean adenopathieAxillaire;
 
-    // ── Classification ────────────────────────────
+    // ── Score BI-RADS ─────────────────────────────────────────
     @Enumerated(EnumType.STRING)
     @Column(name = "score_birads")
-    private BIRADSEnum scoreBIRADS;      // Réutilise ton enum existant ✅
+    private BIRADSEnum scoreBIRADS;
 
-    // ── Élastographie (optionnel) ─────────────────
-    @Column(name = "score_elastographie")
-    private Integer scoreElastographie; // 1 (mou) → 5 (dur)
+    // ── Conclusion ────────────────────────────────────────────
+    @Column(name = "recommandation", columnDefinition = "TEXT")
+    private String recommandation;
 
-    // ── Conclusion ────────────────────────────────
-    @Column(name = "recommandation")
-    private String recommandation;       // SURVEILLANCE / BIOPSIE / IRM_COMPLEMENTAIRE
-
+    // ── Résultat détaillé (= "resulatat" dans le front) ───────
+    @Column(name = "resultat_detaille", columnDefinition = "TEXT")
+    private String resultatDetaille;
 }
