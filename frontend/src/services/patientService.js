@@ -18,11 +18,12 @@ export const searchPatients = async (nom) => {
   return data;
 };
 // Récupérer tous les patients (pour la modal RDV)
-export const getAllPatients = async () => {
-  const { data } = await axiosInstance.get('/patients');
-  return data;
+export const getAllPatients = async (nom = '') => {
+  const { data } = await axiosInstance.get('/patients/search', { 
+    params: { nom } 
+  });
+  return Array.isArray(data) ? data : [];
 };
-
 const patientService = {
   getAll: getAllPatients,
   getById: getPatientById,

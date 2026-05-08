@@ -15,7 +15,9 @@ import VueEnsemblePage from './pages/medecin/dossier/VueEnsemblePage';
 import ConsultationPage from './pages/medecin/dossier/ConsultationPage';
 import EchographiePage from './pages/medecin/dossier/EchographiePage';
 import IRMPage from './pages/medecin/dossier/IRMPage';
+import PlanTraitementPage from './pages/medecin/dossier/PlanTraitementPage';
 import MedecinLayout from './layouts/MedecinLayout';
+import DocumentsPage from './pages/medecin/dossier/DocumentsPage';
 
 export default function App() {
   return (
@@ -47,8 +49,10 @@ export default function App() {
         <Route path="dossier/:id/mammographie" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/biopsie" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/resultats" element={<VueEnsemblePage />} />
-        <Route path="dossier/:id/plan-traitement" element={<VueEnsemblePage />} />
+        <Route path="dossier/:id/plan-traitement" element={<PlanTraitementPage />} />
+        <Route path="dossier/:id/documents" element={<DocumentsPage />} />
         <Route path="dossier/:id/documents" element={<VueEnsemblePage />} />
+        
       </Route>
 
       <Route path="/dashboard" element={<Navigate to="/medecin/dashboard" replace />} />
