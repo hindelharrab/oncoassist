@@ -39,6 +39,7 @@ export const QuestionnaireProvider = ({ children }) => {
 
   // ── Chargement initial des questions globales ──────────────────────────────
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     fetchGlobales();
   }, []);
 
@@ -217,6 +218,7 @@ export const QuestionnaireProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useQuestionnaire = () => {
   const context = useContext(QuestionnaireContext);
   if (!context) {

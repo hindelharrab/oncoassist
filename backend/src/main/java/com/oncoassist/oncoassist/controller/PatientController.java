@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.controller;
 
+import com.oncoassist.oncoassist.model.dto.PatientDetailDTO;
 import com.oncoassist.oncoassist.model.dto.PatientListItemDTO;
 import com.oncoassist.oncoassist.model.entity.Patient;
 import com.oncoassist.oncoassist.service.PatientService;
@@ -33,8 +34,8 @@ public class PatientController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Patient> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(patientService.findById(id));
+    public ResponseEntity<PatientDetailDTO> findById(@PathVariable UUID id) {
+        return ResponseEntity.ok(patientService.findByIdDetail(id));
     }
 
     @GetMapping("/search")
