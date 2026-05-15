@@ -33,6 +33,7 @@ const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDateFin('');
       setFrequence('HEBDOMADAIRE');
       setSuccess(false);

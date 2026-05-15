@@ -11,6 +11,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.oncoassist.oncoassist.model.dto.PriseEnChargeResponseDTO;
+import java.util.stream.Collectors;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -70,5 +72,33 @@ public class PriseEnChargeService {
     // Liste des prises en charge d'un médecin
     public List<PriseEnCharge> findByMedecin(UUID medecinId) {
         return priseEnChargeRepository.findByMedecinId(medecinId);
+    }
+    @Transactional(readOnly = true)
+    public List<PriseEnChargeResponseDTO> findByPatientDTO(UUID patientId) {
+        return priseEnChargeRepository.findByPatientId(patientId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+    private PriseEnChargeResponseDTO toDTO(PriseEnCharge pec) {
+        PriseEnChargeResponseDTO dto = new PriseEnChargeResponseDTO();
+        dto.setId(pec.getId());
+        dto.setDateDebut(pec.getDateDebut());
+        dto.setDateFin(pec.getDateFin());
+        dto.setRole(pec.getRole() != null ? pec.getRole().name() : null);
+        dto.setAccesEcriture(pec.getAccesEcriture());
+
+        // ✅ On accède au médecin ici (dans la session Hibernate)
+        if (pec.getMedecin() != null) {
+            dto.setMedecinId(pec.getMedecin().getId());
+            dto.setMedecinNom(pec.getMedecin().getNom());
+            dto.setMedecinPrenom(pec.getMedecin().getPrenom());
+            dto.setMedecinSpecialite(
+                    pec.getMedecin().getSpecialite() != null
+                            ? pec.getMedecin().getSpecialite().getNom()
+                            : null
+            );
+        }
+        return dto;
     }
 }
