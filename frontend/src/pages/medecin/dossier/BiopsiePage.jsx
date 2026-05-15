@@ -56,6 +56,7 @@ const BiopsiePage = () => {
 
   useEffect(() => {
     if (!dossierId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     getBiopsiesByDossier(dossierId)
       .then(res => setExamens(res.data))
