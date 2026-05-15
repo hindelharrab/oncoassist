@@ -7,6 +7,7 @@ import lombok.*;
 @Entity
 @Table(name = "irms")
 @DiscriminatorValue("IRM")
+@Getter @Setter
 public class IRM extends Examen {
 
     @Column(name = "fichier_image", nullable = false)

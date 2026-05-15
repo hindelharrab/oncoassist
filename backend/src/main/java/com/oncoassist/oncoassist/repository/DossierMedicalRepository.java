@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface DossierMedicalRepository extends JpaRepository<DossierMedical, UUID> {
     Optional<DossierMedical> findByPatientId(UUID patientId);
+
 }

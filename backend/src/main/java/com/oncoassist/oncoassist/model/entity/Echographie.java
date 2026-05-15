@@ -7,6 +7,7 @@ import lombok.*;
 @Entity
 @Table(name = "echographies")
 @DiscriminatorValue("ECHOGRAPHIE")
+@Getter @Setter
 public class Echographie extends Examen {
 
     @Column(name = "image_radio", nullable = false)
