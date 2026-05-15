@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 # ── Config
-UPLOAD_DIR = r"C:\oncoassist\backend\uploads\photos"  # ← seul dossier
+UPLOAD_DIR = r"C:\Users\H-R\Desktop\PFA\oncoassist\backend\uploads\photos"  # ← seul dossier
 MODEL_DIR  = "models"
 DEVICE     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TYPES      = [

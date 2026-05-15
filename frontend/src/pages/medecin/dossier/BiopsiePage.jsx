@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Calendar, Trash2, Edit2, Microscope, X, Save,
   FileText, Image as ImageIcon, Upload, Zap, Target,
@@ -56,6 +56,7 @@ const BiopsiePage = () => {
 
   useEffect(() => {
     if (!dossierId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     getBiopsiesByDossier(dossierId)
       .then(res => setExamens(res.data))
