@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import mammographieService from '../../../services/mammographieService';
 import {
   Plus,
   Calendar,
@@ -22,7 +23,6 @@ import {
   LayoutGrid,
   Image as ImageIcon
 } from 'lucide-react';
-import mammographieService from '../../../services/mammographieService';
 
 const MammographiePage = () => {
   const { id: dossierId } = useParams();
@@ -36,120 +36,90 @@ const MammographiePage = () => {
   
   const fileInputRef = useRef(null);
 
-  // Charger l'historique au montage
+  // Charger l'historique mocké
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
     fetchHistory();
   }, [dossierId]);
 
   const fetchHistory = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await mammographieService.getHistory(dossierId);
-      // Trier par date décroissante
-      const sorted = (data || []).sort((a, b) => new Date(b.dateExamen) - new Date(a.dateExamen));
-      setHistory(sorted);
-      if (sorted.length > 0) {
-        setSelectedExamen(sorted[0]);
-      }
-    } catch (err) {
-      console.warn("API Error:", err);
-      // Fallback to mock data if Network Error or non-responsive backend
-      if (err.message === 'Network Error' || !err.response) {
-        console.log("Using mock data because backend is unreachable (localhost:8080)");
-        const mockData = [
-          {
-            id: "mock-1",
-            dossierId: dossierId,
-            dateExamen: "2026-05-15T10:30:00",
-            predictionIA: "MALIGNANT",
-            scoreRisqueIA: 0.7823,
-            confidencePct: 78.2,
-            scoreBIRADS: "BIRADS_4C",
-            biradsDescription: "Lésion suspecte avec cinétique de type 3.",
-            recommendationIA: "Macro-biopsie sous IRM recommandée",
-            actionIA: "biopsie_recommandee",
-            quadrant: "Quadrant supéro-externe",
-            quadrantShort: "QSE",
-            positionText: "Quadrant supéro-externe, zone médio-mammaire",
-            imageOriginal: "https://images.unsplash.com/photo-1576091160550-2173dad99968?q=80&w=800&auto=format&fit=crop",
-            imageHeatmap: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=800&auto=format&fit=crop",
-            imageBbox: "https://images.unsplash.com/photo-1579154235814-396ec9b5254c?q=80&w=800&auto=format&fit=crop"
-          },
-          {
-            id: "mock-2",
-            dossierId: dossierId,
-            dateExamen: "2026-04-10T09:00:00",
-            predictionIA: "BENIGN",
-            scoreRisqueIA: 0.12,
-            confidencePct: 88.0,
-            scoreBIRADS: "BIRADS_2",
-            biradsDescription: "Bénin, probabilité nulle de malignité",
-            recommendationIA: "Suivi annuel recommandé",
-            actionIA: "suivi_annuel",
-            quadrant: "Quadrant inféro-interne",
-            quadrantShort: "QII",
-            positionText: "Quadrant inféro-interne",
-            imageOriginal: "https://images.unsplash.com/photo-1579154235814-396ec9b5254c?q=80&w=800&auto=format&fit=crop",
-            imageHeatmap: "https://images.unsplash.com/photo-1576091160550-2173dad99968?q=80&w=800&auto=format&fit=crop",
-            imageBbox: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=800&auto=format&fit=crop"
-          }
-        ];
-        setHistory(mockData);
-        setSelectedExamen(mockData[0]);
-        setError("Note: Affichage de données de démonstration. Le backend Spring Boot (localhost:8080) n'est pas accessible.");
-      } else {
-        setError("Impossible de charger l'historique des mammographies.");
-      }
-    } finally {
+    setLoading(true);
+    // Simulation d'un délai d'attente
+    setTimeout(() => {
+      const mockData = [
+        {
+          id: "mock-1",
+          dossierId: dossierId,
+          dateExamen: "2026-05-15T10:30:00",
+          predictionIA: "MALIGNANT",
+          scoreRisqueIA: 0.7823,
+          confidencePct: 78.2,
+          scoreBIRADS: "BIRADS_4C",
+          biradsDescription: "Lésion suspecte avec cinétique de type 3.",
+          recommendationIA: "Macro-biopsie sous IRM recommandée",
+          actionIA: "biopsie_recommandee",
+          quadrant: "Quadrant supéro-externe",
+          quadrantShort: "QSE",
+          positionText: "Quadrant supéro-externe, zone médio-mammaire",
+          imageOriginal: "https://images.unsplash.com/photo-1576091160550-2173dad99968?q=80&w=800&auto=format&fit=crop",
+          imageHeatmap: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=800&auto=format&fit=crop",
+          imageBbox: "https://images.unsplash.com/photo-1579154235814-396ec9b5254c?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+          id: "mock-2",
+          dossierId: dossierId,
+          dateExamen: "2026-04-10T09:00:00",
+          predictionIA: "BENIGN",
+          scoreRisqueIA: 0.12,
+          confidencePct: 88.0,
+          scoreBIRADS: "BIRADS_2",
+          biradsDescription: "Bénin, probabilité nulle de malignité",
+          recommendationIA: "Suivi annuel recommandé",
+          actionIA: "suivi_annuel",
+          quadrant: "Quadrant inféro-interne",
+          quadrantShort: "QII",
+          positionText: "Quadrant inféro-interne",
+          imageOriginal: "https://images.unsplash.com/photo-1579154235814-396ec9b5254c?q=80&w=800&auto=format&fit=crop",
+          imageHeatmap: "https://images.unsplash.com/photo-1576091160550-2173dad99968?q=80&w=800&auto=format&fit=crop",
+          imageBbox: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=800&auto=format&fit=crop"
+        }
+      ];
+      setHistory(mockData);
+      setSelectedExamen(mockData[0]);
       setLoading(false);
-    }
+    }, 1000);
   };
 
   const handleFileUpload = async (file) => {
     if (!file) return;
     
-    try {
-      setAnalyzing(true);
-      setError(null);
-      const result = await mammographieService.analyzeMammographie(dossierId, file);
-      setHistory([result, ...history]);
-      setSelectedExamen(result);
+    setAnalyzing(true);
+    setError(null);
+    
+    // Simulation d'une analyse IA
+    setTimeout(() => {
+      const mockResult = {
+        id: `mock-${Date.now()}`,
+        dossierId: dossierId,
+        dateExamen: new Date().toISOString(),
+        predictionIA: Math.random() > 0.5 ? "MALIGNANT" : "BENIGN",
+        scoreRisqueIA: Math.random(),
+        confidencePct: 85.0,
+        scoreBIRADS: "BIRADS_4A",
+        biradsDescription: "Suspicion faible, biopsie conseillée",
+        recommendationIA: "Biopsie recommandée",
+        quadrant: "Quadrant supéro-externe",
+        quadrantShort: "QSE",
+        positionText: "Zone suspecte identifiée en supéro-externe",
+        imageOriginal: URL.createObjectURL(file), // Show original file
+        imageHeatmap: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=800&auto=format&fit=crop",
+        imageBbox: "https://images.unsplash.com/photo-1579154235814-396ec9b5254c?q=80&w=800&auto=format&fit=crop"
+      };
+      setHistory([mockResult, ...history]);
+      setSelectedExamen(mockResult);
       setIsUploading(false);
-    } catch (err) {
-      console.warn("Analysis Error:", err);
-      // Simulate analysis if network error (MOCK for testing UI)
-      if (err.message === 'Network Error' || !err.response) {
-        setTimeout(() => {
-          const mockResult = {
-            id: `mock-${Date.now()}`,
-            dossierId: dossierId,
-            dateExamen: new Date().toISOString(),
-            predictionIA: Math.random() > 0.5 ? "MALIGNANT" : "BENIGN",
-            scoreRisqueIA: Math.random(),
-            confidencePct: 85.0,
-            scoreBIRADS: "BIRADS_4A",
-            biradsDescription: "Suspicion faible, biopsie conseillée",
-            recommendationIA: "Biopsie recommandée",
-            quadrant: "Quadrant supéro-externe",
-            quadrantShort: "QSE",
-            positionText: "Zone suspecte identifiée en supéro-externe",
-            imageOriginal: URL.createObjectURL(file), // Show original file
-            imageHeatmap: "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=800&auto=format&fit=crop",
-            imageBbox: "https://images.unsplash.com/photo-1579154235814-396ec9b5254c?q=80&w=800&auto=format&fit=crop"
-          };
-          setHistory([mockResult, ...history]);
-          setSelectedExamen(mockResult);
-          setIsUploading(false);
-          setAnalyzing(false);
-          setError("Note: Analyse simulée (Backend non accessible).");
-        }, 2000);
-      } else {
-        setError("L'analyse de l'image a échoué. Veuillez vérifier la connexion au backend.");
-        setAnalyzing(false);
-      }
-    }
+      setAnalyzing(false);
+    }, 3000);
   };
 
   const onDrop = (e) => {

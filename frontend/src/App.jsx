@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import MammographiePage from './pages/medecin/dossier/MammographiePage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/medecin/DashboardPage';
 import PatientsPage from './pages/medecin/PatientsPage';
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="dossier/:id/consultation" element={<ConsultationPage />} />
         <Route path="dossier/:id/echographie" element={<EchographiePage />} />
         <Route path="dossier/:id/irm" element={<IRMPage />} />
+          <Route path="dossier/:id/mammographie" element={<MammographiePage />} />
         <Route path="dossier/:id/mammographie" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/biopsie" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/resultats" element={<VueEnsemblePage />} />
