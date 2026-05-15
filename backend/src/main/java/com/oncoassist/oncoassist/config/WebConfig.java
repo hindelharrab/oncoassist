@@ -15,6 +15,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String absolutePath = Paths.get(uploadDir).toAbsolutePath().toString();
+        System.out.println("Serving files from: " + absolutePath);
+
+        //  /uploads/photos/** → pour les biopsies et gradcam
+        registry.addResourceHandler("/uploads/photos/**")
+                .addResourceLocations("file:" + absolutePath + "/");
+
+        //  /uploads/** → pour les photos de profil (SettingsPage utilise ce chemin)
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + absolutePath + "/");
     }

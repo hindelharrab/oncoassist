@@ -5,6 +5,7 @@ import com.oncoassist.oncoassist.model.entity.enums.StatutRDVEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,4 +15,5 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, UUID> {
     List<RendezVous> findByMedecinId(UUID medecinId);
     List<RendezVous> findByStatut(StatutRDVEnum statut);
     List<RendezVous> findBySecretaireId(UUID secretaireId);
+    List<RendezVous> findByPatientIdAndDateAfterOrderByDateAsc(UUID patientId, LocalDateTime after);
 }

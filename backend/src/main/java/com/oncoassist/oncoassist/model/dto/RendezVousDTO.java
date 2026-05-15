@@ -22,4 +22,5 @@ public class RendezVousDTO {
     private String        patientNom;
     private String        patientPrenom;
     private UUID          patientId;
+
 }

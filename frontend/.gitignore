@@ -31,3 +31,5 @@ frontend/dist/
 backend/target/
 backend/.mvn/
 *.class
+
+echo venv/ >> .gitignore
