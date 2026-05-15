@@ -29,10 +29,9 @@ public class PatientController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('MEDECIN', 'SECRETAIRE', 'ADMIN')")
-    public ResponseEntity<List<Patient>> findAll() {
+    public ResponseEntity<List<PatientDetailDTO>> findAll() {
         return ResponseEntity.ok(patientService.findAll());
     }
-
     @GetMapping("/{id}")
     public ResponseEntity<PatientDetailDTO> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(patientService.findByIdDetail(id));

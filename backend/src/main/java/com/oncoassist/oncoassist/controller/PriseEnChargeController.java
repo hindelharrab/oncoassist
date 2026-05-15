@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import com.oncoassist.oncoassist.model.dto.PriseEnChargeResponseDTO;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,8 +39,8 @@ public class PriseEnChargeController {
     // Voir les prises en charge d'un patient
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('MEDECIN', 'SECRETAIRE', 'ADMIN')")
-    public ResponseEntity<List<PriseEnCharge>> findByPatient(@PathVariable UUID patientId) {
-        return ResponseEntity.ok(priseEnChargeService.findByPatient(patientId));
+    public ResponseEntity<List<PriseEnChargeResponseDTO>> findByPatient(@PathVariable UUID patientId) {
+        return ResponseEntity.ok(priseEnChargeService.findByPatientDTO(patientId));
     }
 
     // Voir les patients d'un médecin

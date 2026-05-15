@@ -1,5 +1,7 @@
 package com.oncoassist.oncoassist.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.oncoassist.oncoassist.model.entity.enums.FrequenceEnum;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,6 +37,7 @@ public class AttributionQuestionnaire {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medecin_id", nullable = false)
+    @JsonIgnore
     private Medecin medecin;
 
     @ManyToOne(fetch = FetchType.LAZY)
