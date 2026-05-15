@@ -1,5 +1,6 @@
 package com.oncoassist.oncoassist.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.oncoassist.oncoassist.model.entity.*;
 import jakarta.persistence.*;
@@ -37,6 +38,7 @@ public class Medecin extends Utilisateur {
     private List<RendezVous> rendezVous;
 
     @OneToMany(mappedBy = "medecin", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("medecin") // ✅
     private List<AttributionQuestionnaire> attributions;
+
 }
+//@ManyToOne  → toujours @JsonIgnore sur le côté "many"

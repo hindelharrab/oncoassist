@@ -56,8 +56,12 @@ public class PatientService {
         return saved;
     }
 
-    public List<Patient> findAll() {
-        return patientRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<PatientDetailDTO> findAll() {
+        return patientRepository.findAll()
+                .stream()
+                .map(this::toDetailDTO)
+                .collect(Collectors.toList());
     }
 
     public Patient findById(UUID id) {
@@ -150,12 +154,14 @@ public class PatientService {
         if (dossier.getExamens() == null || dossier.getExamens().isEmpty())
             return StatutClinique.NOUVELLE;
 
-        // Critique : BI-RADS 4, 5 ou 6
+        // Critique : BI-RADS 4A, 4B, 4C, 5 ou 6
         boolean critique = dossier.getExamens().stream()
                 .filter(e -> e instanceof Mammographie)
                 .map(e -> (Mammographie) e)
                 .anyMatch(m -> m.getScoreBIRADS() != null &&
-                        (m.getScoreBIRADS() == BIRADSEnum.BIRADS_4
+                        (m.getScoreBIRADS() == BIRADSEnum.BIRADS_4A
+                                || m.getScoreBIRADS() == BIRADSEnum.BIRADS_4B
+                                || m.getScoreBIRADS() == BIRADSEnum.BIRADS_4C
                                 || m.getScoreBIRADS() == BIRADSEnum.BIRADS_5
                                 || m.getScoreBIRADS() == BIRADSEnum.BIRADS_6));
 
@@ -169,7 +175,6 @@ public class PatientService {
 
         if (surveiller) return StatutClinique.A_SURVEILLER;
 
-        // En suivi : questionnaire actif
         if (calculerSuiviActif(patient)) return StatutClinique.EN_SUIVI;
 
         return StatutClinique.STABLE;
@@ -198,11 +203,14 @@ public class PatientService {
                 patient.getAttributions().stream()
                         .anyMatch(AttributionQuestionnaire::getActif);
     }
+    // APRÈS
     @Transactional(readOnly = true)
     public PatientDetailDTO findByIdDetail(UUID id) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Patient introuvable : " + id));
-
+        return toDetailDTO(patient);
+    }
+    private PatientDetailDTO toDetailDTO(Patient patient) {
         PatientDetailDTO dto = new PatientDetailDTO();
         dto.setId(patient.getId());
         dto.setNom(patient.getNom());
@@ -212,7 +220,11 @@ public class PatientService {
         dto.setDateNaissance(patient.getDateNaissance());
         dto.setAdresse(patient.getAdresse());
         dto.setPersonneConfiance(patient.getPersonneConfiance());
-
+        dto.setPhotoProfil(patient.getPhotoProfil());
+        dto.setRole(patient.getRole() != null ? patient.getRole().name() : null);
+        dto.setPrisesEnCharge(patient.getPrisesEnCharge());
+        dto.setRendezVous(patient.getRendezVous());
+        dto.setNotifications(patient.getNotifications());
         if (patient.getDossierMedical() != null) {
             dto.setDossierMedicalId(patient.getDossierMedical().getId());
         }
