@@ -9,10 +9,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "plans_traitement")
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = {"dossierMedical", "auteur"})
 
@@ -26,17 +24,21 @@ public class PlanTraitement {
     @Column(name = "date_consultation", nullable = false)
     private LocalDate dateConsultation;
 
-    @Column(columnDefinition = "TEXT")
-    private String prescription;
+    // Type de séance : "Examen manuel", "IRM", "Échographie", "Biopsie"...
+    @Column(name = "etape")
+    private String etape;
 
-    @Column(name = "examens_complementaires", columnDefinition = "TEXT")
-    private String examensComplementaires;
+    // "fait" ou "à venir"
+    @Column(name = "statut")
+    private String statut = "fait";
 
-    @Column(columnDefinition = "TEXT")
-    private String recommandations;
-
+    // Visible par le patient ?
     @Column(name = "visible_patient", nullable = false)
     private Boolean visiblePatient = false;
+
+    // Prochaine étape planifiée — reste ici car utile pour la timeline
+    @Column(name = "prochaine_etape")
+    private String prochaineEtape;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dossier_id", nullable = false)

@@ -161,15 +161,19 @@ public class EchographieService {
     // HELPER — "1"..."6" → BIRADSEnum
     // ─────────────────────────────────────────────────────────
     private BIRADSEnum parseBIRADS(String value) {
-        return switch (value.trim()) {
-            case "0" -> BIRADSEnum.BIRADS_0;
-            case "1" -> BIRADSEnum.BIRADS_1;
-            case "2" -> BIRADSEnum.BIRADS_2;
-            case "3" -> BIRADSEnum.BIRADS_3;
-            case "4" -> BIRADSEnum.BIRADS_4;
-            case "5" -> BIRADSEnum.BIRADS_5;
-            case "6" -> BIRADSEnum.BIRADS_6;
-            default  -> BIRADSEnum.BIRADS_1;
+        if (value == null) return null;
+        return switch (value.trim().toUpperCase()) {
+            case "0"   -> BIRADSEnum.BIRADS_0;
+            case "1"   -> BIRADSEnum.BIRADS_1;
+            case "2"   -> BIRADSEnum.BIRADS_2;
+            case "3"   -> BIRADSEnum.BIRADS_3;
+            case "4",
+                 "4A"  -> BIRADSEnum.BIRADS_4A;
+            case "4B"  -> BIRADSEnum.BIRADS_4B;
+            case "4C"  -> BIRADSEnum.BIRADS_4C;
+            case "5"   -> BIRADSEnum.BIRADS_5;
+            case "6"   -> BIRADSEnum.BIRADS_6;
+            default    -> BIRADSEnum.BIRADS_1;
         };
     }
     @Transactional

@@ -46,6 +46,7 @@ const firstDayOf  = (y, m) => new Date(y, m, 1).getDay();
 // ══════════════════════════════════════════════════════════════════════════
 // MODAL — Nouveau RDV
 // ══════════════════════════════════════════════════════════════════════════
+
 const NouveauRdvModal = ({ isOpen, onClose, medecinId, onSuccess }) => {
   const [patients,        setPatients]        = useState([]);
   const [search,          setSearch]          = useState('');
@@ -55,23 +56,32 @@ const NouveauRdvModal = ({ isOpen, onClose, medecinId, onSuccess }) => {
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [error,           setError]           = useState(null);
 
-  // Chargement patients à l'ouverture
+  // ← Remplacez l'ancien useEffect de chargement par celui-ci
   useEffect(() => {
-    if (!isOpen) return;
-    const fetch = async () => {
+    if (!isOpen || search.length < 2) {
+      setPatients([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
       setLoadingPatients(true);
       try {
-        const data = await patientService.getAll();
-        setPatients(data);
+        const data = await patientService.searchPatients(search);
+        setPatients(Array.isArray(data) ? data : []);
       } catch {
         setError('Impossible de charger les patients');
       } finally {
         setLoadingPatients(false);
       }
-    };
-    fetch();
-  }, [isOpen]);
+    }, 400); // debounce 400ms
 
+    return () => clearTimeout(timeout);
+  }, [search, isOpen]);
+
+  // filteredPatients devient juste patients (filtre déjà fait côté API)
+  const filteredPatients = patients;
+
+  // ... reste du composant inchangé
   const handleClose = () => {
     setSearch('');
     setSelectedPatient(null);
@@ -80,9 +90,7 @@ const NouveauRdvModal = ({ isOpen, onClose, medecinId, onSuccess }) => {
     onClose();
   };
 
-  const filteredPatients = patients.filter(p =>
-    `${p.nom} ${p.prenom}`.toLowerCase().includes(search.toLowerCase())
-  );
+  
 
   const handleSubmit = async () => {
     if (!selectedPatient || !motif.trim()) {
