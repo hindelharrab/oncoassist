@@ -7,31 +7,39 @@ import lombok.*;
 @Entity
 @Table(name = "irms")
 @DiscriminatorValue("IRM")
+
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+
 public class IRM extends Examen {
 
-    @Column(name = "fichier_image", nullable = false)
+    // ✅ nullable — l'image est optionnelle à la création
+    @Column(name = "fichier_image")
     private String fichierImage;
 
-    // ── Déjà présent ──────────────────────────────
-    private String sequences;            // T1 / T2 / FLAIR / DWI / DCE
+    @Column(name = "sequences")
+    private String sequences;
 
-    @Column(name = "produit_contraste", nullable = false)
-    private Boolean produitContraste = false;
+    // ✅ pas de nullable = false sur les booléens
+    @Column(name = "produit_contraste")
+    private Boolean produitContraste;
 
     @Column(name = "quadrant")
     private String quadrant;
 
-    // ── Morphologie de la lésion ──────────────────
+    // ── Morphologie ───────────────────────────────────────────
     @Column(name = "forme_lesion")
-    private String formeLesion;          // MASSE / NON_MASSE / FOYER
+    private String formeLesion;
 
     @Column(name = "contours_lesion")
-    private String contoursLesion;       // REGULIERS / IRREGULIERS / SPICULES
+    private String contoursLesion;
 
     @Column(name = "signal_t2")
-    private String signalT2;             // HYPERSIGNAL / HYPOSIGNAL / ISOSIGNAL
+    private String signalT2;
 
-    // ── Dimensions (mm) ───────────────────────────
+    // ── Dimensions (mm) ───────────────────────────────────────
     @Column(name = "taille_axe1_mm")
     private Double tailleAxe1;
 
@@ -41,40 +49,48 @@ public class IRM extends Examen {
     @Column(name = "taille_axe3_mm")
     private Double tailleAxe3;
 
-    // ── Cinétique de rehaussement (après injection) ─
+    // ── Cinétique ─────────────────────────────────────────────
     @Column(name = "type_rehaussement")
-    private String typeRehaussement;     // HOMOGENE / HETEROGENE / EN_ANNEAU
+    private String typeRehaussement;
 
     @Column(name = "cinetique_rehaussement")
-    private String cinematiqueRehaussement; // PROGRESSIF / PLATEAU / WASHOUT
+    private String cinematiqueRehaussement;
 
-    // ── Diffusion (DWI / ADC) ─────────────────────
+    // ── Diffusion ─────────────────────────────────────────────
     @Column(name = "restriction_diffusion")
     private Boolean restrictionDiffusion;
 
     @Column(name = "valeur_adc")
-    private Double valeurAdc;            // en mm²/s (ex: 0.8 = suspect)
+    private Double valeurAdc;
 
-    // ── Ganglions ─────────────────────────────────
+    // ── Ganglions ─────────────────────────────────────────────
     @Column(name = "adenopathie_axillaire")
     private Boolean adenopathieAxillaire;
 
     @Column(name = "adenopathie_mediastinale")
     private Boolean adenopathieMediastinale;
 
-    // ── Extension ─────────────────────────────────
+    // ── Extension ─────────────────────────────────────────────
     @Column(name = "extension_paroi")
-    private Boolean extensionParoi;      // envahissement paroi thoracique
+    private Boolean extensionParoi;
 
     @Column(name = "extension_cutanee")
     private Boolean extensionCutanee;
 
-    // ── Classification ────────────────────────────
+    // ── Score BI-RADS ─────────────────────────────────────────
     @Enumerated(EnumType.STRING)
     @Column(name = "score_birads")
-    private BIRADSEnum scoreBIRADS;      // Réutilise ton enum existant ✅
+    private BIRADSEnum scoreBIRADS;
 
-    // ── Conclusion ────────────────────────────────
-    @Column(name = "recommandation")
-    private String recommandation;       // SURVEILLANCE / BIOPSIE / CHIRURGIE
+    // ── Conclusion ────────────────────────────────────────────
+    @Column(name = "recommandation", columnDefinition = "TEXT")
+    private String recommandation;
+
+    // ── Résultat détaillé (= "resulatat" dans le front) ───────
+    @Column(name = "resultat_detaille", columnDefinition = "TEXT")
+    private String resultatDetaille;
+
+    // ── Sein examiné ──────────────────────────────────────────
+    @Column(name = "sein_examine")
+    private String seinExamine;
 }
