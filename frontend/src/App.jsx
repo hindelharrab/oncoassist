@@ -18,6 +18,7 @@ import IRMPage from './pages/medecin/dossier/IRMPage';
 import PlanTraitementPage from './pages/medecin/dossier/PlanTraitementPage';
 import MedecinLayout from './layouts/MedecinLayout';
 import DocumentsPage from './pages/medecin/dossier/DocumentsPage';
+import BiopsiePage from './pages/medecin/dossier/BiopsiePage';
 
 export default function App() {
   return (
@@ -47,7 +48,7 @@ export default function App() {
         <Route path="dossier/:id/echographie" element={<EchographiePage />} />
         <Route path="dossier/:id/irm" element={<IRMPage />} />
         <Route path="dossier/:id/mammographie" element={<VueEnsemblePage />} />
-        <Route path="dossier/:id/biopsie" element={<VueEnsemblePage />} />
+        <Route path="dossier/:id/biopsie" element={<BiopsiePage />} />
         <Route path="dossier/:id/resultats" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/plan-traitement" element={<PlanTraitementPage />} />
         <Route path="dossier/:id/documents" element={<DocumentsPage />} />

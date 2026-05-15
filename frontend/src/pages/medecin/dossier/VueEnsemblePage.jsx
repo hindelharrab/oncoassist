@@ -405,9 +405,7 @@ function VueEnsemblePage() {
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Séquençage chronologique • Protocoles hospitaliers</p>
                 </div>
               </div>
-              <button className="px-6 py-3 bg-slate-50 text-[10px] font-black uppercase tracking-[0.15em] border border-slate-200 rounded-2xl hover:bg-slate-100 transition-all">
-                TÉLÉCHARGER TOUT (.ZIP)
-              </button>
+             
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {exams.map((exam, i) => {
