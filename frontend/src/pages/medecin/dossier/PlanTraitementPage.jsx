@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Zap,
   ArrowRight,
+  FileCheck,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -594,39 +595,66 @@ const PlanTraitementPage = () => {
                  </div>
 
                  <div className="p-12 bg-slate-100/30 flex-1 flex flex-col items-center overflow-y-auto max-h-[700px]">
-                    <div className="w-full max-w-sm bg-white p-8 shadow-2xl border border-slate-200 aspect-[1/1.414] relative flex flex-col justify-between overflow-hidden shrink-0">
+                    <div className="w-full max-w-[500px] bg-white p-[15mm] md:p-[20mm] shadow-2xl relative flex flex-col min-h-[600px] overflow-hidden shrink-0">
+                       {/* Watermark */}
                        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none rotate-[-35deg]">
                           <span className="text-4xl font-black uppercase tracking-[0.6em] text-pink-900">ONCOASSIST</span>
                        </div>
-
-                       <div className="relative z-10">
-                          <div className="flex justify-between items-start mb-10">
-                             <h4 className="text-sm font-black tracking-tighter text-slate-900 italic">CLINIQUE DU SEIN</h4>
+ 
+                       <div className="relative z-10 flex flex-col h-full">
+                          <div className="flex justify-between items-start mb-8">
+                             <div>
+                                <h4 className="text-lg font-black tracking-tighter text-slate-900 italic">CLINIQUE DU SEIN</h4>
+                                <p className="text-[9px] font-bold text-slate-500 mt-1 italic">Pôle d'excellence en oncologie</p>
+                             </div>
                              <div className="text-right">
-                                <p className="text-[7px] font-black uppercase tracking-widest text-pink-500">Ordonnance</p>
-                                <p className="text-[6px] font-bold text-slate-400">{formData.dateConsultation}</p>
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-pink-500">Ordonnance</p>
+                                <p className="text-[9px] font-bold text-slate-400 mt-1">{formData.dateConsultation}</p>
                              </div>
                           </div>
-
-                          <div className="space-y-3 mb-8">
-                             <div className="border-b border-slate-100 pb-1">
-                                <p className="text-[7px] text-slate-400 uppercase font-black tracking-widest">Patient</p>
-                                <p className="text-[10px] font-black uppercase text-slate-900">Leïla Benali (42 ANS)</p>
+ 
+                          <div className="mb-10 grid grid-cols-2 gap-8">
+                             <div className="space-y-3">
+                                <h5 className="text-[8px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">Patient</h5>
+                                <div>
+                                   <p className="text-xs font-black text-slate-900 uppercase">Leïla Benali</p>
+                                   <p className="text-[10px] font-medium text-slate-600">42 ans • Casablanca, MAROC</p>
+                                </div>
                              </div>
-                             <div className="border-b border-slate-100 pb-1">
-                                <p className="text-[7px] text-slate-400 uppercase font-black tracking-widest">Praticien</p>
-                                <p className="text-[10px] font-black uppercase text-slate-900">{formData.auteur}</p>
+                             <div className="space-y-3">
+                                <h5 className="text-[8px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">Praticien</h5>
+                                <div>
+                                   <p className="text-xs font-black text-slate-900 uppercase">{formData.auteur}</p>
+                                   <p className="text-[10px] font-medium text-slate-600">Oncologue Sénologue</p>
+                                </div>
                              </div>
                           </div>
-
-                          <div className="min-h-[150px] py-4 font-serif italic text-slate-800 text-[11px] leading-relaxed">
-                             {formData.ordonnance || 'Aucune prescription saisie.'}
+ 
+                          <div className="flex-1 py-4">
+                             <div className="flex items-center gap-2 opacity-10 mb-8">
+                                <div className="h-px flex-1 bg-slate-950" />
+                                <FileCheck size={18} className="text-slate-950" />
+                                <div className="h-px flex-1 bg-slate-950" />
+                             </div>
+                             <div className="font-serif italic text-slate-800 text-[14px] leading-relaxed text-center px-4 md:px-8 mt-12">
+                                {formData.ordonnance ? formData.ordonnance.split('\n').map((line, i) => (
+                                   <p key={i} className="mb-3">{line}</p>
+                                )) : <p className="text-slate-400">Aucune prescription saisie.</p>}
+                             </div>
                           </div>
-                       </div>
-
-                       <div className="relative z-10 pt-4 border-t border-slate-100 flex items-center justify-between opacity-30">
-                          <span className="text-[6px] font-bold uppercase">OncoAssist V2.4</span>
-                          <span className="text-[6px] font-mono">REF: OA-{formData.dateConsultation.replace(/-/g, '')}</span>
+ 
+                          <div className="mt-auto pt-10 flex justify-between items-end border-t border-slate-100 pb-4">
+                             <div className="space-y-1">
+                                <p className="text-[6px] text-slate-400 uppercase font-black">Réf document</p>
+                                <p className="text-[7px] font-mono font-bold text-slate-900">REF: OA-{formData.dateConsultation.replace(/-/g, '')}</p>
+                             </div>
+                             <div className="text-center opacity-30 flex flex-col items-center">
+                                <div className="w-12 h-12 border border-slate-300 rounded flex items-center justify-center p-1 mb-1">
+                                   <span className="text-[6px] font-mono leading-none rotate-45 text-center">QR CODE VALIDÉ</span>
+                                </div>
+                                <p className="text-[5px] font-black uppercase">Signé électroniquement</p>
+                             </div>
+                          </div>
                        </div>
                     </div>
 
