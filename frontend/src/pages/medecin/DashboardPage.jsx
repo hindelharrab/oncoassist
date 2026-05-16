@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import dashboardService from '../../services/dashboardService';
 import {
   Activity, Users, AlertTriangle, Calendar, TrendingUp,
   TrendingDown, Heart, ScanLine, Clock, ChevronRight,
   Bell, Sparkles, ArrowUpRight, Brain, 
-  CalendarDays, Filter, MoreHorizontal
+  CalendarDays, Filter, MoreHorizontal, Loader2
 } from 'lucide-react';
 import {
   XAxis, YAxis, ResponsiveContainer,
@@ -18,14 +19,52 @@ const DashboardPage = () => {
   const { setPatientSelectionne } = useOutletContext();
   const { user } = useAuth();
   const [periode, setPeriode] = useState('semaine');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State pour les données du backend
+  const [dashboardData, setDashboardData] = useState({
+    kpis: {
+      activePatients: 0,
+      criticalCases: 0,
+      iaExamsThisWeek: 0,
+      rdvToday: 0
+    },
+    biradsDistribution: [],
+    examsEvolution: [],
+    weeklyActivity: [],
+    recentExams: [],
+    todayAppointments: []
+  });
 
   const prenomMedecin = user?.prenom ?? 'Meryem';
+  const nomMedecin = user?.nom ?? '';
 
-  // KPI Data
+  // Chargement des données
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    fetchDashboardData();
+  }, [periode]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await dashboardService.getDashboardData();
+      setDashboardData(data);
+    } catch (err) {
+      console.error('Erreur chargement dashboard:', err);
+      setError('Impossible de charger les données du tableau de bord');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Construction des KPI à partir des données backend
   const kpis = [
     {
       label: 'Patientes actives',
-      value: 142,
+      value: dashboardData.kpis.activePatients,
       variation: '+12',
       trend: 'up',
       icon: Users,
@@ -34,7 +73,7 @@ const DashboardPage = () => {
     },
     {
       label: 'Diagnostics IA',
-      value: 47,
+      value: dashboardData.kpis.iaExamsThisWeek,
       variation: '+18%',
       trend: 'up',
       icon: Brain,
@@ -43,7 +82,7 @@ const DashboardPage = () => {
     },
     {
       label: 'Cas critiques',
-      value: 8,
+      value: dashboardData.kpis.criticalCases,
       variation: '+2',
       trend: 'up',
       icon: AlertTriangle,
@@ -53,53 +92,56 @@ const DashboardPage = () => {
     },
     {
       label: 'Consultations',
-      value: 23,
+      value: dashboardData.kpis.rdvToday,
       variation: '-3',
       trend: 'down',
       icon: Calendar,
       color: 'rose',
-      sub: '4 aujourd\'hui'
+      sub: 'aujourd\'hui'
     }
   ];
 
-  // Data for Chart
-  const evolutionData = [
-    { mois: 'Jan', mammo: 12, irm: 5, echo: 8 },
-    { mois: 'Fév', mammo: 18, irm: 7, echo: 10 },
-    { mois: 'Mar', mammo: 25, irm: 12, echo: 15 },
-    { mois: 'Avr', mammo: 32, irm: 15, echo: 20 },
-    { mois: 'Mai', mammo: 47, irm: 22, echo: 28 }
-  ];
+  // Données pour les graphiques
+  const evolutionData = dashboardData.examsEvolution.length > 0 
+    ? dashboardData.examsEvolution 
+    : [
+        { mois: 'Jan', mammo: 0, irm: 0, echo: 0 },
+        { mois: 'Fév', mammo: 0, irm: 0, echo: 0 },
+        { mois: 'Mar', mammo: 0, irm: 0, echo: 0 },
+        { mois: 'Avr', mammo: 0, irm: 0, echo: 0 },
+        { mois: 'Mai', mammo: 0, irm: 0, echo: 0 }
+      ];
 
-  const biradsData = [
-    { name: 'Normaux (1-2)', value: 65, color: '#10b981' },
-    { name: 'À surveiller (3)', value: 22, color: '#f59e0b' },
-    { name: 'Suspects (4)', value: 10, color: '#ef4444' },
-    { name: 'Malins (5-6)', value: 3, color: '#991b1b' }
-  ];
+  const biradsData = dashboardData.biradsDistribution.length > 0
+    ? dashboardData.biradsDistribution
+    : [
+        { name: 'Normaux (1-2)', value: 0, color: '#10b981' },
+        { name: 'À surveiller (3)', value: 0, color: '#f59e0b' },
+        { name: 'Suspects (4)', value: 0, color: '#ef4444' },
+        { name: 'Malins (5-6)', value: 0, color: '#991b1b' }
+      ];
 
-  const weeklyActivityData = [
-    { jour: 'Lun', examens: 8, color: '#818cf8' },
-    { jour: 'Mar', examens: 12, color: '#6366f1' },
-    { jour: 'Mer', examens: 15, color: '#4f46e5' },
-    { jour: 'Jeu', examens: 10, color: '#4338ca' },
-    { jour: 'Ven', examens: 18, color: '#3730a3' },
-    { jour: 'Sam', examens: 6, color: '#4f46e5' },
-    { jour: 'Dim', examens: 2, color: '#6366f1' }
-  ];
+  const weeklyActivityData = dashboardData.weeklyActivity.length > 0
+    ? dashboardData.weeklyActivity
+    : [
+        { jour: 'Lun', examens: 0, color: '#818cf8' },
+        { jour: 'Mar', examens: 0, color: '#6366f1' },
+        { jour: 'Mer', examens: 0, color: '#4f46e5' },
+        { jour: 'Jeu', examens: 0, color: '#4338ca' },
+        { jour: 'Ven', examens: 0, color: '#3730a3' },
+        { jour: 'Sam', examens: 0, color: '#4f46e5' },
+        { jour: 'Dim', examens: 0, color: '#6366f1' }
+      ];
 
-  const recentExams = [
-    { id: 1, patient: 'Fatima B.', type: 'Mammographie', birads: '4B', time: 'Il y a 2h', status: 'critical' },
-    { id: 2, patient: 'Aïcha M.', type: 'IRM Pelvienne', birads: '2', time: 'Il y a 4h', status: 'normal' },
-    { id: 3, patient: 'Latifa K.', type: 'Échographie', birads: '3', time: 'Hier', status: 'warning' },
-    { id: 4, patient: 'Naima Z.', type: 'Mammographie', birads: '5', time: 'Hier', status: 'critical' },
-  ];
+  const recentExams = dashboardData.recentExams || [];
 
-  const handleSimulate = (patient) => {
+  const todayAppointments = dashboardData.todayAppointments || [];
+
+  const handleSimulate = (patientName) => {
     setPatientSelectionne({
       id: "1",
-      nom: patient.split(' ')[1] || "B.",
-      prenom: patient.split(' ')[0] || "Fatima",
+      nom: patientName.split(' ')[1] || "B.",
+      prenom: patientName.split(' ')[0] || "Patient",
       email: "patient@example.com"
     });
   };
@@ -132,6 +174,39 @@ const DashboardPage = () => {
     return styles[color] || styles.violet;
   };
 
+  const getBiradsDisplay = (birads) => {
+    if (!birads) return 'N/A';
+    return birads.replace('BIRADS_', '');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader2 size={48} className="animate-spin text-pink-500 mx-auto mb-4" />
+          <p className="text-slate-500 font-bold">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <AlertTriangle size={48} className="text-rose-500 mx-auto mb-4" />
+          <p className="text-rose-600 font-bold">{error}</p>
+          <button 
+            onClick={fetchDashboardData}
+            className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-xl text-sm font-bold"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* --- Header --- */}
@@ -145,7 +220,7 @@ const DashboardPage = () => {
                Tableau de bord
              </h1>
              <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.15em] mt-0.5">
-               Dr. {prenomMedecin} • Centre OncoAssist • 15 Mai 2026
+               Dr. {prenomMedecin} {nomMedecin} • Centre OncoAssist • {new Date().toLocaleDateString('fr-FR')}
              </p>
            </div>
         </div>
@@ -200,7 +275,6 @@ const DashboardPage = () => {
               </div>
             </div>
             
-            {/* Minimalist chart-like accent */}
             <div className="absolute bottom-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                <kpi.icon size={80} />
             </div>
@@ -223,10 +297,6 @@ const DashboardPage = () => {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Surveillance multi-modulaire</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all">
-              <Filter size={14} />
-              Filtrer
-            </button>
           </div>
 
           <ResponsiveContainer width="100%" height={320}>
@@ -315,9 +385,6 @@ const DashboardPage = () => {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Dernières prédictions IA</p>
                  </div>
               </div>
-              <button className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 transition-all flex items-center gap-2">
-                 Tout afficher <ChevronRight size={14} />
-              </button>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -329,7 +396,7 @@ const DashboardPage = () => {
                   >
                     <div className="flex items-center gap-4">
                        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center font-black text-slate-400 transition-colors group-hover:border-indigo-100 group-hover:text-indigo-600">
-                          {exam.patient.substring(0, 2).toUpperCase()}
+                          {exam.patient?.substring(0, 2).toUpperCase() || 'NA'}
                        </div>
                        <div>
                           <p className="text-xs font-black uppercase tracking-tight text-slate-900">{exam.patient}</p>
@@ -341,6 +408,11 @@ const DashboardPage = () => {
                     </div>
                  </div>
               ))}
+              {recentExams.length === 0 && (
+                <div className="col-span-2 text-center py-8 text-slate-400">
+                  Aucun examen récent
+                </div>
+              )}
            </div>
         </div>
 
@@ -352,22 +424,18 @@ const DashboardPage = () => {
               </div>
               <div>
                  <h3 className="text-sm font-black uppercase tracking-[0.1em] text-slate-900">Agenda du jour</h3>
-                 <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-0.5">4 rendez-vous</p>
+                 <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest mt-0.5">{todayAppointments.length} rendez-vous</p>
               </div>
            </div>
 
            <div className="space-y-3">
-              {[
-                { h: '09:00', n: 'Samira H.', t: 'Contrôle Annuel' },
-                { h: '10:30', n: 'Karima L.', t: 'Résultats Biopsie' },
-                { h: '14:00', n: 'Hayat M.', t: 'Première visite' }
-              ].map((rdv, i) => (
+              {todayAppointments.map((rdv, i) => (
                  <div key={i} className="p-4 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-4">
-                       <span className="text-[11px] font-black text-pink-700 tabular-nums bg-pink-50 px-3 py-1.5 rounded-xl border border-pink-100 group-hover:bg-pink-600 group-hover:text-white transition-colors">{rdv.h}</span>
+                       <span className="text-[11px] font-black text-pink-700 tabular-nums bg-pink-50 px-3 py-1.5 rounded-xl border border-pink-100 group-hover:bg-pink-600 group-hover:text-white transition-colors">{rdv.time}</span>
                        <div>
-                          <p className="text-xs font-black uppercase tracking-tight text-slate-900">{rdv.n}</p>
-                          <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-[0.15em]">{rdv.t}</p>
+                          <p className="text-xs font-black uppercase tracking-tight text-slate-900">{rdv.patient}</p>
+                          <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-[0.15em]">{rdv.reason}</p>
                        </div>
                     </div>
                     <button className="p-2 rounded-xl hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-100">
@@ -375,11 +443,12 @@ const DashboardPage = () => {
                     </button>
                  </div>
               ))}
+              {todayAppointments.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  Aucun rendez-vous aujourd'hui
+                </div>
+              )}
            </div>
-           
-           <button className="w-full mt-6 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-slate-200">
-              Calendrier complet
-           </button>
         </div>
 
         {/* Weekly Activity Bar Chart */}
@@ -396,7 +465,7 @@ const DashboardPage = () => {
               </div>
               <div className="flex items-center gap-3 px-6 py-3 bg-slate-900 rounded-3xl text-white shadow-xl">
                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                 <span className="text-2xl font-black tabular-nums tracking-tight">71</span>
+                 <span className="text-2xl font-black tabular-nums tracking-tight">{weeklyActivityData.reduce((sum, day) => sum + day.examens, 0)}</span>
                  <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Total semaine</span>
               </div>
            </div>

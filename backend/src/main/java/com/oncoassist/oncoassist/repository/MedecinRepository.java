@@ -14,4 +14,5 @@ public interface MedecinRepository extends JpaRepository<Medecin, UUID> {
     boolean existsByNumeroOrdre(String numeroOrdre);
     List<Medecin> findBySpecialiteId(UUID specialiteId);
     Optional<Medecin> findByEmail(String email);
+
 }

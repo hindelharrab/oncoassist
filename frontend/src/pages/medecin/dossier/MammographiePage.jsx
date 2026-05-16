@@ -7,8 +7,135 @@ import {
   Plus, Calendar, Activity, Layers, X, Upload,
   Zap, Target, FileSearch, AlertCircle, CheckCircle2,
   ChevronRight, Info, Maximize2, Clock,
-  LayoutGrid, Image as ImageIcon, ShieldAlert
+  LayoutGrid, Image as ImageIcon, ShieldAlert, BookOpen
 } from 'lucide-react';
+
+// Guide d'utilisation du modèle IA
+const GuideModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  const steps = [
+    { icon: Upload, title: "1. Importer une image", desc: "Cliquez sur « Nouvel Examen » ou glissez-déposez une mammographie au format JPEG ou PNG." },
+    { icon: Zap, title: "2. Analyse IA automatique", desc: "Le modèle EfficientNet-B3 analyse l'image (30-60s). La heatmap GradCAM montre où le modèle a regardé." },
+    { icon: Activity, title: "3. Interpréter les résultats", desc: "Le score de confiance (0-100%) et le BI-RADS estiment le risque de malignité." },
+    { icon: Target, title: "4. Localisation", desc: "La bounding box et le quadrant anatomique guident la zone à biopsier." },
+    { icon: ShieldAlert, title: "5. Recommandation", desc: "Une action clinique est proposée selon le BI-RADS (surveillance ou biopsie)." }
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+              <Zap size={20} className="text-pink-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">Guide d'utilisation</h2>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modèle IA OncoAssist</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors"
+          >
+            <X size={18} className="text-slate-500" />
+          </button>
+        </div>
+
+        {/* Contenu */}
+        <div className="p-6 space-y-6">
+          {/* Badge modèle */}
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Modèle IA</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">EfficientNet-B3 • AUC 0.80</p>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-black uppercase">
+              En production
+            </div>
+          </div>
+
+          {/* Étapes */}
+          <div className="space-y-4">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Comment ça marche ?</p>
+            <div className="space-y-3">
+              {steps.map((step, idx) => (
+                <div key={idx} className="flex gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/30">
+                  <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center shrink-0">
+                    <step.icon size={18} className="text-pink-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">{step.title}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tableau BI-RADS */}
+          <div className="space-y-3">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Interprétation BI-RADS</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-500">
+                <p className="text-[10px] font-black text-emerald-700">BI-RADS 1-2</p>
+                <p className="text-[9px] text-emerald-600">Bénin → Surveillance annuelle</p>
+              </div>
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500">
+                <p className="text-[10px] font-black text-amber-700">BI-RADS 3</p>
+                <p className="text-[9px] text-amber-600">À surveiller → Contrôle 6 mois</p>
+              </div>
+              <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500">
+                <p className="text-[10px] font-black text-orange-700">BI-RADS 4A/B/C</p>
+                <p className="text-[9px] text-orange-600">Suspect → Biopsie recommandée</p>
+              </div>
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border-l-4 border-rose-500">
+                <p className="text-[10px] font-black text-rose-700">BI-RADS 5-6</p>
+                <p className="text-[9px] text-rose-600">Malin → Biopsie urgente</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={16} className="text-slate-400 shrink-0 mt-0.5" />
+              <p className="text-[9px] text-slate-500 leading-relaxed">
+                L'IA est un outil d'aide au diagnostic. La décision finale appartient au médecin. 
+                Le modèle a une sensibilité de 97.5% et une spécificité de 30% au seuil optimal (0.32).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4">
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl bg-pink-500 text-white text-[11px] font-black uppercase tracking-widest hover:bg-pink-600 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
   // Card recommandation dynamique selon BI-RADS
   const RecommandationCard = ({ examen }) => {
     const msg    = getBiradsMessage(examen.scoreBIRADS);
@@ -81,6 +208,7 @@ const MammographiePage = () => {
   const [isUploading, setIsUploading]       = useState(false);
   const [selectedExamen, setSelectedExamen] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [showGuide, setShowGuide]           = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -186,13 +314,22 @@ const MammographiePage = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => { setIsUploading(true); setError(null); }}
-            className="flex items-center gap-2 h-10 px-5 rounded-xl bg-slate-950 text-white font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all active:scale-[0.98]"
-          >
-            <Plus size={14} />
-            Nouvel Examen
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowGuide(true)}
+              className="flex items-center gap-2 h-10 px-5 rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all active:scale-[0.98]"
+            >
+              <BookOpen size={14} />
+              Guide
+            </button>
+            <button
+              onClick={() => { setIsUploading(true); setError(null); }}
+              className="flex items-center gap-2 h-10 px-5 rounded-xl bg-slate-950 text-white font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all active:scale-[0.98]"
+            >
+              <Plus size={14} />
+              Nouvel Examen
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
@@ -587,6 +724,10 @@ const MammographiePage = () => {
             </button>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
       </AnimatePresence>
     </div>
   );

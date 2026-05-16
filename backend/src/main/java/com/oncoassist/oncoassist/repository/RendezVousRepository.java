@@ -16,4 +16,8 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, UUID> {
     List<RendezVous> findByStatut(StatutRDVEnum statut);
     List<RendezVous> findBySecretaireId(UUID secretaireId);
     List<RendezVous> findByPatientIdAndDateAfterOrderByDateAsc(UUID patientId, LocalDateTime after);
+
+    // Dashboard
+    long countByMedecinIdAndDateBetween(UUID medecinId, LocalDateTime start, LocalDateTime end);
+    List<RendezVous> findByMedecinIdAndDateBetween(UUID medecinId, LocalDateTime start, LocalDateTime end);
 }
