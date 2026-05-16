@@ -19,12 +19,18 @@ public class FileStorageService {
             "image/jpeg", "image/png", "image/webp"
     );
 
-    public String sauvegarderPhoto(MultipartFile file) throws IOException {
+    public String sauvegarderPhoto(MultipartFile file)
+            throws IOException {
+
         if (!ALLOWED_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("Format non supporté. Utilisez JPG, PNG ou WEBP.");
+            throw new IllegalArgumentException(
+                    "Format non supporté. Utilisez JPG, PNG ou WEBP."
+            );
         }
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("Fichier trop volumineux. Maximum 5MB.");
+            throw new IllegalArgumentException(
+                    "Fichier trop volumineux. Maximum 5MB."
+            );
         }
 
         Path dossier = Paths.get(uploadDir);
@@ -35,22 +41,35 @@ public class FileStorageService {
         String extension = getExtension(file.getOriginalFilename());
         String nomFichier = UUID.randomUUID() + "." + extension;
         Path chemin = dossier.resolve(nomFichier);
-        Files.copy(file.getInputStream(), chemin, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(
+                file.getInputStream(), chemin,
+                StandardCopyOption.REPLACE_EXISTING
+        );
 
-        return nomFichier;
+        // Retourner le chemin RELATIF complet
+        // ex: "uploads/photos/abc-123.jpg"
+        // Le frontend pourra accéder via :
+        // http://localhost:8080/uploads/photos/abc-123.jpg
+        return uploadDir + "/" + nomFichier;
     }
 
     public void supprimerPhoto(String chemin) {
         if (chemin == null) return;
         try {
+            // Le chemin est maintenant relatif → on le supprime directement
             Files.deleteIfExists(Paths.get(chemin));
         } catch (IOException e) {
-            System.err.println("Impossible de supprimer l'ancienne photo : " + chemin);
+            System.err.println(
+                    "Impossible de supprimer : " + chemin
+            );
         }
     }
 
     private String getExtension(String filename) {
-        if (filename == null || !filename.contains(".")) return "jpg";
-        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+        if (filename == null || !filename.contains("."))
+            return "jpg";
+        return filename
+                .substring(filename.lastIndexOf('.') + 1)
+                .toLowerCase();
     }
 }

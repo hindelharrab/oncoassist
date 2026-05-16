@@ -30,63 +30,79 @@ public class MammographieService {
     private final AiInferenceService       aiInferenceService;
     private final MammographieRepository   mammographieRepository;
     private final DossierMedicalRepository dossierMedicalRepository;
-    private final MedecinRepository        medecinRepository;  // ← AJOUT
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final MedecinRepository        medecinRepository;
+    private final ObjectMapper             objectMapper = new ObjectMapper();
 
     @Value("${app.upload.mammographie.dir:uploads/mammo}")
     private String uploadDir;
 
-    // Constructeur modifié
     public MammographieService(
             AiInferenceService aiInferenceService,
             MammographieRepository mammographieRepository,
             DossierMedicalRepository dossierMedicalRepository,
-            MedecinRepository medecinRepository) {  // ← AJOUT
-        this.aiInferenceService = aiInferenceService;
-        this.mammographieRepository = mammographieRepository;
+            MedecinRepository medecinRepository) {
+        this.aiInferenceService       = aiInferenceService;
+        this.mammographieRepository   = mammographieRepository;
         this.dossierMedicalRepository = dossierMedicalRepository;
-        this.medecinRepository = medecinRepository;  // ← AJOUT
+        this.medecinRepository        = medecinRepository;
     }
 
     // ════════════════════════════════════════════════
     // ANALYSER + SAUVEGARDER
     // ════════════════════════════════════════════════
     public MammographieResponseDTO analyzeAndSave(
-            UUID dossierId,
+            UUID patientId,
             MultipartFile imageFile,
-            UUID medecinId) throws IOException {  // ← AJOUT du paramètre
+            UUID medecinId) throws IOException {
 
-        // 1. Vérifier que le dossier existe
+        // 1. Chercher le dossier via le patient
         DossierMedical dossier = dossierMedicalRepository
-                .findById(dossierId)
+                .findByPatientId(patientId)
                 .orElseThrow(() -> new RuntimeException(
-                        "Dossier médical non trouvé : " + dossierId));
+                        "Dossier non trouvé pour le patient : " + patientId
+                ));
 
-        // 2. Récupérer le médecin depuis son ID
-        Medecin medecin = medecinRepository.findById(medecinId)
+        // 2. Récupérer le médecin
+        Medecin medecin = medecinRepository
+                .findById(medecinId)
                 .orElseThrow(() -> new RuntimeException(
-                        "Médecin non trouvé avec l'ID: " + medecinId));
+                        "Médecin non trouvé : " + medecinId
+                ));
 
         // 3. Appeler FastAPI Python
-        MammographieResultDTO aiResult = aiInferenceService.analyze(imageFile);
+        MammographieResultDTO aiResult =
+                aiInferenceService.analyze(imageFile);
 
-        // 4. Noms uniques pour les fichiers images
+        // 4. Noms uniques — utilise dossier.getId() ← CORRECTION
         String timestamp = LocalDateTime.now().format(
-                DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        String prefix = "mammo_" + dossierId + "_" + timestamp + "_" + uniqueId;
+                DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+        );
+        String uniqueId = UUID.randomUUID()
+                .toString().substring(0, 8);
+        String prefix = "mammo_" + dossier.getId()
+                + "_" + timestamp + "_" + uniqueId;
 
-        // 5. Sauvegarder les 3 images sur disque
-        String pathOriginal = saveBase64Image(aiResult.getImageOriginal(), prefix + "_original.png");
-        String pathHeatmap = saveBase64Image(aiResult.getImageHeatmap(), prefix + "_heatmap.png");
-        String pathBbox = saveBase64Image(aiResult.getImageBbox(), prefix + "_bbox.png");
+        // 5. Sauvegarder les 3 images
+        String pathOriginal = saveBase64Image(
+                aiResult.getImageOriginal(),
+                prefix + "_original.png"
+        );
+        String pathHeatmap = saveBase64Image(
+                aiResult.getImageHeatmap(),
+                prefix + "_heatmap.png"
+        );
+        String pathBbox = saveBase64Image(
+                aiResult.getImageBbox(),
+                prefix + "_bbox.png"
+        );
 
-        // 6. Convertir bbox Map → String JSON
+        // 6. BBox JSON
         String bboxJson = null;
         if (aiResult.getBbox() != null) {
             try {
-                bboxJson = objectMapper.writeValueAsString(aiResult.getBbox());
+                bboxJson = objectMapper.writeValueAsString(
+                        aiResult.getBbox()
+                );
             } catch (JsonProcessingException e) {
                 bboxJson = "{}";
             }
@@ -95,25 +111,27 @@ public class MammographieService {
         // 7. Construire l'entité
         Mammographie mammo = new Mammographie();
         mammo.setDossierMedical(dossier);
-        mammo.setAuteur(medecin);  // ← AJOUT : médecin récupéré par ID
+        mammo.setAuteur(medecin);
         mammo.setDate(LocalDateTime.now());
+        mammo.setVisiblePatient(false);
 
-        // Résultats IA
         mammo.setScoreRisqueIA(aiResult.getScore().floatValue());
-        mammo.setConfidencePct(aiResult.getConfidencePct().floatValue());
+        mammo.setConfidencePct(
+                aiResult.getConfidencePct().floatValue()
+        );
         mammo.setPredictionIA(aiResult.getPrediction());
-        mammo.setScoreBIRADS(BIRADSEnum.fromLabel(aiResult.getBiradsLabel()));
+        mammo.setScoreBIRADS(
+                BIRADSEnum.fromLabel(aiResult.getBiradsLabel())
+        );
         mammo.setBiradsDescription(aiResult.getBiradsDescription());
         mammo.setRecommendationIA(aiResult.getRecommendation());
         mammo.setActionIA(aiResult.getAction());
 
-        // Localisation
         mammo.setQuadrant(aiResult.getQuadrant());
         mammo.setQuadrantShort(aiResult.getQuadrantShort());
         mammo.setPositionText(aiResult.getPositionText());
         mammo.setBboxJson(bboxJson);
 
-        // Chemins images
         mammo.setImageRadio(pathOriginal);
         mammo.setHeatmapUrl(pathHeatmap);
         mammo.setBboxImageUrl(pathBbox);
@@ -121,25 +139,34 @@ public class MammographieService {
         // 8. Sauvegarder en base
         Mammographie saved = mammographieRepository.save(mammo);
 
-        // 9. Retourner la réponse
+        // 9. Retourner avec base64
         return buildResponse(saved, aiResult);
     }
 
     // ════════════════════════════════════════════════
-    // HISTORIQUE D'UN DOSSIER
+    // HISTORIQUE PAR PATIENT
     // ════════════════════════════════════════════════
-    public List<MammographieResponseDTO> getByDossier(UUID dossierId) {
-        return mammographieRepository.findByDossierMedicalId(dossierId)
+    public List<MammographieResponseDTO> getByPatient(
+            UUID patientId) {
+        DossierMedical dossier = dossierMedicalRepository
+                .findByPatientId(patientId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Dossier non trouvé : " + patientId
+                ));
+        return mammographieRepository
+                .findByDossierMedicalId(dossier.getId())
                 .stream()
                 .map(m -> buildResponse(m, null))
                 .toList();
     }
 
     // ════════════════════════════════════════════════
-    // MÉTHODES PRIVÉES (inchangées)
+    // MÉTHODES PRIVÉES
     // ════════════════════════════════════════════════
+    private String saveBase64Image(
+            String base64Data,
+            String filename) throws IOException {
 
-    private String saveBase64Image(String base64Data, String filename) throws IOException {
         if (base64Data == null || base64Data.isEmpty()) {
             return null;
         }
@@ -149,13 +176,13 @@ public class MammographieService {
             base64 = base64.split(",")[1];
         }
 
-        File dir = new File(uploadDir + "/mammographies");
+        File dir = new File(uploadDir);
         if (!dir.exists()) {
             dir.mkdirs();
         }
 
         byte[] imageBytes = Base64.getDecoder().decode(base64);
-        String filePath = uploadDir + "/mammographies/" + filename;
+        String filePath   = uploadDir + "/" + filename;
 
         try (FileOutputStream fos = new FileOutputStream(filePath)) {
             fos.write(imageBytes);
@@ -164,14 +191,16 @@ public class MammographieService {
         return filePath;
     }
 
-    private MammographieResponseDTO buildResponse(Mammographie mammo, MammographieResultDTO aiResult) {
-        MammographieResponseDTO dto = new MammographieResponseDTO();
-        dto.setId(mammo.getId());
+    private MammographieResponseDTO buildResponse(
+            Mammographie mammo,
+            MammographieResultDTO aiResult) {
 
+        MammographieResponseDTO dto = new MammographieResponseDTO();
+
+        dto.setId(mammo.getId());
         if (mammo.getDossierMedical() != null) {
             dto.setDossierId(mammo.getDossierMedical().getId());
         }
-
         dto.setDateExamen(mammo.getDate());
         dto.setPredictionIA(mammo.getPredictionIA());
         dto.setScoreRisqueIA(mammo.getScoreRisqueIA());

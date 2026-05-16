@@ -20,11 +20,13 @@ public class MammographieController {
         this.mammographieService = mammographieService;
     }
 
-    @PostMapping("/dossier/{dossierId}/analyze")
+// MammographieController.java
+
+    @PostMapping("/dossier/{patientId}/analyze")
     public ResponseEntity<MammographieResponseDTO> analyze(
-            @PathVariable UUID dossierId,
+            @PathVariable UUID patientId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("medecinId") UUID medecinId) {  // ← AJOUT
+            @RequestParam("medecinId") UUID medecinId) {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -32,7 +34,7 @@ public class MammographieController {
 
         try {
             MammographieResponseDTO result = mammographieService
-                    .analyzeAndSave(dossierId, file, medecinId);  // ← MODIFIÉ
+                    .analyzeAndSave(patientId, file, medecinId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,8 +42,11 @@ public class MammographieController {
         }
     }
 
-    @GetMapping("/dossier/{dossierId}")
-    public ResponseEntity<List<MammographieResponseDTO>> getByDossier(@PathVariable UUID dossierId) {
-        return ResponseEntity.ok(mammographieService.getByDossier(dossierId));
+    @GetMapping("/dossier/{patientId}")
+    public ResponseEntity<List<MammographieResponseDTO>> getByDossier(
+            @PathVariable UUID patientId) {
+        return ResponseEntity.ok(
+                mammographieService.getByPatient(patientId)
+        );
     }
 }

@@ -19,6 +19,7 @@ import PlanTraitementPage from './pages/medecin/dossier/PlanTraitementPage';
 import MedecinLayout from './layouts/MedecinLayout';
 import DocumentsPage from './pages/medecin/dossier/DocumentsPage';
 import BiopsiePage from './pages/medecin/dossier/BiopsiePage';
+import MammographiePage from './pages/medecin/dossier/MammographiePage';
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
         
         {/* Placeholders for other dossiers routes to avoid blank pages */}
         <Route path="dossier/:id/consultation" element={<ConsultationPage />} />
+        <Route path="dossier/:id/mammographie" element={<MammographiePage />} />
         <Route path="dossier/:id/echographie" element={<EchographiePage />} />
         <Route path="dossier/:id/irm" element={<IRMPage />} />
         <Route path="dossier/:id/mammographie" element={<VueEnsemblePage />} />
