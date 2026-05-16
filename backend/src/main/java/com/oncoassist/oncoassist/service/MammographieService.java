@@ -8,6 +8,8 @@ import com.oncoassist.oncoassist.model.entity.DossierMedical;
 import com.oncoassist.oncoassist.model.entity.Mammographie;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.model.entity.enums.BIRADSEnum;
+import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
+import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import com.oncoassist.oncoassist.repository.DossierMedicalRepository;
 import com.oncoassist.oncoassist.repository.MammographieRepository;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
@@ -31,20 +33,24 @@ public class MammographieService {
     private final MammographieRepository   mammographieRepository;
     private final DossierMedicalRepository dossierMedicalRepository;
     private final MedecinRepository        medecinRepository;
+    private final NotificationService      notificationService;  // ← AJOUT
     private final ObjectMapper             objectMapper = new ObjectMapper();
 
     @Value("${app.upload.mammographie.dir:uploads/mammo}")
     private String uploadDir;
 
+    // Constructeur modifié avec NotificationService
     public MammographieService(
             AiInferenceService aiInferenceService,
             MammographieRepository mammographieRepository,
             DossierMedicalRepository dossierMedicalRepository,
-            MedecinRepository medecinRepository) {
+            MedecinRepository medecinRepository,
+            NotificationService notificationService) {  // ← AJOUT
         this.aiInferenceService       = aiInferenceService;
         this.mammographieRepository   = mammographieRepository;
         this.dossierMedicalRepository = dossierMedicalRepository;
         this.medecinRepository        = medecinRepository;
+        this.notificationService      = notificationService;  // ← AJOUT
     }
 
     // ════════════════════════════════════════════════
@@ -73,7 +79,7 @@ public class MammographieService {
         MammographieResultDTO aiResult =
                 aiInferenceService.analyze(imageFile);
 
-        // 4. Noms uniques — utilise dossier.getId() ← CORRECTION
+        // 4. Noms uniques — utilise dossier.getId()
         String timestamp = LocalDateTime.now().format(
                 DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
         );
@@ -139,8 +145,50 @@ public class MammographieService {
         // 8. Sauvegarder en base
         Mammographie saved = mammographieRepository.save(mammo);
 
-        // 9. Retourner avec base64
+        // 9. 🔔 CRÉER UNE NOTIFICATION AUTOMATIQUE 🔔
+        creerNotificationApresAnalyse(saved, dossier, medecinId);
+
+        // 10. Retourner avec base64
         return buildResponse(saved, aiResult);
+    }
+
+    // ════════════════════════════════════════════════
+    // MÉTHODE POUR CRÉER LA NOTIFICATION
+    // ════════════════════════════════════════════════
+    private void creerNotificationApresAnalyse(Mammographie mammo, DossierMedical dossier, UUID medecinId) {
+        // Déterminer la priorité selon le BI-RADS
+        NotificationPriorite priorite;
+        if (mammo.getScoreBIRADS() == null) {
+            priorite = NotificationPriorite.INFO;
+        } else {
+            switch (mammo.getScoreBIRADS()) {
+                case BIRADS_5, BIRADS_6 -> priorite = NotificationPriorite.CRITIQUE;
+                case BIRADS_4B, BIRADS_4C -> priorite = NotificationPriorite.HAUTE;
+                case BIRADS_4A -> priorite = NotificationPriorite.HAUTE;
+                case BIRADS_3 -> priorite = NotificationPriorite.NORMALE;
+                default -> priorite = NotificationPriorite.INFO;
+            }
+        }
+
+        String biradsLabel = mammo.getScoreBIRADS() != null
+                ? mammo.getScoreBIRADS().getLabel()
+                : "Non évalué";
+
+        String patientNom = dossier.getPatient() != null
+                ? dossier.getPatient().getPrenom() + " " + dossier.getPatient().getNom()
+                : "Patient inconnu";
+
+        notificationService.creer(
+                medecinId,
+                NotificationCategorie.ia,
+                priorite,
+                biradsLabel + " détecté — " + mammo.getPredictionIA(),
+                "Analyse EfficientNet-B3 terminée pour " + patientNom +
+                        ". Confiance : " + mammo.getConfidencePct() + "%.",
+                "/medecin/dossier/" + dossier.getPatient().getId() + "/mammographie",
+                patientNom,
+                dossier.getPatient().getId()
+        );
     }
 
     // ════════════════════════════════════════════════
@@ -161,7 +209,7 @@ public class MammographieService {
     }
 
     // ════════════════════════════════════════════════
-    // MÉTHODES PRIVÉES
+    // MÉTHODES PRIVÉES (inchangées)
     // ════════════════════════════════════════════════
     private String saveBase64Image(
             String base64Data,

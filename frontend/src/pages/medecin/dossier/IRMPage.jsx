@@ -441,7 +441,7 @@ const IRMPage = () => {
                     <div className="flex-1 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm flex flex-col">
                       {exam.fichierImage ? (
                         <div className="group relative bg-black aspect-[4/3] overflow-hidden shrink-0">
-                          <img src={`http://localhost:8080/uploads/${exam.fichierImage}`} alt="Coupe IRM"
+                          <img src={`http://localhost:8080/${exam.fichierImage}`} alt="Coupe IRM"
                             className="w-full h-full object-cover opacity-80 transition-all duration-700 group-hover:scale-110" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-5">
                             <span className="text-[9px] font-black text-pink-500 uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1">

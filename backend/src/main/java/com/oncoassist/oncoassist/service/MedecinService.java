@@ -124,4 +124,9 @@ public class MedecinService {
         return dto;
     }
 
+    // Ajoute cette méthode si elle n'existe pas
+    public Medecin findByEmail(String email) {
+        return medecinRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Médecin non trouvé: " + email));
+    }
 }

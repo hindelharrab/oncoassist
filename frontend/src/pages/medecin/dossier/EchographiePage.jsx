@@ -471,7 +471,7 @@ const EchographiePage = () => {
                     <div className="flex-1 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm flex flex-col">
                       {exam.imageRadio ? (
                         <div className="group relative bg-black aspect-[4/3] overflow-hidden shrink-0">
-                          <img src={`http://localhost:8080/uploads/${exam.imageRadio}`} alt="Cliché"
+                          <img src={`http://localhost:8080/${exam.imageRadio}`} alt="Cliché"
                             className="w-full h-full object-cover opacity-90 transition-all duration-700 group-hover:scale-110" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent p-5 flex flex-col justify-end">
                             <span className="text-[9px] font-black text-pink-500 uppercase tracking-[0.3em] flex items-center gap-2 mb-1">

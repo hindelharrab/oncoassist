@@ -1,28 +1,43 @@
 package com.oncoassist.oncoassist.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.*;
-
 import java.nio.file.Paths;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
-
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String absolutePath = Paths.get(uploadDir).toAbsolutePath().toString();
-        System.out.println("Serving files from: " + absolutePath);
 
-        //  /uploads/photos/** → pour les biopsies et gradcam
+        // Racine du projet (là où tourne Spring Boot)
+        // ex: C:\Users\H-R\Desktop\PFA\oncoassist\backend
+        String racine = Paths.get("").toAbsolutePath().toString();
+
+        // 1. Photos de profil avec chemin complet
+        //    stockées comme : "uploads/photos/xxx.jpg"
+        //    URL : /uploads/photos/xxx.jpg
         registry.addResourceHandler("/uploads/photos/**")
-                .addResourceLocations("file:" + absolutePath + "/");
+                .addResourceLocations(
+                        "file:" + racine + "/uploads/photos/"
+                );
 
-        //  /uploads/** → pour les photos de profil (SettingsPage utilise ce chemin)
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + absolutePath + "/");
+        // 2. Images mammographies
+        //    stockées comme : "uploads/mammo/xxx.png"
+        //    URL : /uploads/mammo/xxx.png
+        registry.addResourceHandler("/uploads/mammo/**")
+                .addResourceLocations(
+                        "file:" + racine + "/uploads/mammo/"
+                );
+
+        // 3. Anciennes photos de profil stockées sans dossier
+        //    stockées comme : "xxx.jpg" (ancien format)
+        //    URL : /uploads/xxx.jpg → cherche dans uploads/photos/
+        registry.addResourceHandler("/uploads/*.jpg",
+                        "/uploads/*.png",
+                        "/uploads/*.webp")
+                .addResourceLocations(
+                        "file:" + racine + "/uploads/photos/"
+                );
     }
 }

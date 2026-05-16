@@ -1,6 +1,5 @@
 package com.oncoassist.oncoassist.model.dto;
 
-import com.oncoassist.oncoassist.model.entity.Notification;
 import com.oncoassist.oncoassist.model.entity.PriseEnCharge;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
 import lombok.Data;
