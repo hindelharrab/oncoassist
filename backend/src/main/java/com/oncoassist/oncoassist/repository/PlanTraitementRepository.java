@@ -12,4 +12,5 @@ public interface PlanTraitementRepository extends JpaRepository<PlanTraitement, 
 
     @Query("SELECT p FROM PlanTraitement p WHERE p.dossierMedical.id = :dossierId ORDER BY p.dateConsultation DESC")
     List<PlanTraitement> findByDossierMedicalIdOrderByDateDesc(@Param("dossierId") UUID dossierId);
+    List<PlanTraitement> findByDossierMedicalIdOrderByDateConsultationAsc(UUID dossierId);
 }

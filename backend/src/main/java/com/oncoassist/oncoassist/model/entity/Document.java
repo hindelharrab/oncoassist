@@ -43,4 +43,10 @@ public class Document {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dossier_id", nullable = false)
     private DossierMedical dossierMedical;
+
+    @Column(name = "examen_source_id")
+    private UUID examenSourceId;
+
+    @Column(name = "examen_source_type")
+    private String examenSourceType;
 }

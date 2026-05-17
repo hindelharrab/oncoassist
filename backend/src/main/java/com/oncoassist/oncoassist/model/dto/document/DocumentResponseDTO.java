@@ -18,4 +18,7 @@ public class DocumentResponseDTO {
     private String etape;            // ex: "IRM", "Examen manuel"
     private String medecinNom;
     private String medecinPrenom;
+
+    private UUID        examenSourceId;
+    private String      examenSourceType;
 }

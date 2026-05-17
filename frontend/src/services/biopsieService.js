@@ -23,6 +23,20 @@ export const modifierBiopsie = (id, data) =>
 export const supprimerBiopsie = (id) =>
   axiosInstance.delete(`${BASE}/${id}`);
 
+// À appeler après analyserBiopsie() ou handleSave() dans BiopsiePage
+export const sauvegarderResultatBiopsie = async (dossierId, biopsie) => {
+  const { creerDocument } = await import('./documentService');
+  return creerDocument(dossierId, {
+    nom            : `Résultat Biopsie - ${new Date(biopsie.date).toLocaleDateString('fr-FR')}`,
+    type           : 'RESULTAT_BIOPSIE',
+    contenu        : JSON.stringify(biopsie),   // données complètes sérialisées
+    partagePatient : false,
+    etape          : 'Biopsie',
+    examenSourceId : biopsie.id,
+    examenSourceType: 'RESULTAT_BIOPSIE',
+  });
+};
+
 // Analyser des images
 export const analyserBiopsie = (biopsieId, images, grossissement) => {
   const formData = new FormData();
@@ -31,6 +45,7 @@ export const analyserBiopsie = (biopsieId, images, grossissement) => {
     // img.file = le vrai File object
     formData.append('images', img.file, img.name);
   });
+  
 
   return axiosInstance.post(`${BASE}/${biopsieId}/analyser`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }

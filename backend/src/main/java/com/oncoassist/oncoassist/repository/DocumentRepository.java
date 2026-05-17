@@ -7,18 +7,27 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
-    // Tous les documents d'un dossier
     @Query("SELECT d FROM Document d WHERE d.dossierMedical.id = :dossierId ORDER BY d.dateAjout DESC")
     List<Document> findByDossierMedicalIdOrderByDateDesc(@Param("dossierId") UUID dossierId);
 
-    // Documents par type (ORDONNANCE, RESULTAT, etc.)
     @Query("SELECT d FROM Document d WHERE d.dossierMedical.id = :dossierId AND d.type = :type ORDER BY d.dateAjout DESC")
     List<Document> findByDossierMedicalIdAndType(
             @Param("dossierId") UUID dossierId,
             @Param("type") DocTypeEnum type
     );
+
+    // ── NOUVEAU : tous les résultats d'examens (multi-types) ──
+    @Query("SELECT d FROM Document d WHERE d.dossierMedical.id = :dossierId AND d.type IN :types ORDER BY d.dateAjout DESC")
+    List<Document> findByDossierMedicalIdAndTypeIn(
+            @Param("dossierId") UUID dossierId,
+            @Param("types") List<DocTypeEnum> types
+    );
+
+    // ── NOUVEAU : vérifier si un résultat existe déjà pour un examen ──
+    Optional<Document> findByExamenSourceId(UUID examenSourceId);
 }
