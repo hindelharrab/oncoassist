@@ -15,6 +15,8 @@ import {
   supprimerBiopsie,
   analyserBiopsie
 } from '../../../services/biopsieService';
+import { creerDocument } from '../../../services/documentService';
+
 
 const TYPE_LABELS = {
   fibroadenoma      : 'Fibroadénome',
@@ -48,11 +50,19 @@ const BiopsiePage = () => {
     images         : []
   });
 
-  const imageUrl = (chemin) => {
-    if (!chemin) return null;
-    if (chemin.startsWith('http')) return chemin;
-    return `http://localhost:8080${chemin}`;
-  };
+ const imageUrl = (chemin) => {
+  if (!chemin) return null;
+  if (chemin.startsWith('http')) return chemin;
+  
+  // Grad-CAM → servi par FastAPI (port 8001) qui a le fichier physiquement
+  if (chemin.includes('gradcam_')) {
+    const filename = chemin.split('/').pop();
+    return `http://localhost:8001/uploads/photos/${filename}`;
+  }
+  
+  // Autres images → Spring Boot (port 8080)
+  return `http://localhost:8080${chemin}`;
+};
 
   useEffect(() => {
     if (!dossierId) return;
@@ -166,6 +176,7 @@ const BiopsiePage = () => {
       resetForm();
     } catch { setErrorMsg("Erreur lors de la sauvegarde."); }
     finally { setIsSaving(false); }
+    
   };
 
   return (
@@ -313,51 +324,107 @@ const BiopsiePage = () => {
 
                         {/* Bloc 2 — Analyse IA */}
                         <div className="xl:col-span-4 flex flex-col">
-                          <div className="flex-1 p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 shadow-inner flex flex-col">
-                            <div className="flex items-center gap-2.5 mb-4">
-                              <div className="w-1 h-5 bg-pink-500 rounded-full" />
-                              <h4 className="text-[10px] font-black uppercase tracking-[0.25em]">Analyse IA</h4>
-                            </div>
-                            {exam.isAnalysed ? (
-                              <div className="space-y-5 flex-1 flex flex-col justify-between">
-                                <div className="space-y-4">
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Score Bénin/Malin</span>
-                                      <span className="text-sm font-black tabular-nums">{((exam.scoreBenignMalin || 0) * 100).toFixed(1)}%</span>
+                          {exam.isAnalysed ? (
+                            <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col bg-white dark:bg-slate-950 relative">
+                              {/* Bande couleur en haut */}
+                              <div className={`h-1.5 w-full ${isMalin ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-emerald-400 to-emerald-600'}`} />
+
+                              <div className="p-5 flex-1 flex flex-col gap-4">
+                                {/* Header */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isMalin ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                                      <BrainCircuit size={14} strokeWidth={2.5} />
                                     </div>
-                                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                                      <motion.div initial={{ width: 0 }} animate={{ width: `${(exam.scoreBenignMalin || 0) * 100}%` }}
-                                        className={`h-full rounded-full ${isMalin ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-500">Analyse IA</span>
                                   </div>
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Confiance Type</span>
-                                      <span className="text-sm font-black tabular-nums">{((exam.scoreTypeConfiance || 0) * 100).toFixed(1)}%</span>
-                                    </div>
-                                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                                      <motion.div initial={{ width: 0 }} animate={{ width: `${(exam.scoreTypeConfiance || 0) * 100}%` }}
-                                        className="h-full rounded-full bg-blue-500" />
-                                    </div>
+                                  <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isMalin ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                                    {isMalin ? '⚠ Malin' : '✓ Bénin'}
                                   </div>
                                 </div>
-                                {exam.typeTumeur && (
-                                  <div className="p-4 rounded-2xl border border-pink-100 dark:border-pink-900/30 bg-pink-50/70 dark:bg-pink-950/20 shadow-xl">
-                                    <span className="text-[9px] font-black text-pink-600 dark:text-pink-500 uppercase tracking-[0.25em]">Sous-type identifié</span>
-                                    <div className="flex items-baseline gap-2 mt-1">
-                                      <p className="text-base font-black uppercase text-slate-900 dark:text-white">{TYPE_LABELS[exam.typeTumeur] || exam.typeTumeur}</p>
+
+                                {/* Scores */}
+                                <div className="space-y-3 flex-1">
+                                  {/* Score Bénin/Malin */}
+                                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Score Bénin/Malin</span>
+                                      <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className={`text-lg font-black tabular-nums ${isMalin ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                        {((exam.scoreBenignMalin || 0) * 100).toFixed(1)}%
+                                      </motion.span>
+                                    </div>
+                                    <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${(exam.scoreBenignMalin || 0) * 100}%` }}
+                                        transition={{ duration: 1, ease: 'easeOut', delay: idx * 0.1 }}
+                                        className={`h-full rounded-full ${isMalin ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-emerald-400 to-emerald-600'}`}
+                                      />
                                     </div>
                                   </div>
-                                )}
+
+                                  {/* Confiance type */}
+                                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Confiance Type</span>
+                                      <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="text-lg font-black tabular-nums text-blue-500">
+                                        {((exam.scoreTypeConfiance || 0) * 100).toFixed(1)}%
+                                      </motion.span>
+                                    </div>
+                                    <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${(exam.scoreTypeConfiance || 0) * 100}%` }}
+                                        transition={{ duration: 1, ease: 'easeOut', delay: idx * 0.1 + 0.2 }}
+                                        className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Sous-type */}
+                                  {exam.typeTumeur && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 6 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.4 }}
+                                      className="p-3.5 rounded-2xl bg-slate-900 dark:bg-white border border-slate-800 dark:border-slate-100 flex items-center justify-between gap-3">
+                                      <div>
+                                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Sous-type identifié</span>
+                                        <p className="text-[12px] font-black uppercase text-white dark:text-slate-900 leading-tight">{TYPE_LABELS[exam.typeTumeur] || exam.typeTumeur}</p>
+                                      </div>
+                                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isMalin ? 'bg-rose-500' : 'bg-emerald-500'}`}>
+                                        <Microscope size={14} className="text-white" />
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isMalin ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">DenseNet121 · BreaKHis Dataset</span>
+                                </div>
                               </div>
-                            ) : (
-                              <div className="flex-1 flex flex-col items-center justify-center gap-2 py-6 text-slate-300 dark:text-slate-700">
-                                <BrainCircuit size={28} strokeWidth={1} />
-                                <p className="text-[9px] font-black uppercase tracking-widest">Non analysé</p>
+                            </div>
+                          ) : (
+                            <div className="flex-1 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-950">
+                              <div className="text-center py-8 space-y-3">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center mx-auto">
+                                  <BrainCircuit size={24} className="text-slate-300 dark:text-slate-700" strokeWidth={1.5} />
+                                </div>
+                                <div>
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Aucune analyse IA</p>
+                                  <p className="text-[8px] font-bold text-slate-300 dark:text-slate-700 mt-1 uppercase tracking-widest">Lancer une analyse depuis le détail</p>
+                                </div>
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Bloc 3 — Diagnostic */}
@@ -518,29 +585,64 @@ const BiopsiePage = () => {
 
                       {/* Bloc 2 — Images Grid */}
                       <div className="xl:col-span-4 flex flex-col gap-5">
-                        <div className="flex-1 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 shadow-inner flex flex-col">
-                          <div className="flex items-center gap-2.5 mb-5">
+                        <div className="flex-1 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 shadow-inner flex flex-col min-h-0">
+                          <div className="flex items-center gap-2.5 mb-4 shrink-0">
                             <div className="w-1 h-5 bg-pink-500 rounded-full" />
                             <h4 className="text-[10px] font-black uppercase tracking-[0.25em]">Images & Heatmaps Grad-CAM</h4>
+                            <span className="ml-auto px-2.5 py-1 rounded-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              {currentExamen.imagesAnalysees?.length || 0} région{(currentExamen.imagesAnalysees?.length || 0) > 1 ? 's' : ''}
+                            </span>
                           </div>
+
+                          {/* Labels colonnes */}
+                          {(currentExamen.imagesAnalysees?.length || 0) > 0 && (
+                            <div className="grid grid-cols-2 gap-2.5 mb-2 shrink-0">
+                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Cliché Original</p>
+                              <p className="text-[8px] font-black text-pink-400 uppercase tracking-widest text-center">Grad-CAM</p>
+                            </div>
+                          )}
+
                           {(currentExamen.imagesAnalysees?.length || 0) > 0 ? (
-                            <div className="grid grid-cols-2 gap-3 flex-1">
-                              {currentExamen.imagesAnalysees.slice(0, 4).map((img, i) => (
-                                <div key={img.id} className="space-y-2">
-                                  <div onClick={() => setSelectedImagePair(img)} className="aspect-square rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 cursor-pointer group hover:border-slate-300 transition-all relative shadow-sm">
-                                    <img src={imageUrl(img.cheminImage)} alt="Original" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div
+                              className="flex-1 overflow-y-auto space-y-2.5"
+                              style={{ scrollbarWidth: 'thin', scrollbarColor: '#fce7f3 transparent' }}
+                            >
+                              {currentExamen.imagesAnalysees.map((img, i) => (
+                                <div key={img.id} className="grid grid-cols-2 gap-2.5 shrink-0">
+                                  {/* Original */}
+                                  <div
+                                    onClick={() => setSelectedImagePair(img)}
+                                    className="aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 cursor-pointer group hover:border-slate-300 transition-all relative shadow-sm"
+                                  >
+                                    <img
+                                      src={imageUrl(img.cheminImage)}
+                                      alt="Original"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                      <Eye size={18} className="text-white" />
+                                      <Eye size={14} className="text-white" />
                                     </div>
-                                    <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/70 text-[8px] font-bold text-white uppercase">Orig.</div>
+                                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-black/70 text-[7px] font-bold text-white uppercase">#{i + 1}</div>
                                   </div>
-                                  {img.cheminGradCam && (
-                                    <div onClick={() => setSelectedImagePair(img)} className="aspect-square rounded-2xl overflow-hidden border-2 border-pink-100 dark:border-pink-900/30 cursor-pointer group hover:border-pink-300 transition-all relative shadow-sm">
-                                      <img src={imageUrl(img.cheminGradCam)} alt="Grad-CAM" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                  {/* Grad-CAM */}
+                                  {img.cheminGradCam ? (
+                                    <div
+                                      onClick={() => setSelectedImagePair(img)}
+                                      className="aspect-square rounded-xl overflow-hidden border-2 border-pink-100 dark:border-pink-900/30 cursor-pointer group hover:border-pink-300 transition-all relative shadow-sm"
+                                    >
+                                      <img
+                                        src={imageUrl(img.cheminGradCam)}
+                                        alt="Grad-CAM"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                      />
                                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                        <Eye size={18} className="text-white" />
+                                        <Eye size={14} className="text-white" />
                                       </div>
-                                      <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-pink-600/80 text-[8px] font-bold text-white uppercase">CAM</div>
+                                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-pink-600/80 text-[7px] font-bold text-white uppercase">CAM</div>
+                                    </div>
+                                  ) : (
+                                    <div className="aspect-square rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                                      <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">—</p>
                                     </div>
                                   )}
                                 </div>

@@ -35,7 +35,8 @@ public class WebConfig implements WebMvcConfigurer {
         //    URL : /uploads/xxx.jpg → cherche dans uploads/photos/
         registry.addResourceHandler("/uploads/*.jpg",
                         "/uploads/*.png",
-                        "/uploads/*.webp")
+                        "/uploads/*.webp",
+                        "/uploads/*.jfif")
                 .addResourceLocations(
                         "file:" + racine + "/uploads/photos/"
                 );
