@@ -1,61 +1,64 @@
 import { useState } from 'react';
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
-
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [role, setRole]         = useState('MEDECIN'); // 'MEDECIN' | 'SECRETAIRE'
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
   const navigate = useNavigate();
   const auth = useAuth();
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  try {
-    const data = await loginUser(email, password);
+    try {
+      const data = await loginUser(email, password);
+      auth.login(data);
 
-    // On passe tout l'objet data (token + user info + role)
-    auth.login(data);
+      // Redirection selon le rôle retourné par le backend
+      // (on garde aussi le rôle sélectionné comme fallback)
+      const effectiveRole = data.role || role;
 
-    // Redirection selon le rôle
-    switch (data.role) {
-      case 'MEDECIN':
-        navigate('/medecin/dashboard');
-        break;
-      case 'SECRETAIRE':
-        navigate('/secretaire/dashboard');
-        break;
-      case 'ADMIN':
-        navigate('/admin/dashboard');
-        break;
-      default:
-        navigate('/');
+      switch (effectiveRole) {
+        case 'MEDECIN':
+          navigate('/medecin/dashboard');
+          break;
+        case 'SECRETAIRE':
+          navigate('/secretaire/dashboard');
+          break;
+        case 'ADMIN':
+          navigate('/admin/dashboard');
+          break;
+        default:
+          navigate('/');
+      }
+    } catch (err) {
+      const message =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Email ou mot de passe incorrect.';
+      setError(message);
+    } finally {
+      setLoading(false);
     }
-
-  } catch (err) {
-    const message = err.response?.data?.error
-      || err.response?.data?.message
-      || 'Email ou mot de passe incorrect.';
-    setError(message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="w-full h-screen bg-white flex overflow-hidden font-sans select-none">
 
-      {/* CÔTÉ GAUCHE */}
+      {/* ══════════════════════════════
+          CÔTÉ GAUCHE — image
+      ══════════════════════════════ */}
       <div className="hidden md:flex md:w-1/2 h-full relative bg-gray-100">
         <div
           className="absolute inset-0 z-0 bg-cover bg-center"
@@ -81,7 +84,7 @@ const LoginPage = () => {
           >
             Une prise en charge humaine et technologique.
           </motion.h2>
-          <div className="w-12 h-1 bg-pink-500 mb-8"></div>
+          <div className="w-12 h-1 bg-pink-500 mb-8" />
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -94,7 +97,9 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* CÔTÉ DROIT */}
+      {/* ══════════════════════════════
+          CÔTÉ DROIT — formulaire
+      ══════════════════════════════ */}
       <div className="w-full md:w-1/2 h-full flex flex-col justify-center items-center px-10 md:px-24 bg-white relative">
         <div className="max-w-sm w-full">
 
@@ -108,27 +113,91 @@ const LoginPage = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-gray-400 font-bold text-[10px] tracking-[0.4em] uppercase leading-none">ONCO</span>
-              <div className="h-[2px] bg-[#EC4899] my-1.5 w-full"></div>
+              <div className="h-[2px] bg-[#EC4899] my-1.5 w-full" />
               <span className="text-[#1F2937] font-black text-xl tracking-tighter uppercase leading-none">ASSIST</span>
             </div>
           </div>
 
-          <h1 className="text-3xl font-black text-gray-800 mb-2 uppercase tracking-tighter">Connexion</h1>
-          <p className="text-gray-500 text-sm mb-8">Heureux de vous revoir. Veuillez saisir vos identifiants.</p>
+          {/* Titre */}
+          <h1 className="text-3xl font-black text-gray-800 mb-2 uppercase tracking-tighter">
+            Connexion
+          </h1>
+          <p className="text-gray-500 text-sm mb-8">
+            Heureux de vous revoir. Veuillez saisir vos identifiants.
+          </p>
+
+          {/* ── Toggle rôle ── */}
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-8">
+            {[
+              { value: 'MEDECIN',    label: 'Médecin' },
+              { value: 'SECRETAIRE', label: 'Secrétaire' },
+            ].map((r) => {
+              const isActive = role === r.value;
+              return (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => { setRole(r.value); setError(''); }}
+                  className="relative flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors duration-200 z-10"
+                  style={{ color: isActive ? '#EC4899' : '#9CA3AF' }}
+                >
+                  {/* Fond glissant */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="role-pill"
+                      className="absolute inset-0 bg-white rounded-lg shadow-sm"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Badge rôle actif */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={role}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="mb-6 flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-semibold"
+              style={{
+                background: role === 'MEDECIN' ? '#FDF2F8' : '#EEEDFE',
+                borderColor: role === 'MEDECIN' ? '#FBCFE8' : '#C4C0F8',
+                color: role === 'MEDECIN' ? '#EC4899' : '#7F77DD',
+              }}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ background: role === 'MEDECIN' ? '#EC4899' : '#7F77DD' }}
+              />
+              {role === 'MEDECIN'
+                ? 'Vous vous connectez en tant que Médecin'
+                : 'Vous vous connectez en tant que Secrétaire médicale'}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Erreur */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2"
-            >
-              <span className="text-red-500 text-sm">⚠</span>
-              <p className="text-red-500 text-xs font-medium">{error}</p>
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2"
+              >
+                <span className="text-red-500 text-sm">⚠</span>
+                <p className="text-red-500 text-xs font-medium">{error}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
+          {/* Formulaire */}
           <form className="space-y-5" onSubmit={handleSubmit}>
+
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 Adresse E-mail
@@ -148,7 +217,12 @@ const LoginPage = () => {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   Mot de passe
                 </label>
-                <Link to="/forgot-password" title="Réinitialiser mon mot de passe" className="text-[10px] font-bold text-pink-500 uppercase tracking-widest hover:text-pink-600">Oublié ?</Link>
+                <Link
+                  to="/forgot-password"
+                  className="text-[10px] font-bold text-pink-500 uppercase tracking-widest hover:text-pink-600"
+                >
+                  Oublié ?
+                </Link>
               </div>
               <input
                 type="password"
@@ -176,20 +250,22 @@ const LoginPage = () => {
             <motion.button
               type="submit"
               disabled={loading}
-              whileHover={!loading ? { scale: 1.01, backgroundColor: "#1f2937" } : {}}
+              whileHover={!loading ? { scale: 1.01, backgroundColor: '#1f2937' } : {}}
               whileTap={!loading ? { scale: 0.99 } : {}}
               className="w-full py-4 bg-black text-white font-black rounded-lg shadow-xl text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Connexion...
+                  Connexion en cours…
                 </>
               ) : (
-                <>Se Connecter <ArrowRight size={16} strokeWidth={3} /></>
+                <>
+                  Se connecter <ArrowRight size={16} strokeWidth={3} />
+                </>
               )}
             </motion.button>
           </form>
