@@ -48,6 +48,5 @@ public class Patient extends Utilisateur {
     @JsonIgnore
     private List<AttributionQuestionnaire> attributions;
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Notification> notifications;
+
 }

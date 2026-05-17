@@ -1,6 +1,7 @@
 package com.oncoassist.oncoassist.service;
 
 import com.oncoassist.oncoassist.model.dto.PatientDetailDTO;
+import com.oncoassist.oncoassist.model.dto.PatientRequestDTO;
 import com.oncoassist.oncoassist.model.entity.AttributionQuestionnaire;
 import com.oncoassist.oncoassist.model.entity.DossierMedical;
 import com.oncoassist.oncoassist.model.entity.Patient;
@@ -37,25 +38,34 @@ public class PatientService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public Patient creer(Patient patient) {
-        if (patientRepository.existsByEmail(patient.getEmail())) {
-            throw new IllegalArgumentException("Email déjà utilisé : " + patient.getEmail());
+    public Patient creer(PatientRequestDTO dto) {
+        // Vérifier que l'email n'existe pas déjà
+        if (patientRepository.existsByEmail(dto.getEmail())) {
+            throw new IllegalArgumentException("Email déjà utilisé : " + dto.getEmail());
         }
 
-        patient.setMotDePasse(passwordEncoder.encode(patient.getMotDePasse()));
+        Patient patient = new Patient();
+        patient.setNom(dto.getNom());
+        patient.setPrenom(dto.getPrenom());
+        patient.setEmail(dto.getEmail());
+        patient.setTelephone(dto.getTelephone());
+        patient.setAdresse(dto.getAdresse());
+        patient.setDateNaissance(dto.getDateNaissance());
+        patient.setPersonneConfiance(dto.getPersonneConfiance());
+        patient.setMotDePasse(passwordEncoder.encode(dto.getMotDePasse()));
+        patient.setRole(RoleEnum.PATIENT);
 
         Patient saved = patientRepository.save(patient);
 
+        // Créer le dossier médical associé
         DossierMedical dossier = new DossierMedical();
         dossier.setPatient(saved);
         dossier.setDateCreation(LocalDate.now());
         dossier.setStatut(StatutDossierEnum.ACTIF);
-
         dossierMedicalRepository.save(dossier);
 
         return saved;
     }
-
     @Transactional(readOnly = true)
     public List<PatientDetailDTO> findAll() {
         return patientRepository.findAll()
@@ -224,7 +234,6 @@ public class PatientService {
         dto.setRole(patient.getRole() != null ? patient.getRole().name() : null);
         dto.setPrisesEnCharge(patient.getPrisesEnCharge());
         dto.setRendezVous(patient.getRendezVous());
-        dto.setNotifications(patient.getNotifications());
         if (patient.getDossierMedical() != null) {
             dto.setDossierMedicalId(patient.getDossierMedical().getId());
         }

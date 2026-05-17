@@ -2,29 +2,132 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Trash2, Edit3, X,
-  ClipboardList, User, ShieldCheck, FileSearch,
-  Send, Calendar, RefreshCw, CheckCircle2, Loader2
+  Plus, Trash2, Edit3, X, ClipboardList, User, ShieldCheck, FileSearch,
+  Send, Calendar, RefreshCw, CheckCircle2, Loader2, Circle, CheckSquare,
+  Search, ChevronDown, ChevronUp, AlertTriangle
 } from 'lucide-react';
 import { useQuestionnaire } from '../../context/QuestionnaireContext';
 import axiosInstance from '../../services/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Fréquences disponibles ─────────────────────────────────────────────────
-// ← Adaptez selon votre FrequenceEnum Java
-// ── Fréquences — valeurs exactes de FrequenceEnum.java ────────────────────
 const FREQUENCES = [
   { value: 'HEBDOMADAIRE',   label: 'Hebdomadaire'    },
   { value: 'BIHEBDOMADAIRE', label: 'Bihebdomadaire'  },
   { value: 'MENSUELLE',      label: 'Mensuelle'       },
 ];
 
+// ─── Type Badge ──────────────────────────────────────────────────────────────
+const TypeBadge = ({ type }) => {
+  const styles = type === 'multiple'
+    ? { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', icon: CheckSquare, label: 'Choix multiple' }
+    : { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', icon: Circle, label: 'Choix unique' };
+  const Icon = styles.icon;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${styles.bg} ${styles.text} ${styles.border}`}>
+      <Icon size={9} strokeWidth={2.5} />
+      {styles.label}
+    </span>
+  );
+};
+
+// ─── Question Row (style table dense) ────────────────────────────────────────
+const QuestionRow = ({ q, idx, isLast, onEdit, onDelete, isGlobal = false }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div
+      className="group transition-colors hover:bg-slate-50/60"
+      style={{ borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}
+    >
+      <div className="px-5 py-3.5 flex items-center gap-4">
+        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wider bg-slate-50 text-slate-500 border-slate-200 tabular-nums shrink-0">
+          Q{String(idx + 1).padStart(2, '0')}
+        </span>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <TypeBadge type={q.type} />
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              {q.options.length} réponse{q.options.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <p className="text-[13px] font-bold text-slate-900 truncate leading-tight">
+            {q.text}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+        >
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {!isGlobal && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => onEdit(q)}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 hover:border-indigo-200"
+              title="Modifier"
+            >
+              <Edit3 size={12} strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={() => onDelete(q)}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors border border-slate-100 hover:border-rose-200"
+              title="Supprimer"
+            >
+              <Trash2 size={12} strokeWidth={2.5} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="px-5 pb-4 pt-1" style={{ paddingLeft: 76 }}>
+              <div className="bg-slate-50/60 border border-slate-100 rounded-lg p-3">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Réponses proposées
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {q.options.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      {q.type === 'multiple' ? (
+                        <div className="w-3.5 h-3.5 rounded-[3px] border-[1.5px] border-slate-300 shrink-0" />
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-slate-300 shrink-0" />
+                      )}
+                      <span className="text-[12px] font-semibold text-slate-700">{opt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── Shared input style ──────────────────────────────────────────────────────
+const inputClass =
+  "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+
 // ══════════════════════════════════════════════════════════════════════════
 // MODAL — Attribution du questionnaire
 // ══════════════════════════════════════════════════════════════════════════
 const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
   const today = new Date().toISOString().split('T')[0];
-
   const [dateFin,   setDateFin]   = useState('');
   const [frequence, setFrequence] = useState('HEBDOMADAIRE');
   const [loading,   setLoading]   = useState(false);
@@ -53,7 +156,7 @@ const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
         patientId,
         medecinId,
         frequence,
-        dateFin: dateFin || null,   // ← null si non renseignée = sans limite
+        dateFin: dateFin || null,
       });
       setSuccess(true);
       setTimeout(() => { setSuccess(false); onClose(); }, 1500);
@@ -73,53 +176,53 @@ const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0,  scale: 1     }}
-            exit={{   opacity: 0, y: 20, scale: 0.97   }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
           >
-            {/* Header */}
-            <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-tight text-gray-900 dark:text-white">
-                  Attribuer le Questionnaire
-                </h3>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                  Questions globales + personnalisées
-                </p>
+            <div className="px-6 py-5 flex items-start justify-between border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <Send size={16} className="text-indigo-600" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-slate-900 tracking-tight leading-none mb-1.5">
+                    Attribuer le Questionnaire
+                  </h2>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                    Questions globales + personnalisées
+                  </p>
+                </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 hover:bg-slate-50 text-slate-500 transition-colors shrink-0"
               >
-                <X size={14} />
+                <X size={15} strokeWidth={2.5} />
               </button>
             </div>
 
-            {/* Corps */}
-            <div className="px-8 py-6 flex flex-col gap-5">
-
+            <div className="px-6 py-6 flex flex-col gap-5">
               {error && (
-                <div className="text-[10px] text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2 font-medium">
+                <div className="text-[10px] text-rose-500 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2 font-medium">
                   {error}
                 </div>
               )}
 
-              {/* Info */}
-              <div className="flex items-start gap-3 px-3 py-3 bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/30 rounded-lg">
-                <ClipboardList size={14} className="text-sky-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-sky-600 dark:text-sky-400 font-medium leading-relaxed">
+              <div className="flex items-start gap-3 px-3 py-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                <ClipboardList size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-indigo-600 font-medium leading-relaxed">
                   Le questionnaire attribué inclut toutes les <strong>questions globales</strong> ainsi que les <strong>questions personnalisées</strong> de cette patiente.
                 </p>
               </div>
 
-              {/* Fréquence */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <RefreshCw size={10} /> Fréquence d'envoi
                 </label>
                 <div className="flex gap-2">
@@ -129,8 +232,8 @@ const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
                       onClick={() => setFrequence(f.value)}
                       className={`flex-1 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all ${
                         frequence === f.value
-                          ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm'
-                          : 'bg-gray-50 dark:bg-gray-800 border-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                       }`}
                     >
                       {f.label}
@@ -139,42 +242,38 @@ const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
                 </div>
               </div>
 
-              {/* Date fin (optionnelle) */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Calendar size={10} /> Date de fin
-                  <span className="text-gray-300 dark:text-gray-600 font-medium normal-case tracking-normal">
-                    (optionnelle — laisser vide = sans limite)
-                  </span>
+                  <span className="text-slate-300 font-medium normal-case tracking-normal">(optionnelle)</span>
                 </label>
                 <input
                   type="date"
                   value={dateFin}
                   min={today}
                   onChange={(e) => setDateFin(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-[11px] font-semibold text-gray-700 dark:text-white outline-none focus:border-gray-300 dark:focus:border-gray-500 transition-all"
+                  className={inputClass}
                 />
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="px-8 py-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex items-center justify-end gap-3">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+                className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] uppercase font-black tracking-widest rounded-lg transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading || success}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm transition-all disabled:cursor-not-allowed ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm transition-all disabled:cursor-not-allowed ${
                   success
                     ? 'bg-emerald-500 text-white'
-                    : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-80 disabled:opacity-40'
+                    : 'bg-slate-900 hover:bg-black text-white'
                 }`}
               >
-                {loading  && <Loader2      size={12} className="animate-spin" />}
+                {loading  && <Loader2 size={12} className="animate-spin" />}
                 {success  && <CheckCircle2 size={12} />}
                 {!loading && !success && <Send size={12} />}
                 {loading ? 'Attribution...' : success ? 'Attribué !' : 'Attribuer'}
@@ -186,12 +285,13 @@ const AttributionModal = ({ isOpen, onClose, patientId, medecinId }) => {
     </AnimatePresence>
   );
 };
+
 // ══════════════════════════════════════════════════════════════════════════
 // PAGE PRINCIPALE
 // ══════════════════════════════════════════════════════════════════════════
 const PatientQuestionnairePage = () => {
   const { id: patientId } = useParams();
-const { user } = useAuth(); 
+  const { user } = useAuth();
   const {
     loadQuestionsForPatient,
     getQuestionsForPatient,
@@ -206,15 +306,14 @@ const { user } = useAuth();
 
   const allQuestions = getQuestionsForPatient(patientId);
 
-  // ── State modal question ─────────────────────────────────────────────
   const [isModalOpen,      setIsModalOpen]      = useState(false);
   const [currentQuestion,  setCurrentQuestion]  = useState(null);
   const [formText,         setFormText]         = useState('');
   const [formType,         setFormType]         = useState('unique');
   const [formOptions,      setFormOptions]      = useState(['', '']);
-
-  // ── State modal attribution ──────────────────────────────────────────
   const [isAttributionOpen, setIsAttributionOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
 
   const openAddModal = () => {
     setCurrentQuestion(null);
@@ -228,8 +327,21 @@ const { user } = useAuth();
     setCurrentQuestion(q);
     setFormText(q.text);
     setFormType(q.type || 'unique');
-    setFormOptions(q.options);
+    setFormOptions([...q.options]);
     setIsModalOpen(true);
+  };
+
+  const confirmDelete = (q) => {
+    setQuestionToDelete(q);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (questionToDelete) {
+      deletePatientQuestion(patientId, questionToDelete.id);
+      setIsDeleteModalOpen(false);
+      setQuestionToDelete(null);
+    }
   };
 
   const handleAddOption    = () => setFormOptions([...formOptions, '']);
@@ -247,314 +359,393 @@ const { user } = useAuth();
       addPatientQuestion(patientId, { text: formText, type: formType, options: filteredOptions });
     }
     setIsModalOpen(false);
-    setFormText('');
-    setFormType('unique');
-    setFormOptions(['', '']);
   };
 
-  const globalCount = allQuestions.filter(q =>  q.isGlobal).length;
-  const customCount = allQuestions.filter(q => !q.isGlobal).length;
+  const globalQuestions = allQuestions.filter(q => q.isGlobal);
+  const customQuestions = allQuestions.filter(q => !q.isGlobal);
 
   return (
-    <div className="h-full flex flex-col font-inter bg-white dark:bg-gray-950 p-2 lg:p-4 overflow-hidden">
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full overflow-hidden">
-
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg">
-              <ClipboardList size={24} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Questionnaires Patient
-              </h1>
-              <p className="text-gray-400 dark:text-gray-500 text-[11px] font-medium mt-0.5 uppercase tracking-widest">
-                Configuration personnalisée du suivi
-              </p>
-            </div>
+    <div className="max-w-full mx-auto space-y-4 animate-in fade-in duration-500 min-h-screen p-6" style={{ backgroundColor: '#fafbfc' }}>
+      
+      {/* ── HEADER ──────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-xl shadow-slate-200">
+            <ClipboardList size={24} className="text-white" strokeWidth={2.5} />
           </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              Questionnaires Patient
+            </h1>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.15em] mt-0.5">
+              Configuration personnalisée du suivi
+            </p>
+          </div>
+        </div>
 
-          {/* Boutons header */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAttributionOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-pink-500 hover:bg-pink-600 text-white text-[10px] uppercase font-black tracking-[0.15em] rounded-xl transition-all shadow-md"
+          >
+            <Send size={14} strokeWidth={3} /> Attribuer le questionnaire
+          </button>
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-black text-white text-[10px] uppercase font-black tracking-[0.15em] rounded-xl transition-all shadow-md"
+          >
+            <Plus size={14} strokeWidth={3} /> Question personnalisée
+          </button>
+        </div>
+      </div>
+
+      {/* ── RÉSUMÉ RAPIDE ────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={12} className="text-indigo-500" />
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            {globalQuestions.length} question{globalQuestions.length > 1 ? 's' : ''} globale{globalQuestions.length > 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="w-px h-4 bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <User size={12} className="text-sky-500" />
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            {customQuestions.length} question{customQuestions.length > 1 ? 's' : ''} personnalisée{customQuestions.length > 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="w-px h-4 bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <ClipboardList size={12} className="text-emerald-500" />
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            Total : {globalQuestions.length + customQuestions.length} question{globalQuestions.length + customQuestions.length > 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+
+      {/* ── QUESTIONS GLOBALES ───────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-100 shadow-md overflow-hidden">
+        <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-2">
-            {/* ← NOUVEAU : bouton Attribuer */}
-            <button
-  onClick={() => setIsAttributionOpen(true)}
-  className="flex items-center gap-2 px-5 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
->
-  <Send size={14} />
-  Attribuer le questionnaire
-</button>
+            <ShieldCheck size={14} className="text-indigo-500" />
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              Questions de Base (Globales)
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest tabular-nums">
+            {globalQuestions.length} question{globalQuestions.length > 1 ? 's' : ''}
+          </span>
+        </div>
 
+        {globalQuestions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+              <ShieldCheck size={26} className="text-slate-300" />
+            </div>
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+              Aucune question globale disponible
+            </p>
+          </div>
+        ) : (
+          <div>
+            {globalQuestions.map((q, idx) => (
+              <QuestionRow
+                key={q.id}
+                q={q}
+                idx={idx}
+                isLast={idx === globalQuestions.length - 1}
+                isGlobal={true}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── QUESTIONS PERSONNALISÉES ──────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-100 shadow-md overflow-hidden">
+        <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <User size={14} className="text-sky-500" />
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              Questions Personnalisées
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest tabular-nums">
+            {customQuestions.length} question{customQuestions.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {customQuestions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+              <FileSearch size={26} className="text-slate-300" />
+            </div>
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+              Aucune question personnalisée
+            </p>
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white text-[10px] uppercase font-black tracking-widest rounded-lg transition-all"
             >
-              <Plus size={16} /> Question personnalisée
+              <Plus size={12} strokeWidth={3} /> Ajouter une question
             </button>
           </div>
-        </div>
-
-        {/* ── Résumé rapide ────────────────────────────────────────────── */}
-        <div className="px-8 py-3 border-b border-gray-50 dark:border-gray-800 flex items-center gap-6 bg-gray-50/30 dark:bg-gray-800/10">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={12} className="text-sky-500" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {globalCount} question{globalCount > 1 ? 's' : ''} globale{globalCount > 1 ? 's' : ''}
-            </span>
+        ) : (
+          <div>
+            {customQuestions.map((q, idx) => (
+              <QuestionRow
+                key={q.id}
+                q={q}
+                idx={idx}
+                isLast={idx === customQuestions.length - 1}
+                isGlobal={false}
+                onEdit={openEditModal}
+                onDelete={confirmDelete}
+              />
+            ))}
           </div>
-          <div className="w-px h-4 bg-gray-100 dark:bg-gray-800" />
-          <div className="flex items-center gap-2">
-            <User size={12} className="text-sky-500" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {customCount} question{customCount > 1 ? 's' : ''} personnalisée{customCount > 1 ? 's' : ''}
-            </span>
-          </div>
-          <div className="w-px h-4 bg-gray-100 dark:bg-gray-800" />
-          <div className="flex items-center gap-2">
-            <ClipboardList size={12} className="text-emerald-500" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Total : {globalCount + customCount} question{globalCount + customCount > 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
+        )}
+      </div>
 
-        {/* ── Content ──────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-gray-50/20 dark:bg-gray-950/20">
-
-          {/* Questions globales */}
-          <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4 py-1.5 border border-gray-100 dark:border-gray-800 rounded-full flex items-center gap-2">
-                <ShieldCheck size={12} className="text-sky-500" /> Questions de Base (Globales)
-              </span>
-              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allQuestions.filter(q => q.isGlobal).map((q, idx) => (
-                <div key={q.id} className="p-5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-sky-500/20" />
-                  <div className="flex items-center justify-between mb-3 text-[9px] font-black uppercase tracking-widest">
-                    <span className="text-gray-300 dark:text-gray-600">Base Q.{idx + 1}</span>
-                    <span className={`px-1.5 py-0.5 rounded ${q.type === 'multiple' ? 'bg-indigo-50 text-indigo-500' : 'bg-sky-50 text-sky-500'}`}>
-                      {q.type === 'multiple' ? 'Multiple' : 'Unique'}
-                    </span>
+      {/* ══ CREATE / EDIT MODAL ════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
+            >
+              <div className="px-6 py-5 flex items-start justify-between border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                    {currentQuestion ? (
+                      <Edit3 size={16} className="text-indigo-600" strokeWidth={2.5} />
+                    ) : (
+                      <Plus size={16} className="text-indigo-600" strokeWidth={2.5} />
+                    )}
                   </div>
-                  <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-4">{q.text}</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {q.options.map((opt, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-gray-50 dark:bg-gray-800 text-[9px] font-medium text-gray-400 rounded-md">
-                        {q.type === 'multiple' ? '□' : '○'} {opt}
-                      </span>
-                    ))}
+                  <div>
+                    <h2 className="text-base font-black text-slate-900 tracking-tight leading-none mb-1.5">
+                      {currentQuestion ? 'Modifier la question' : 'Question personnalisée'}
+                    </h2>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                      Visible uniquement pour cette patiente
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Questions personnalisées */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4 py-1.5 border border-gray-100 dark:border-gray-800 rounded-full flex items-center gap-2">
-                <User size={12} className="text-sky-500" /> Questions Personnalisées
-              </span>
-              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
-            </div>
-
-            {allQuestions.filter(q => !q.isGlobal).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <AnimatePresence>
-                  {allQuestions.filter(q => !q.isGlobal).map((q, idx) => (
-                    <motion.div
-                      key={q.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1   }}
-                      exit={{   opacity: 0, scale: 0.9  }}
-                      className="group p-5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-sm relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 left-0 w-1 h-full bg-sky-500/20" />
-                      <div className="flex items-center justify-between mb-3 text-[9px] font-black uppercase tracking-widest">
-                        <span className="text-gray-300 dark:text-gray-600">Perso Q.{idx + 1}</span>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-1.5 py-0.5 rounded transition-opacity group-hover:opacity-0 ${q.type === 'multiple' ? 'bg-indigo-50 text-indigo-500' : 'bg-sky-50 text-sky-500'}`}>
-                            {q.type === 'multiple' ? 'Multiple' : 'Unique'}
-                          </span>
-                          <div className="absolute top-0 right-0 p-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => openEditModal(q)}
-                              className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
-                            >
-                              <Edit3 size={12} />
-                            </button>
-                            <button
-                              onClick={() => deletePatientQuestion(patientId, q.id)}
-                              className="p-1.5 text-gray-400 hover:text-rose-500 transition-all hover:bg-rose-50 rounded"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <h4 className="text-xs font-bold text-gray-800 dark:text-white mb-4 pr-12">{q.text}</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {q.options.map((opt, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-gray-50 dark:bg-gray-800 text-[9px] font-medium text-gray-400 rounded-md">
-                            {q.type === 'multiple' ? '□' : '○'} {opt}
-                          </span>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900/50">
-                <FileSearch size={32} className="text-gray-200 mb-3" />
-                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest text-center">
-                  Aucune question personnalisée<br />ajoutée pour ce dossier
-                </p>
                 <button
-                  onClick={openAddModal}
-                  className="mt-4 text-[10px] font-black text-pink-600 uppercase tracking-widest hover:underline"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 hover:bg-slate-50 text-slate-500 transition-colors shrink-0"
                 >
-                  + Ajouter maintenant
+                  <X size={15} strokeWidth={2.5} />
                 </button>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* ── Modal question personnalisée ─────────────────────────────── */}
-        <AnimatePresence>
-          {isModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsModalOpen(false)}
-                className="absolute inset-0 bg-black/40 backdrop-blur-md"
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0  }}
-                exit={{   opacity: 0, y: 20  }}
-                className="relative w-full max-w-lg max-h-[85vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
-              >
-                <div className="shrink-0 p-8 border-b border-gray-100 dark:border-gray-800">
-                  <h3 className="text-lg font-black uppercase tracking-tight text-gray-900 dark:text-white">
-                    {currentQuestion ? 'Modifier la question' : 'Question Spécifique'}
-                  </h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                    Cette question ne sera visible QUE pour cette patiente.
-                  </p>
-                </div>
-
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                      Type de Réponse
-                    </label>
-                    <div className="flex gap-2">
-                      {['unique', 'multiple'].map(t => (
+              <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
+                    Type de réponse
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { id: 'unique', label: 'Choix unique', icon: Circle, color: 'sky' },
+                      { id: 'multiple', label: 'Choix multiple', icon: CheckSquare, color: 'indigo' },
+                    ].map(opt => {
+                      const Icon = opt.icon;
+                      const active = formType === opt.id;
+                      return (
                         <button
-                          key={t}
-                          onClick={() => setFormType(t)}
-                          className={`flex-1 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                            formType === t
-                              ? 'bg-black text-white border-black shadow-lg shadow-black/10'
-                              : 'bg-gray-50 border-transparent text-gray-400'
+                          key={opt.id}
+                          onClick={() => setFormType(opt.id)}
+                          className={`flex items-center justify-center gap-2 py-3 rounded-lg border-[1.5px] transition-all text-[10px] font-black uppercase tracking-widest ${
+                            active
+                              ? opt.color === 'sky'
+                                ? 'bg-sky-50 border-sky-300 text-sky-700'
+                                : 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                              : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                           }`}
                         >
-                          {t === 'unique' ? 'Choix Unique' : 'Choix Multiple'}
+                          <Icon size={13} strokeWidth={2.5} />
+                          {opt.label}
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                      Libellé clinique
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
+                    Énoncé de la question
+                  </label>
+                  <textarea
+                    value={formText}
+                    onChange={e => setFormText(e.target.value)}
+                    placeholder="Ex : Avez-vous noté des symptômes inhabituels ?"
+                    rows={3}
+                    className={`${inputClass} resize-none leading-relaxed`}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Réponses proposées
                     </label>
-                    <textarea
-                      value={formText}
-                      onChange={(e) => setFormText(e.target.value)}
-                      placeholder="Ex: Avez-vous noté une rougeur au point d'injection?"
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-transparent rounded-lg text-sm font-medium focus:bg-white focus:border-gray-200 transition-all outline-none resize-none"
-                      rows={3}
-                    />
+                    <button
+                      onClick={handleAddOption}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 rounded-md text-[9px] font-black uppercase tracking-widest border border-slate-200 hover:border-indigo-200 transition-colors"
+                    >
+                      <Plus size={10} strokeWidth={3} /> Ajouter
+                    </button>
                   </div>
 
-                  <div className="space-y-3 pb-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                        Choix possibles
-                      </label>
-                      <button
-                        onClick={handleAddOption}
-                        className="text-[9px] font-black text-pink-600 uppercase tracking-widest flex items-center gap-1"
-                      >
-                        <Plus size={10} /> Ajouter
-                      </button>
-                    </div>
-                    <div className="space-y-3">
+                  <div className="flex flex-col gap-2">
+                    <AnimatePresence>
                       {formOptions.map((opt, i) => (
-                        <div key={i} className="relative group">
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 8, height: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <div className="w-7 h-7 shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
+                            {formType === 'multiple'
+                              ? <CheckSquare size={12} strokeWidth={2} />
+                              : <Circle size={12} strokeWidth={2} />}
+                          </div>
                           <input
                             type="text"
                             value={opt}
-                            onChange={(e) => {
-                              const newOpts = [...formOptions];
-                              newOpts[i] = e.target.value;
-                              setFormOptions(newOpts);
+                            onChange={e => {
+                              const n = [...formOptions];
+                              n[i] = e.target.value;
+                              setFormOptions(n);
                             }}
-                            placeholder={`Option ${i + 1}`}
-                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-transparent rounded-lg text-[11px] font-semibold focus:bg-white focus:border-gray-200 transition-all outline-none"
+                            placeholder={`Réponse ${i + 1}`}
+                            className={inputClass}
                           />
                           <button
                             onClick={() => handleRemoveOption(i)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                            disabled={formOptions.length <= 1}
+                            className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-transparent hover:border-rose-100"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={12} strokeWidth={2.5} />
                           </button>
-                        </div>
+                        </motion.div>
                       ))}
-                    </div>
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] uppercase font-black tracking-widest rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSaveQuestion}
+                  disabled={!formText.trim()}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-[10px] uppercase font-black tracking-widest rounded-lg transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {currentQuestion ? 'Mettre à jour' : 'Enregistrer'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ══ DELETE MODAL ════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
+              style={{ borderLeft: '4px solid #f43f5e' }}
+            >
+              <div className="px-6 py-6">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={20} className="text-rose-600" strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0 pt-1">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight mb-1.5">
+                      Confirmer la suppression
+                    </h3>
+                    <p className="text-[9px] font-bold text-rose-600 uppercase tracking-widest">
+                      Action irréversible
+                    </p>
                   </div>
                 </div>
 
-                <div className="shrink-0 px-8 py-5 bg-gray-50/50 flex items-center justify-end gap-3">
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3.5 mb-5">
+                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                    Cette question sera supprimée <strong className="text-rose-600 font-black">uniquement pour cette patiente</strong>. Les réponses associées seront également perdues.
+                  </p>
+                </div>
+
+                {questionToDelete && (
+                  <div className="bg-white border border-slate-200 rounded-lg p-3 mb-5">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                      Question concernée
+                    </p>
+                    <p className="text-[12px] font-bold text-slate-800 line-clamp-2">
+                      {questionToDelete.text}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2.5">
                   <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] uppercase font-black tracking-widest rounded-lg transition-colors"
                   >
                     Annuler
                   </button>
                   <button
-                    onClick={handleSaveQuestion}
-                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                    onClick={handleDelete}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[10px] uppercase font-black tracking-widest rounded-lg transition-all shadow-md inline-flex items-center justify-center gap-1.5"
                   >
-                    {currentQuestion ? 'Mettre à jour' : 'Valider et Ajouter'}
-                  </button>
+                    <Trash2 size={12} strokeWidth={2.5} /> Supprimer                  </button>
                 </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-        {/* ── Modal attribution ────────────────────────────────────────── */}
-       <AttributionModal
-  isOpen={isAttributionOpen}
-  onClose={() => setIsAttributionOpen(false)}
-  patientId={patientId}
-  medecinId={user?.id}    // ← user.id = id du médecin connecté
-/>
-
-      </div>
+      {/* ── MODAL ATTRIBUTION ────────────────────────────────────────── */}
+      <AttributionModal
+        isOpen={isAttributionOpen}
+        onClose={() => setIsAttributionOpen(false)}
+        patientId={patientId}
+        medecinId={user?.id}
+      />
     </div>
   );
 };
