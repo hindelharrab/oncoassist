@@ -27,4 +27,9 @@ public class DocumentRequestDTO {
 
     // Médecin auteur — pour affichage
     private UUID medecinId;
+
+    // id de l'examen source pour retrouver les données
+    private UUID examenSourceId;
+    private String examenSourceType; // "MANUEL","ECHO","IRM","BIOPSIE","MAMMO"
+
 }

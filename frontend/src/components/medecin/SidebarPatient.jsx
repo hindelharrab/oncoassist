@@ -76,11 +76,10 @@ export default function SidebarPatient({ patient, onRetour }) {
 
       <NavItem to={`/medecin/dossier/${patient.id}/vue-ensemble`} icon={Eye}>Vue d'ensemble</NavItem>
       <NavItem to={`/medecin/dossier/${patient.id}/consultation`} icon={Stethoscope}>Consultation</NavItem>
-       <NavItem to={`/medecin/dossier/${patient.id}/echographie`} icon={Zap}>Échographie</NavItem>
-      <NavItem to={`/medecin/dossier/${patient.id}/irm`} icon={Layers}>IRM</NavItem>
       <NavItem to={`/medecin/dossier/${patient.id}/mammographie`} icon={ScanLine}>Mammographie</NavItem>
+        <NavItem to={`/medecin/dossier/${patient.id}/echographie`} icon={Zap}>Échographie</NavItem>
+      <NavItem to={`/medecin/dossier/${patient.id}/irm`} icon={Layers}>IRM</NavItem>
       <NavItem to={`/medecin/dossier/${patient.id}/biopsie`} icon={Microscope}>Biopsie</NavItem>
-      <NavItem to={`/medecin/dossier/${patient.id}/resultats`} icon={BarChart2}>Résultats</NavItem>
       <NavItem to={`/medecin/dossier/${patient.id}/plan-traitement`} icon={FileText}>Plan de traitement</NavItem>
       <NavItem to={`/medecin/dossier/${patient.id}/documents`} icon={FolderOpen}>Documents</NavItem>
       <NavItem to={`/medecin/dossier/${patient.id}/questionnaires`} icon={ClipboardList}>Questionnaires</NavItem>
