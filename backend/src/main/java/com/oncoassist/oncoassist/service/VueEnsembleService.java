@@ -229,7 +229,7 @@ public class VueEnsembleService {
         LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
 
         return rendezVousRepository
-                .findRdvByPatientAndStatut(patient.getId(), StatutRDVEnum.EN_ATTENTE)
+                .findByPatientIdAndStatut(patient.getId(), StatutRDVEnum.EN_ATTENTE)
                 .stream()
                 .filter(rdv -> rdv.getDate() != null && !rdv.getDate().isBefore(startOfToday))
                 .findFirst()

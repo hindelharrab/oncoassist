@@ -41,4 +41,5 @@ public class WebConfig implements WebMvcConfigurer {
                         "file:" + racine + "/uploads/photos/"
                 );
     }
+
 }
