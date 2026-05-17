@@ -385,7 +385,7 @@ export default function SecretairePatients() {
             {filtered.length} patient{filtered.length > 1 ? 's' : ''} trouvé{filtered.length > 1 ? 's' : ''}
           </p>
         </div>
-       
+     
       </motion.div>
 
       {/* ── Stats ── */}
