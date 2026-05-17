@@ -21,7 +21,6 @@ import MedecinLayout from './layouts/MedecinLayout';
 import DocumentsPage from './pages/medecin/dossier/DocumentsPage';
 import DossiersPage from './pages/medecin/DossiersPage';
 import BiopsiePage from './pages/medecin/dossier/BiopsiePage';
-import MammographiePage from './pages/medecin/dossier/MammographiePage';
 
 export default function App() {
   return (
