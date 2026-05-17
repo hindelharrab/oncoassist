@@ -18,6 +18,7 @@ import IRMPage from './pages/medecin/dossier/IRMPage';
 import PlanTraitementPage from './pages/medecin/dossier/PlanTraitementPage';
 import MedecinLayout from './layouts/MedecinLayout';
 import DocumentsPage from './pages/medecin/dossier/DocumentsPage';
+import DossiersPage from './pages/medecin/DossiersPage';
 import BiopsiePage from './pages/medecin/dossier/BiopsiePage';
 import MammographiePage from './pages/medecin/dossier/MammographiePage';
 
@@ -33,7 +34,7 @@ export default function App() {
         <Route index element={<Navigate to="/medecin/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="patients" element={<PatientsPage />} />
-        <Route path="dossiers" element={<PatientsPage />} />
+        <Route path="dossiers" element={<DossiersPage/>} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="alertes" element={<AlertesPage />} />
         <Route path="settings" element={<SettingsPage />} />

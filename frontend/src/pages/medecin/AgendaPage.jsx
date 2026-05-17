@@ -59,6 +59,7 @@ const NouveauRdvModal = ({ isOpen, onClose, medecinId, onSuccess }) => {
   // ← Remplacez l'ancien useEffect de chargement par celui-ci
   useEffect(() => {
     if (!isOpen || search.length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPatients([]);
       return;
     }
@@ -300,7 +301,7 @@ const AgendaPage = () => {
   const [showModal,    setShowModal]    = useState(false); // ← modal
 
   // ── Chargement ───────────────────────────────────────────────────────────
-  // ── Chargement ───────────────────────────────────────────────────────────
+// eslint-disable-next-line react-hooks/preserve-manual-memoization
 const fetchRdv = useCallback(async () => {
   if (!user?.id) return; // ← sécurité : attendre que user soit chargé
   setLoading(true);
@@ -315,6 +316,7 @@ const fetchRdv = useCallback(async () => {
   }
 }, [user?.id]); // ← dépendance sur user?.id
 
+// eslint-disable-next-line react-hooks/set-state-in-effect
 useEffect(() => { fetchRdv(); }, [fetchRdv]);
 
   // ── Actions ──────────────────────────────────────────────────────────────

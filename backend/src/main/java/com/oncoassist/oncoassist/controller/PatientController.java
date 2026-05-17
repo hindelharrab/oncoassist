@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.oncoassist.oncoassist.model.dto.PatientRequestDTO;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -23,8 +23,26 @@ public class PatientController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SECRETAIRE', 'ADMIN')")
-    public ResponseEntity<Patient> creer(@RequestBody Patient patient) {
-        return ResponseEntity.ok(patientService.creer(patient));
+    public ResponseEntity<PatientDetailDTO> creer(@RequestBody PatientRequestDTO dto) {
+        Patient patient = patientService.creer(dto);
+
+        // Convertir en DTO pour la réponse
+        PatientDetailDTO response = new PatientDetailDTO();
+        response.setId(patient.getId());
+        response.setNom(patient.getNom());
+        response.setPrenom(patient.getPrenom());
+        response.setEmail(patient.getEmail());
+        response.setTelephone(patient.getTelephone());
+        response.setDateNaissance(patient.getDateNaissance());
+        response.setAdresse(patient.getAdresse());
+        response.setPersonneConfiance(patient.getPersonneConfiance());
+        response.setPhotoProfil(patient.getPhotoProfil());
+        response.setRole(patient.getRole().name());
+        if (patient.getDossierMedical() != null) {
+            response.setDossierMedicalId(patient.getDossierMedical().getId());
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping

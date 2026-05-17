@@ -1,196 +1,123 @@
 import { useState } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { 
+import { motion, AnimatePresence } from "framer-motion";
+import {
   Plus, Edit3, Trash2, X, ClipboardList,
-  AlertTriangle, HelpCircle, Sparkles
+  AlertTriangle, HelpCircle, CheckSquare, Circle,
+  Search, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 import { useQuestionnaire } from '../../context/QuestionnaireContext';
 
-// ─── Design tokens ───────────────────────────────────────────────────────────
-const palette = {
-  lavender:  { bg: '#F0EEFF', text: '#6C5CE7', border: '#D4CCFF' },
-  mint:      { bg: '#E6FFF6', text: '#00B894', border: '#ADEFDA' },
-  peach:     { bg: '#FFF3EB', text: '#E17055', border: '#FECFB6' },
-  rose:      { bg: '#FFF0F3', text: '#E84393', border: '#FFB8D0' },
-  sky:       { bg: '#EBF6FF', text: '#0984E3', border: '#BDDEFF' },
-  butter:    { bg: '#FFFCE6', text: '#FDCB6E', border: '#FDEEB8' },
-};
-
-const typeColor = { unique: palette.sky, multiple: palette.lavender };
-
-// ─── Animated pill badge ─────────────────────────────────────────────────────
+// ─── Type Badge ──────────────────────────────────────────────────────────────
 const TypeBadge = ({ type }) => {
-  const col = typeColor[type] || palette.sky;
+  const styles = type === 'multiple'
+    ? { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', icon: CheckSquare, label: 'Choix multiple' }
+    : { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', icon: Circle, label: 'Choix unique' };
+  const Icon = styles.icon;
   return (
-    <motion.span
-      layout
-      style={{
-        background: col.bg,
-        color: col.text,
-        border: `1px solid ${col.border}`,
-        borderRadius: 20,
-        fontSize: 9,
-        fontWeight: 800,
-        letterSpacing: '0.12em',
-        padding: '3px 10px',
-        textTransform: 'uppercase',
-      }}
-    >
-      {type === 'multiple' ? '✦ Multiple' : '◉ Unique'}
-    </motion.span>
+    <span className={`inline-flex items-center gap-1.5 text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${styles.bg} ${styles.text} ${styles.border}`}>
+      <Icon size={9} strokeWidth={2.5} />
+      {styles.label}
+    </span>
   );
 };
 
-// ─── Floating dot decoration ─────────────────────────────────────────────────
-const Dot = ({ style }) => (
-  <motion.div
-    animate={{ y: [0, -8, 0], opacity: [0.5, 1, 0.5] }}
-    transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, ease: 'easeInOut' }}
-    style={{ borderRadius: '50%', position: 'absolute', pointerEvents: 'none', ...style }}
-  />
-);
-
-// ─── Question card ────────────────────────────────────────────────────────────
-const QuestionCard = ({ q, idx, onEdit, onDelete }) => {
-  const [hovered, setHovered] = useState(false);
-  const colors = [palette.lavender, palette.mint, palette.peach, palette.rose, palette.sky, palette.butter];
-  const accent = colors[idx % colors.length];
+// ─── Question Row (style table dense) ────────────────────────────────────────
+const QuestionRow = ({ q, idx, isLast, onEdit, onDelete }) => {
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, y: -10 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 24, delay: idx * 0.06 }}
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
-      style={{
-        position: 'relative',
-        background: '#fff',
-        border: `1.5px solid ${hovered ? accent.border : '#F0EEF8'}`,
-        borderRadius: 20,
-        padding: '22px 24px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 14,
-        cursor: 'default',
-        transition: 'border-color 0.2s, box-shadow 0.2s',
-        boxShadow: hovered
-          ? `0 8px 32px 0 ${accent.bg}cc, 0 2px 8px 0 #0001`
-          : '0 2px 8px 0 #0000000a',
-        overflow: 'hidden',
-      }}
+    <div
+      className="group transition-colors hover:bg-slate-50/60"
+      style={{ borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}
     >
-      {/* Accent stripe */}
-      <motion.div
-        animate={{ opacity: hovered ? 1 : 0.4, scaleY: hovered ? 1 : 0.6 }}
-        transition={{ duration: 0.25 }}
-        style={{
-          position: 'absolute', left: 0, top: '20%', bottom: '20%',
-          width: 4, borderRadius: '0 4px 4px 0',
-          background: accent.text,
-        }}
-      />
+      {/* Main row */}
+      <div className="px-5 py-3.5 flex items-center gap-4">
+        {/* Numéro */}
+        <span className="text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wider bg-slate-50 text-slate-500 border-slate-200 tabular-nums shrink-0">
+          Q{String(idx + 1).padStart(2, '0')}
+        </span>
 
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#C0BAD8', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-            Q{idx + 1}
-          </span>
-          <TypeBadge type={q.type} />
+        {/* Texte + type */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <TypeBadge type={q.type} />
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              {q.options.length} réponse{q.options.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <p className="text-[13px] font-bold text-slate-900 truncate leading-tight">
+            {q.text}
+          </p>
         </div>
 
-        {/* Action buttons */}
-        <AnimatePresence>
-          {hovered && (
-            <motion.div
-              initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 8 }}
-              style={{ display: 'flex', gap: 4 }}
-            >
-              <motion.button
-                whileHover={{ scale: 1.12, background: '#F0EEFF' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onEdit(q)}
-                style={{
-                  border: 'none', background: '#F7F5FF', borderRadius: 10,
-                  width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: '#6C5CE7',
-                }}
-              >
-                <Edit3 size={13} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.12, background: '#FFF0F3' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onDelete(q)}
-                style={{
-                  border: 'none', background: '#FFF5F7', borderRadius: 10,
-                  width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: '#E84393',
-                }}
-              >
-                <Trash2 size={13} />
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+        {/* Toggle détails */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+          title={expanded ? "Masquer les réponses" : "Voir les réponses"}
+        >
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
 
-      {/* Question text */}
-      <p style={{ fontSize: 13.5, fontWeight: 700, color: '#2D2640', lineHeight: 1.55, margin: 0 }}>
-        {q.text}
-      </p>
-
-      {/* Options */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {q.options.map((opt, i) => (
-          <motion.span
-            key={i}
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.04 }}
-            style={{
-              background: accent.bg,
-              color: accent.text,
-              border: `1px solid ${accent.border}`,
-              borderRadius: 20,
-              fontSize: 10,
-              fontWeight: 600,
-              padding: '4px 11px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
+        {/* Actions */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => onEdit(q)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 hover:border-indigo-200"
+            title="Modifier"
           >
-            <span style={{ fontSize: 8 }}>{q.type === 'multiple' ? '□' : '◦'}</span>
-            {opt}
-          </motion.span>
-        ))}
+            <Edit3 size={12} strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={() => onDelete(q)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors border border-slate-100 hover:border-rose-200"
+            title="Supprimer"
+          >
+            <Trash2 size={12} strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
-    </motion.div>
+
+      {/* Détails dépliables */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="px-5 pb-4 pt-1" style={{ paddingLeft: 76 }}>
+              <div className="bg-slate-50/60 border border-slate-100 rounded-lg p-3">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Réponses proposées
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {q.options.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      {q.type === 'multiple' ? (
+                        <div className="w-3.5 h-3.5 rounded-[3px] border-[1.5px] border-slate-300 shrink-0" />
+                      ) : (
+                        <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-slate-300 shrink-0" />
+                      )}
+                      <span className="text-[12px] font-semibold text-slate-700">{opt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
-// ─── Input / Textarea shared style ──────────────────────────────────────────
-const inputStyle = {
-  width: '100%',
-  padding: '11px 14px',
-  background: '#FAF8FF',
-  border: '1.5px solid #EAE5FF',
-  borderRadius: 12,
-  fontSize: 13,
-  fontWeight: 500,
-  color: '#2D2640',
-  outline: 'none',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-  fontFamily: 'inherit',
-};
+// ─── Shared input style ──────────────────────────────────────────────────────
+const inputClass =
+  "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 const QuestionnairesPage = () => {
@@ -203,6 +130,9 @@ const QuestionnairesPage = () => {
   const [formText, setFormText] = useState('');
   const [formType, setFormType] = useState('unique');
   const [formOptions, setFormOptions] = useState(['', '']);
+
+  const [recherche, setRecherche] = useState('');
+  const [filtreType, setFiltreType] = useState('TOUS');
 
   const openAddModal = () => {
     setCurrentQuestion(null);
@@ -241,340 +171,271 @@ const QuestionnairesPage = () => {
     setIsDeleteModalOpen(true);
   };
 
+  const questionsFiltrees = globalQuestions.filter(q => {
+    const matchSearch = recherche
+      ? q.text.toLowerCase().includes(recherche.toLowerCase())
+      : true;
+    const matchType =
+      filtreType === 'TOUS' ||
+      (filtreType === 'UNIQUE' && q.type === 'unique') ||
+      (filtreType === 'MULTIPLE' && q.type === 'multiple');
+    return matchSearch && matchType;
+  });
+
+  const countUnique = globalQuestions.filter(q => q.type === 'unique').length;
+  const countMultiple = globalQuestions.filter(q => q.type === 'multiple').length;
+
   return (
-    <div style={{
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'linear-gradient(135deg, #F8F5FF 0%, #FFF5FB 50%, #F0F8FF 100%)',
-      padding: '12px',
-      fontFamily: "'DM Sans', 'Nunito', system-ui, sans-serif",
-    }}>
-
-      {/* Card container */}
-      <div style={{
-        background: '#fff',
-        borderRadius: 24,
-        border: '1.5px solid #EDE8FF',
-        boxShadow: '0 4px 40px 0 #6C5CE710',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
-
-        {/* Decorative dots */}
-        <Dot style={{ width: 80, height: 80, background: '#F0EEFF', top: -20, right: 60 }} />
-        <Dot style={{ width: 40, height: 40, background: '#FFF0F3', top: 40, right: 20 }} />
-
-        {/* ── Header ──────────────────────────────────────────── */}
-        <div style={{
-          padding: '28px 32px 20px',
-          borderBottom: '1.5px solid #F3EFFF',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          position: 'relative',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <motion.div
-              whileHover={{ rotate: 12, scale: 1.1 }}
-              style={{
-                width: 52, height: 52,
-                background: 'linear-gradient(135deg, #F0EEFF, #EBF6FF)',
-                border: '1.5px solid #D4CCFF',
-                borderRadius: 16,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#6C5CE7',
-              }}
-            >
-              <ClipboardList size={22} />
-            </motion.div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#2D2640', letterSpacing: '-0.03em' }}>
-                Questionnaires Globaux
-              </h1>
-              <p style={{ margin: '3px 0 0', fontSize: 11, fontWeight: 600, color: '#B0A8CC', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Questions assignées à tous vos patients
-              </p>
-            </div>
+    <div
+      className="max-w-full mx-auto space-y-4 animate-in fade-in duration-500 min-h-screen p-6"
+      style={{ backgroundColor: '#fafbfc' }}
+    >
+      {/* ── HEADER ──────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-xl shadow-slate-200">
+            <ClipboardList size={24} className="text-white" strokeWidth={2.5} />
           </div>
-
-          <motion.button
-            whileHover={{ scale: 1.04, boxShadow: '0 8px 24px #6C5CE740' }}
-            whileTap={{ scale: 0.96 }}
-            onClick={openAddModal}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '11px 22px',
-              background: 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 14,
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              boxShadow: '0 4px 16px #6C5CE730',
-            }}
-          >
-            <Plus size={15} /> Nouvelle question
-          </motion.button>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              Questionnaires globaux
+            </h1>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.15em] mt-0.5">
+              Système unifié • Questions assignées à toutes les patientes
+            </p>
+          </div>
         </div>
 
-        {/* ── Stats bar ───────────────────────────────────────── */}
-        <div style={{
-          padding: '10px 32px',
-          background: 'linear-gradient(90deg, #FAF8FF, #FFF8FC)',
-          borderBottom: '1.5px solid #F3EFFF',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 20,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <motion.div
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              style={{ width: 7, height: 7, borderRadius: '50%', background: '#00B894' }}
-            />
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#B0A8CC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-              {globalQuestions.length} question{globalQuestions.length !== 1 ? 's' : ''} active{globalQuestions.length !== 1 ? 's' : ''}
+        <button
+          onClick={openAddModal}
+          className="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-black text-white text-[10px] uppercase font-black tracking-[0.15em] rounded-xl transition-all shadow-md hover:shadow-lg"
+        >
+          <Plus size={14} strokeWidth={3} /> Nouvelle question
+        </button>
+      </div>
+
+      {/* ── BARRE DE RECHERCHE + FILTRES ───────────────────────────── */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={recherche}
+            onChange={e => setRecherche(e.target.value)}
+            placeholder="Rechercher une question..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {[
+            { id: 'TOUS', label: 'Toutes', count: globalQuestions.length },
+            { id: 'UNIQUE', label: 'Choix unique', count: countUnique },
+            { id: 'MULTIPLE', label: 'Choix multiple', count: countMultiple },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFiltreType(f.id)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 ${
+                filtreType === f.id
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+              }`}
+            >
+              {f.label}
+              <span className={`tabular-nums px-1.5 py-0.5 rounded text-[9px] ${
+                filtreType === f.id
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 text-slate-500'
+              }`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── LISTE DES QUESTIONS (style table) ───────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-100 shadow-md overflow-hidden">
+        <div
+          className="px-5 py-3 flex items-center justify-between"
+          style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              Bibliothèque de questions
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[palette.lavender, palette.mint, palette.rose].map((c, i) => (
-              <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: c.text, opacity: 0.4 }} />
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest tabular-nums">
+            {questionsFiltrees.length} / {globalQuestions.length} affichée{questionsFiltrees.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {globalQuestions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+              <HelpCircle size={26} className="text-slate-300" strokeWidth={2} />
+            </div>
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+              Aucune question configurée
+            </p>
+            <p className="text-[11px] text-slate-400 font-medium">
+              Créez votre première question pour démarrer
+            </p>
+            <button
+              onClick={openAddModal}
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white text-[10px] uppercase font-black tracking-widest rounded-lg transition-all"
+            >
+              <Plus size={12} strokeWidth={3} /> Créer une question
+            </button>
+          </div>
+        ) : questionsFiltrees.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-2">
+            <Search size={20} className="text-slate-300" />
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Aucun résultat
+            </p>
+            <p className="text-[11px] text-slate-400">
+              Aucune question ne correspond à votre recherche
+            </p>
+          </div>
+        ) : (
+          <div>
+            {questionsFiltrees.map((q, idx) => (
+              <QuestionRow
+                key={q.id}
+                q={q}
+                idx={idx}
+                isLast={idx === questionsFiltrees.length - 1}
+                onEdit={openEditModal}
+                onDelete={confirmDelete}
+              />
             ))}
           </div>
-        </div>
-
-        {/* ── Questions grid ──────────────────────────────────── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: 20,
-          }}>
-            <AnimatePresence>
-              {globalQuestions.map((q, idx) => (
-                <QuestionCard
-                  key={q.id}
-                  q={q}
-                  idx={idx}
-                  onEdit={openEditModal}
-                  onDelete={confirmDelete}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-
-          {/* Empty state */}
-          {globalQuestions.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: 'center', padding: '80px 0', gap: 16,
-              }}
-            >
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                style={{
-                  width: 80, height: 80, borderRadius: 24,
-                  background: 'linear-gradient(135deg, #F0EEFF, #FFF0F3)',
-                  border: '1.5px solid #EAE5FF',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#C0BAD8',
-                }}
-              >
-                <HelpCircle size={36} />
-              </motion.div>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#C0BAD8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Aucune question globale configurée
-              </p>
-              <p style={{ margin: 0, fontSize: 11, color: '#D0C8E8' }}>
-                Commencez par créer votre première question ✨
-              </p>
-            </motion.div>
-          )}
-        </div>
-
-        {/* ── Footer ──────────────────────────────────────────── */}
-        <div style={{
-          padding: '10px 32px',
-          borderTop: '1.5px solid #F3EFFF',
-          background: '#FDFCFF',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-        }}>
-          <Sparkles size={10} style={{ color: '#C0BAD8' }} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#C0BAD8', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            Système Unifié — tout changement affecte l'ensemble des dossiers patients
-          </span>
-          <Sparkles size={10} style={{ color: '#C0BAD8' }} />
-        </div>
+        )}
       </div>
 
       {/* ══ CREATE / EDIT MODAL ══════════════════════════════════════════════ */}
       <AnimatePresence>
         {isModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              style={{ position: 'absolute', inset: 0, background: 'rgba(44,38,64,0.55)', backdropFilter: 'blur(8px)' }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.88, y: 30 }}
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.88, y: 30 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-              style={{
-                position: 'relative',
-                width: '100%',
-                maxWidth: 520,
-                maxHeight: '88vh',
-                display: 'flex',
-                flexDirection: 'column',
-                background: '#fff',
-                borderRadius: 24,
-                boxShadow: '0 32px 80px #6C5CE725, 0 4px 16px #0000001a',
-                overflow: 'hidden',
-                border: '1.5px solid #EAE5FF',
-              }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
             >
-              {/* Modal header */}
-              <div style={{
-                padding: '24px 28px 20px',
-                borderBottom: '1.5px solid #F3EFFF',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                background: 'linear-gradient(135deg, #FAF8FF, #FFF8FC)',
-              }}>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#2D2640', letterSpacing: '-0.02em' }}>
-                    {currentQuestion ? '✏️ Modifier la question' : '✨ Créer une question'}
-                  </h2>
-                  <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 600, color: '#B0A8CC', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    Visible pour tous les patients
-                  </p>
+              <div
+                className="px-6 py-5 flex items-start justify-between"
+                style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                    {currentQuestion ? (
+                      <Edit3 size={16} className="text-indigo-600" strokeWidth={2.5} />
+                    ) : (
+                      <Plus size={16} className="text-indigo-600" strokeWidth={2.5} />
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-900 tracking-tight leading-none mb-1.5">
+                      {currentQuestion ? 'Modifier la question' : 'Nouvelle question'}
+                    </h2>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                      Visible pour toutes les patientes
+                    </p>
+                  </div>
                 </div>
-                <motion.button
-                  whileHover={{ rotate: 90, background: '#F0EEFF' }}
-                  whileTap={{ scale: 0.9 }}
+                <button
                   onClick={() => setIsModalOpen(false)}
-                  style={{
-                    border: 'none', background: '#F7F5FF', borderRadius: 12,
-                    width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', color: '#6C5CE7', flexShrink: 0, transition: 'background 0.2s',
-                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 hover:bg-slate-50 text-slate-500 transition-colors shrink-0"
                 >
-                  <X size={16} />
-                </motion.button>
+                  <X size={15} strokeWidth={2.5} />
+                </button>
               </div>
 
-              {/* Modal body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                {/* Type selector */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#B0A8CC', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
                     Type de réponse
                   </label>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {['unique', 'multiple'].map(t => (
-                      <motion.button
-                        key={t}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setFormType(t)}
-                        style={{
-                          flex: 1,
-                          padding: '10px 0',
-                          borderRadius: 12,
-                          border: formType === t ? '1.5px solid #A29BFE' : '1.5px solid #EAE5FF',
-                          background: formType === t
-                            ? 'linear-gradient(135deg, #F0EEFF, #EBF6FF)'
-                            : '#FAF8FF',
-                          color: formType === t ? '#6C5CE7' : '#B0A8CC',
-                          fontSize: 10,
-                          fontWeight: 800,
-                          letterSpacing: '0.12em',
-                          textTransform: 'uppercase',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {t === 'unique' ? '◉ Choix unique' : '□ Choix multiple'}
-                      </motion.button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { id: 'unique', label: 'Choix unique', icon: Circle, color: 'sky' },
+                      { id: 'multiple', label: 'Choix multiple', icon: CheckSquare, color: 'indigo' },
+                    ].map(opt => {
+                      const Icon = opt.icon;
+                      const active = formType === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => setFormType(opt.id)}
+                          className={`flex items-center justify-center gap-2 py-3 rounded-lg border-[1.5px] transition-all text-[10px] font-black uppercase tracking-widest ${
+                            active
+                              ? opt.color === 'sky'
+                                ? 'bg-sky-50 border-sky-300 text-sky-700'
+                                : 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                              : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                          }`}
+                        >
+                          <Icon size={13} strokeWidth={2.5} />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Question text */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#B0A8CC', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
-                    Texte de la question
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
+                    Énoncé de la question
                   </label>
                   <textarea
                     value={formText}
                     onChange={e => setFormText(e.target.value)}
-                    placeholder="Saisissez votre question..."
+                    placeholder="Ex : Ressentez-vous des douleurs persistantes ?"
                     rows={3}
-                    style={{ ...inputStyle, resize: 'none' }}
-                    onFocus={e => { e.target.style.borderColor = '#A29BFE'; e.target.style.boxShadow = '0 0 0 3px #A29BFE20'; }}
-                    onBlur={e => { e.target.style.borderColor = '#EAE5FF'; e.target.style.boxShadow = 'none'; }}
+                    className={`${inputClass} resize-none leading-relaxed`}
                   />
                 </div>
 
-                {/* Options */}
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <label style={{ fontSize: 10, fontWeight: 700, color: '#B0A8CC', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                      Choix de réponses
+                  <div className="flex items-center justify-between mb-2.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Réponses proposées
                     </label>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.97 }}
+                    <button
                       onClick={handleAddOption}
-                      style={{
-                        border: 'none', background: '#F0EEFF',
-                        color: '#6C5CE7', borderRadius: 10,
-                        padding: '5px 12px', fontSize: 10,
-                        fontWeight: 800, letterSpacing: '0.1em',
-                        textTransform: 'uppercase', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        fontFamily: 'inherit',
-                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 rounded-md text-[9px] font-black uppercase tracking-widest border border-slate-200 hover:border-indigo-200 transition-colors"
                     >
-                      <Plus size={11} /> Ajouter
-                    </motion.button>
+                      <Plus size={10} strokeWidth={3} /> Ajouter
+                    </button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="flex flex-col gap-2">
                     <AnimatePresence>
                       {formOptions.map((opt, i) => (
                         <motion.div
                           key={i}
-                          initial={{ opacity: 0, x: -12 }}
+                          initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 12, height: 0 }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                          exit={{ opacity: 0, x: 8, height: 0 }}
+                          className="flex items-center gap-2"
                         >
-                          <span style={{ fontSize: 13, color: '#C0BAD8', flexShrink: 0 }}>
-                            {formType === 'multiple' ? '□' : '◦'}
-                          </span>
+                          <div className="w-7 h-7 shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
+                            {formType === 'multiple'
+                              ? <CheckSquare size={12} strokeWidth={2} />
+                              : <Circle size={12} strokeWidth={2} />}
+                          </div>
                           <input
                             type="text"
                             value={opt}
@@ -583,24 +444,16 @@ const QuestionnairesPage = () => {
                               n[i] = e.target.value;
                               setFormOptions(n);
                             }}
-                            placeholder={`Choix ${i + 1}`}
-                            style={{ ...inputStyle, flex: 1 }}
-                            onFocus={e => { e.target.style.borderColor = '#A29BFE'; e.target.style.boxShadow = '0 0 0 3px #A29BFE20'; }}
-                            onBlur={e => { e.target.style.borderColor = '#EAE5FF'; e.target.style.boxShadow = 'none'; }}
+                            placeholder={`Réponse ${i + 1}`}
+                            className={inputClass}
                           />
-                          <motion.button
-                            whileHover={{ scale: 1.1, background: '#FFF0F3' }}
-                            whileTap={{ scale: 0.9 }}
+                          <button
                             onClick={() => handleRemoveOption(i)}
-                            style={{
-                              border: 'none', background: '#FFF5F7',
-                              borderRadius: 10, width: 30, height: 30, flexShrink: 0,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: 'pointer', color: '#E84393', transition: 'background 0.15s',
-                            }}
+                            disabled={formOptions.length <= 1}
+                            className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-transparent hover:border-rose-100"
                           >
-                            <Trash2 size={13} />
-                          </motion.button>
+                            <Trash2 size={12} strokeWidth={2.5} />
+                          </button>
                         </motion.div>
                       ))}
                     </AnimatePresence>
@@ -608,48 +461,23 @@ const QuestionnairesPage = () => {
                 </div>
               </div>
 
-              {/* Modal footer */}
-              <div style={{
-                padding: '18px 28px',
-                borderTop: '1.5px solid #F3EFFF',
-                background: '#FAF8FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 12,
-              }}>
+              <div
+                className="px-6 py-4 flex items-center justify-end gap-3"
+                style={{ borderTop: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}
+              >
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  style={{
-                    background: 'none', border: 'none',
-                    fontSize: 11, fontWeight: 700, color: '#B0A8CC',
-                    cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase',
-                    fontFamily: 'inherit',
-                  }}
+                  className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] uppercase font-black tracking-widest rounded-lg transition-colors"
                 >
                   Annuler
                 </button>
-                <motion.button
-                  whileHover={{ scale: 1.03, boxShadow: '0 8px 24px #6C5CE740' }}
-                  whileTap={{ scale: 0.97 }}
+                <button
                   onClick={handleSaveQuestion}
-                  style={{
-                    padding: '11px 26px',
-                    background: 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 14,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 16px #6C5CE730',
-                    fontFamily: 'inherit',
-                  }}
+                  disabled={!formText.trim()}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-[10px] uppercase font-black tracking-widest rounded-lg transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
                 >
-                  {currentQuestion ? '✓ Mettre à jour' : '✨ Créer'}
-                </motion.button>
+                  {currentQuestion ? 'Mettre à jour' : 'Enregistrer'}
+                </button>
               </div>
             </motion.div>
           </div>
@@ -659,94 +487,71 @@ const QuestionnairesPage = () => {
       {/* ══ DELETE MODAL ════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {isDeleteModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              style={{ position: 'absolute', inset: 0, background: 'rgba(44,38,64,0.65)', backdropFilter: 'blur(10px)' }}
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.85, y: 20 }}
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-              style={{
-                position: 'relative',
-                width: '100%',
-                maxWidth: 360,
-                background: '#fff',
-                borderRadius: 24,
-                padding: '36px 32px 28px',
-                textAlign: 'center',
-                border: '1.5px solid #FFB8D0',
-                boxShadow: '0 32px 80px #E8439320, 0 4px 16px #0000001a',
-              }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
+              style={{ borderLeft: '4px solid #f43f5e' }}
             >
-              <motion.div
-                animate={{ rotate: [0, -8, 8, -8, 0] }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                style={{
-                  width: 64, height: 64,
-                  background: 'linear-gradient(135deg, #FFF0F3, #FFF5E6)',
-                  border: '1.5px solid #FFB8D0',
-                  borderRadius: 20,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 20px',
-                  color: '#E84393',
-                }}
-              >
-                <AlertTriangle size={28} />
-              </motion.div>
+              <div className="px-6 py-6">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={20} className="text-rose-600" strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0 pt-1">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight mb-1.5">
+                      Confirmer la suppression
+                    </h3>
+                    <p className="text-[9px] font-bold text-rose-600 uppercase tracking-widest">
+                      Action irréversible
+                    </p>
+                  </div>
+                </div>
 
-              <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#2D2640', letterSpacing: '-0.02em' }}>
-                Supprimer cette question ?
-              </h3>
-              <p style={{ margin: '0 0 28px', fontSize: 12, color: '#B0A8CC', lineHeight: 1.6 }}>
-                Cette question sera supprimée pour{' '}
-                <strong style={{ color: '#E84393' }}>TOUS</strong>{' '}
-                les patients et ne pourra pas être récupérée.
-              </p>
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3.5 mb-5">
+                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                    Cette question sera supprimée pour <strong className="text-rose-600 font-black">toutes les patientes</strong> et ne pourra pas être récupérée. Les réponses associées seront également perdues.
+                  </p>
+                </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <motion.button
-                  whileHover={{ background: '#FAF8FF' }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  style={{
-                    flex: 1, padding: '12px 0',
-                    background: '#F7F5FF',
-                    border: '1.5px solid #EAE5FF',
-                    borderRadius: 14,
-                    fontSize: 10, fontWeight: 800,
-                    letterSpacing: '0.1em', textTransform: 'uppercase',
-                    color: '#B0A8CC', cursor: 'pointer',
-                    fontFamily: 'inherit', transition: 'background 0.2s',
-                  }}
-                >
-                  Annuler
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.03, boxShadow: '0 8px 24px #E8439340' }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    deleteGlobalQuestion(questionToDelete.id);
-                    setIsDeleteModalOpen(false);
-                  }}
-                  style={{
-                    flex: 1, padding: '12px 0',
-                    background: 'linear-gradient(135deg, #E84393, #FF7EB3)',
-                    border: 'none',
-                    borderRadius: 14,
-                    fontSize: 10, fontWeight: 800,
-                    letterSpacing: '0.1em', textTransform: 'uppercase',
-                    color: '#fff', cursor: 'pointer',
-                    boxShadow: '0 4px 16px #E8439330',
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  Supprimer
-                </motion.button>
+                {questionToDelete && (
+                  <div className="bg-white border border-slate-200 rounded-lg p-3 mb-5">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                      Question concernée
+                    </p>
+                    <p className="text-[12px] font-bold text-slate-800 line-clamp-2">
+                      {questionToDelete.text}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] uppercase font-black tracking-widest rounded-lg transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={() => {
+                      deleteGlobalQuestion(questionToDelete.id);
+                      setIsDeleteModalOpen(false);
+                    }}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[10px] uppercase font-black tracking-widest rounded-lg transition-all shadow-md inline-flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 size={12} strokeWidth={2.5} /> Supprimer
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
