@@ -32,6 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 backend/uploads/photos/
+backend/uploads/mammo/
+
 src/main/resources/application.properties
 
 echo venv/ >> .gitignore
