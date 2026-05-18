@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { to: '/secretaire/patients',      icon: Users,           label: 'Patients' },
   { to: '/secretaire/medecins',      icon: Stethoscope,     label: 'Médecins' },
   { to: '/secretaire/planning',      icon: CalendarDays,    label: 'Planning & RDV' },
-  { to: '/secretaire/notifications', icon: Bell,            label: 'Notifications', badge: 2 },
+
   { to: '/secretaire/print',         icon: Printer,         label: 'Imprimer dossier' },
   { to: '/secretaire/settings',      icon: Settings,        label: 'Paramètres' },
 ];
