@@ -12,4 +12,5 @@ public interface PriseEnChargeRepository extends JpaRepository<PriseEnCharge, UU
     List<PriseEnCharge> findByPatientId(UUID patientId);
     List<PriseEnCharge> findByMedecinId(UUID medecinId);
     boolean existsByPatientIdAndMedecinIdAndDateFinIsNull(UUID patientId, UUID medecinId);
+    long countByMedecinIdAndDateFinIsNull(UUID medecinId);
 }

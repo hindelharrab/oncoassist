@@ -1,14 +1,11 @@
 package com.oncoassist.oncoassist.model.dto;
 
-import lombok.*;
-
+import lombok.Data;
 import java.util.UUID;
 
-
-@Getter
-@Setter @NoArgsConstructor @AllArgsConstructor
+@Data
 public class MedecinResponseDTO {
-    private UUID id;
+    private UUID   id;
     private String nom;
     private String prenom;
     private String email;
@@ -17,5 +14,7 @@ public class MedecinResponseDTO {
     private String numeroOrdre;
     private String specialiteNom;
 
-
+    // Champs enrichis
+    private int nbPatients;
+    private int rdvAujourdhui;
 }
