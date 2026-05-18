@@ -2,16 +2,27 @@ package com.oncoassist.oncoassist.service;
 
 import com.oncoassist.oncoassist.model.dto.*;
 import com.oncoassist.oncoassist.model.entity.Medecin;
+import com.oncoassist.oncoassist.model.entity.RendezVous;
 import com.oncoassist.oncoassist.model.entity.Specialite;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
+import com.oncoassist.oncoassist.repository.PriseEnChargeRepository;
+import com.oncoassist.oncoassist.repository.RendezVousRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.io.IOException;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +32,8 @@ public class MedecinService {
     private final SpecialiteService specialiteService;
     private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
+    private final RendezVousRepository rendezVousRepository;
+    private final PriseEnChargeRepository priseEnChargeRepository;
 
     public Medecin creer(Medecin medecin, UUID specialiteId) {
         if (medecinRepository.existsByEmail(medecin.getEmail())) {
@@ -43,7 +56,44 @@ public class MedecinService {
     public List<Medecin> findAll() {
         return medecinRepository.findAll();
     }
+    @Transactional(readOnly = true)
+    public List<MedecinResponseDTO> findAllMedecins() {
+        LocalDateTime debutJour = LocalDate.now().atStartOfDay();
+        LocalDateTime finJour   = LocalDate.now().atTime(23, 59, 59);
 
+        return medecinRepository.findAll()
+                .stream()
+                .map(m -> {
+                    MedecinResponseDTO dto = new MedecinResponseDTO();
+                    dto.setId(m.getId());
+                    dto.setNom(m.getNom());
+                    dto.setPrenom(m.getPrenom());
+                    dto.setEmail(m.getEmail());
+                    dto.setTelephone(m.getTelephone());
+                    dto.setPhotoProfil(m.getPhotoProfil());
+                    dto.setNumeroOrdre(m.getNumeroOrdre());
+                    dto.setSpecialiteNom(
+                            m.getSpecialite() != null
+                                    ? m.getSpecialite().getNom()
+                                    : null
+                    );
+
+                    // Nombre de patients actifs
+                    long nbPatients = priseEnChargeRepository
+                            .countByMedecinIdAndDateFinIsNull(m.getId());
+                    dto.setNbPatients((int) nbPatients);
+
+                    // RDV aujourd'hui
+                    long rdvAujourdhui = rendezVousRepository
+                            .countByMedecinIdAndDateBetween(
+                                    m.getId(), debutJour, finJour
+                            );
+                    dto.setRdvAujourdhui((int) rdvAujourdhui);
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
     public Medecin findById(UUID id) {
         return medecinRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Médecin non trouvé : " + id));
@@ -52,6 +102,7 @@ public class MedecinService {
     public List<Medecin> findBySpecialite(UUID specialiteId) {
         return medecinRepository.findBySpecialiteId(specialiteId);
     }
+
 
     public Medecin modifier(UUID id, Medecin data, UUID specialiteId, MultipartFile photo) throws IOException {
         Medecin medecin = findById(id);
@@ -128,5 +179,47 @@ public class MedecinService {
     public Medecin findByEmail(String email) {
         return medecinRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Médecin non trouvé: " + email));
+    }
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getPlanning(
+            UUID medecinId, int semaine) {
+
+        // Calculer début et fin de semaine
+        LocalDate lundi = LocalDate.now()
+                .with(DayOfWeek.MONDAY)
+                .plusWeeks(semaine);
+        LocalDate dimanche = lundi.plusDays(6);
+
+        LocalDateTime debut = lundi.atStartOfDay();
+        LocalDateTime fin   = dimanche.atTime(23, 59, 59);
+
+        List<RendezVous> rdvs = rendezVousRepository
+                .findByMedecinIdAndDateBetween(
+                        medecinId, debut, fin
+                );
+
+        return rdvs.stream().map(rdv -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id",       rdv.getId());
+            map.put("heure",    rdv.getDate() != null
+                    ? rdv.getDate().format(
+                    DateTimeFormatter.ofPattern("HH:mm"))
+                    : "");
+            map.put("patientNom", rdv.getPatient() != null
+                    ? rdv.getPatient().getNom()
+                    : "");
+            map.put("patientPrenom", rdv.getPatient() != null
+                    ? rdv.getPatient().getPrenom()
+                    : "");
+            map.put("motif",  rdv.getMotif());
+            map.put("statut", rdv.getStatut() != null
+                    ? rdv.getStatut().name()
+                    : "EN_ATTENTE");
+            map.put("jourOffset",
+                    rdv.getDate() != null
+                            ? rdv.getDate().getDayOfWeek().getValue() - 1
+                            : 0);
+            return map;
+        }).collect(Collectors.toList());
     }
 }

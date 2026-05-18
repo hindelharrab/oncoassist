@@ -34,4 +34,5 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, UUID> {
             @Param("patientId") UUID patientId,
             @Param("statut") StatutRDVEnum statut);
     List<RendezVous> findByPatientIdAndStatut(UUID patientId, StatutRDVEnum statut);
+
 }

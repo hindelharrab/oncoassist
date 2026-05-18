@@ -25,18 +25,20 @@ public class SecretaireController {
         return ResponseEntity.ok(secretaireService.creer(secretaire, specialiteId));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE')")
+    public ResponseEntity<Secretaire> findById(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(
+                secretaireService.findById(id)
+        );
+    }
+
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SECRETAIRE')")
     public ResponseEntity<List<Secretaire>> findAll() {
         return ResponseEntity.ok(secretaireService.findAll());
     }
-
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDECIN')")
-    public ResponseEntity<Secretaire> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(secretaireService.findById(id));
-    }
-
     @GetMapping("/specialite/{specialiteId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDECIN')")
     public ResponseEntity<List<Secretaire>> findBySpecialite(@PathVariable UUID specialiteId) {

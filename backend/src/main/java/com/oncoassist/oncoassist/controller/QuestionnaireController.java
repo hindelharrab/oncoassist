@@ -21,7 +21,7 @@ public class QuestionnaireController {
 
     // GET questions globales → MEDECIN seulement
     @GetMapping("/globales")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE')")
     public ResponseEntity<List<QuestionSuiviResponseDTO>> getGlobales() {
         return ResponseEntity.ok(
                 questionnaireService.getQuestionsGlobales());

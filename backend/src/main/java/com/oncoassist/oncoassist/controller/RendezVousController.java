@@ -22,7 +22,7 @@ public class RendezVousController {
 
     // ── Mutations (retournent RendezVous directement) ────────────────────
     @PostMapping("/demander")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<RendezVous> demander(@RequestBody Map<String, String> body) {
         return ResponseEntity.ok(rendezVousService.demander(
                 UUID.fromString(body.get("medecinId")),
@@ -32,7 +32,7 @@ public class RendezVousController {
     }
 
     @PutMapping("/{id}/planifier")
-    @PreAuthorize("hasRole('SECRETAIRE')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE')")
     public ResponseEntity<RendezVous> planifier(
             @PathVariable UUID id,
             @RequestBody Map<String, String> body) {
