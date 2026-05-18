@@ -86,7 +86,7 @@ export default function SecretaireSettings() {
   const ToggleSwitch = ({ checked, onChange }) => (
     <button
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-[#7F77DD]' : 'bg-slate-200'}`}
+      className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-slate-950' : 'bg-slate-200'}`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
@@ -110,7 +110,7 @@ export default function SecretaireSettings() {
           className={`flex items-center gap-2 h-10 px-5 rounded-xl text-[13px] font-semibold transition-all shadow-sm shrink-0 ${
             saved
               ? 'bg-emerald-500 text-white'
-              : 'bg-[#7F77DD] text-white hover:bg-[#6b64c8]'
+              : 'bg-slate-800 text-white hover:bg-slate-950'
           }`}
         >
           {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
@@ -328,7 +328,7 @@ export default function SecretaireSettings() {
               className={`flex items-center gap-2 h-11 px-8 rounded-xl text-[13px] font-semibold transition-all shadow-sm ${
                 saved
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-[#7F77DD] text-white hover:bg-[#6b64c8]'
+                  : 'bg-slate-950 text-white hover:bg-slate-950'
               }`}
             >
               {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
