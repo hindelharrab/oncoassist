@@ -24,7 +24,7 @@ public class EchographieController {
 
     // POST /api/echographies/dossier/{dossierId}
     @PostMapping("/dossier/{dossierId}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<EchographieResponseDTO> creer(
             @PathVariable UUID dossierId,
             @Valid @RequestBody EchographieRequestDTO dto) {
@@ -34,7 +34,7 @@ public class EchographieController {
 
     // GET /api/echographies/dossier/{dossierId}
     @GetMapping("/dossier/{dossierId}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<List<EchographieResponseDTO>> getByDossier(
             @PathVariable UUID dossierId) {
         return ResponseEntity.ok(echographieService.getByDossier(dossierId));
@@ -42,7 +42,7 @@ public class EchographieController {
 
     // PUT /api/echographies/{id}
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<EchographieResponseDTO> modifier(
             @PathVariable UUID id,
             @Valid @RequestBody EchographieRequestDTO dto) {
@@ -51,13 +51,13 @@ public class EchographieController {
 
     // DELETE /api/echographies/{id}
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<Void> supprimer(@PathVariable UUID id) {
         echographieService.supprimer(id);
         return ResponseEntity.noContent().build();
     }
     @PostMapping(value = "/{id}/image", consumes = "multipart/form-data")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<EchographieResponseDTO> uploadImage(
             @PathVariable UUID id,
             @RequestPart("image") MultipartFile image) throws IOException {

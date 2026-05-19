@@ -18,7 +18,7 @@ public class ReponseQuestionnaireController {
 
     // Patient soumet ses réponses → PATIENT seulement (Flutter)
     @PostMapping("/patient/{patientId}/soumettre")
-    @PreAuthorize("hasRole('PATIENT')")
+    @PreAuthorize("hasAnyAuthority('PATIENT')")
     public ResponseEntity<Void> soumettre(
             @PathVariable UUID patientId,
             @RequestBody ReponseQuestionnaireRequestDTO dto) {
@@ -28,7 +28,7 @@ public class ReponseQuestionnaireController {
 
     // Médecin consulte toutes les réponses d'un patient
     @GetMapping("/medecin/patient/{patientId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<List<ReponseQuestionnaireResponseDTO>> getToutesReponses(
             @PathVariable UUID patientId) {
         return ResponseEntity.ok(
@@ -37,7 +37,7 @@ public class ReponseQuestionnaireController {
 
     // Médecin consulte réponses par question → pour graphiques
     @GetMapping("/medecin/patient/{patientId}/question/{questionId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<List<ReponseQuestionnaireResponseDTO>> getReponsesParQuestion(
             @PathVariable UUID patientId,
             @PathVariable UUID questionId) {

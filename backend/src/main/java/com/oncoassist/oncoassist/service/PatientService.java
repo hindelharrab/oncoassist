@@ -12,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Period;
@@ -22,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PatientService {
 
     private final PatientRepository        patientRepository;
@@ -29,7 +29,6 @@ public class PatientService {
     private final FileStorageService       fileStorageService;
     private final PasswordEncoder          passwordEncoder;
     private final PriseEnChargeService     priseEnChargeService;
-
     // ════════════════════════════════════════════════
     // CRÉER
     // ════════════════════════════════════════════════
@@ -116,6 +115,7 @@ public class PatientService {
     // ════════════════════════════════════════════════
     // MODIFIER
     // ════════════════════════════════════════════════
+    @Transactional
     public Patient modifier(
             UUID id, Patient data, MultipartFile photo)
             throws IOException {
@@ -148,6 +148,7 @@ public class PatientService {
     // ════════════════════════════════════════════════
     // SUPPRIMER
     // ════════════════════════════════════════════════
+    @Transactional
     public void supprimer(UUID id) {
         patientRepository.delete(findById(id));
     }
