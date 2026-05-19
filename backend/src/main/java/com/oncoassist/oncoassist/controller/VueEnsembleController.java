@@ -16,14 +16,8 @@ public class VueEnsembleController {
 
     private final VueEnsembleService vueEnsembleService;
 
-    /**
-     * GET /api/patients/{patientId}/vue-ensemble
-     * Retourne toutes les données nécessaires pour la page Vue Ensemble d'un patient.
-     *
-     * Accessible par : MEDECIN (référent ou collaborateur), SECRETAIRE, ADMIN
-     */
     @GetMapping
-    @PreAuthorize("hasAnyRole('MEDECIN', 'SECRETAIRE', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<VueEnsembleDTO> getVueEnsemble(@PathVariable UUID patientId) {
         VueEnsembleDTO dto = vueEnsembleService.buildVueEnsemble(patientId);
         return ResponseEntity.ok(dto);

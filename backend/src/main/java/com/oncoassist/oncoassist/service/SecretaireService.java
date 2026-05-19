@@ -8,18 +8,19 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class SecretaireService {
 
     private final SecretaireRepository secretaireRepository;
     private final SpecialiteService specialiteService;
     private final PasswordEncoder passwordEncoder;
-
+    @Transactional
     public Secretaire creer(Secretaire secretaire, UUID specialiteId) {
         if (secretaireRepository.existsByEmail(secretaire.getEmail())) {
             throw new IllegalArgumentException("Email déjà utilisé : " + secretaire.getEmail());
@@ -49,7 +50,7 @@ public class SecretaireService {
     public List<Secretaire> findBySpecialite(UUID specialiteId) {
         return secretaireRepository.findBySpecialiteId(specialiteId);
     }
-
+    @Transactional
     public Secretaire modifier(UUID id, Secretaire data, UUID specialiteId) {
         Secretaire secretaire = findById(id);
         secretaire.setNom(data.getNom());
@@ -67,7 +68,7 @@ public class SecretaireService {
 
         return secretaireRepository.save(secretaire);
     }
-
+    @Transactional
     public void supprimer(UUID id) {
         secretaireRepository.delete(findById(id));
     }

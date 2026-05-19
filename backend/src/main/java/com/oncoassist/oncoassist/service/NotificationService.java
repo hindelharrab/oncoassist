@@ -7,16 +7,16 @@ import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
 import com.oncoassist.oncoassist.repository.NotificationRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;

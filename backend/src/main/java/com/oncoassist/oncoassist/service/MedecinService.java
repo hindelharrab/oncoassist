@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MedecinService {
 
     private final MedecinRepository medecinRepository;
@@ -35,6 +36,7 @@ public class MedecinService {
     private final RendezVousRepository rendezVousRepository;
     private final PriseEnChargeRepository priseEnChargeRepository;
 
+    @Transactional
     public Medecin creer(Medecin medecin, UUID specialiteId) {
         if (medecinRepository.existsByEmail(medecin.getEmail())) {
             throw new IllegalArgumentException("Email déjà utilisé : " + medecin.getEmail());
@@ -103,7 +105,7 @@ public class MedecinService {
         return medecinRepository.findBySpecialiteId(specialiteId);
     }
 
-
+    @Transactional
     public Medecin modifier(UUID id, Medecin data, UUID specialiteId, MultipartFile photo) throws IOException {
         Medecin medecin = findById(id);
         medecin.setNom(data.getNom());
@@ -125,10 +127,12 @@ public class MedecinService {
 
         return medecinRepository.save(medecin);
     }
+    @Transactional
     public void supprimer(UUID id) {
         medecinRepository.delete(findById(id));
     }
     // Modifier son propre profil
+    @Transactional
     public Medecin modifierProfil(UUID id, MedecinProfilDTO data, MultipartFile photo)
             throws IOException {
         Medecin medecin = findById(id);
@@ -145,6 +149,7 @@ public class MedecinService {
     }
 
     // Changer mot de passe
+    @Transactional
     public void changerMotDePasse(UUID id, ChangePasswordDTO dto) {
         Medecin medecin = findById(id);
 

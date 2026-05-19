@@ -12,16 +12,18 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BiopsieService {
 
     private final BiopsieRepository      biopsieRepository;
@@ -60,27 +62,47 @@ public class BiopsieService {
             dto.setNotes(null);
         }
 
-        List<ImageAnalyseDTO> images = b.getImagesAnalysees() == null
-                ? new ArrayList<>()
-                : b.getImagesAnalysees().stream().map(img -> {
-            ImageAnalyseDTO imgDTO = new ImageAnalyseDTO();
-            imgDTO.setId(img.getId());
-            imgDTO.setCheminImage("/uploads/photos/" + img.getCheminImage());
-            imgDTO.setCheminGradCam(img.getCheminGradCam() != null
-                                    ? "/uploads/photos/" + img.getCheminGradCam()
-                                    : null);
-            return imgDTO;
-        }).collect(Collectors.toList());
+
+        // Force le chargement lazy
+        List<ImageAnalyseDTO> images = new ArrayList<>();
+        if (b.getImagesAnalysees() != null) {
+            // Initialise la collection dans la transaction
+            b.getImagesAnalysees().size(); // ← force le chargement
+            images = b.getImagesAnalysees().stream().map(img -> {
+                ImageAnalyseDTO imgDTO = new ImageAnalyseDTO();
+                String chemin = img.getCheminImage();
+                // Évite la duplication de chemin
+                if (chemin != null && !chemin.startsWith("uploads/")) {
+                    imgDTO.setCheminImage("/uploads/photos/" + chemin);
+                } else {
+                    imgDTO.setCheminImage("/" + chemin);
+                }
+                imgDTO.setId(img.getId());
+                imgDTO.setCheminGradCam(
+                        img.getCheminGradCam() != null
+                                ? (img.getCheminGradCam().startsWith("uploads/")
+                                ? "/" + img.getCheminGradCam()
+                                : "/uploads/photos/" + img.getCheminGradCam())
+                                : null
+                );
+                return imgDTO;
+            }).collect(Collectors.toList());
+        }
+        dto.setImagesAnalysees(images);
 
         dto.setImagesAnalysees(images);
         return dto;
     }
 
     // ── Créer une biopsie
+    @Transactional
     public BiopsieResponseDTO creer(BiopsieRequestDTO req, UUID medecinId) {
-        DossierMedical dossier = dossierMedicalRepository.findByPatientId(req.getDossierId())
-                .orElseThrow(() -> new RuntimeException("Dossier non trouvé pour ce patient"));
-
+        DossierMedical dossier = dossierMedicalRepository
+                .findByPatientId(req.getDossierId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Dossier non trouvé pour patient : "
+                                + req.getDossierId()
+                ));
         Medecin medecin = medecinRepository.findById(medecinId)
                 .orElseThrow(() -> new RuntimeException("Médecin non trouvé"));
 
@@ -112,10 +134,13 @@ public class BiopsieService {
     }
 
     // ── Récupérer toutes les biopsies d'un patient
-    public List<BiopsieResponseDTO> getByDossier(UUID patientId) {
-        return biopsieRepository.findByPatientId(patientId)
+
+    @Transactional(readOnly = true)
+    public List<BiopsieResponseDTO> getByDossier(UUID dossierId) {
+        return biopsieRepository.findByDossierMedicalId(dossierId)
                 .stream().map(this::toDTO).collect(Collectors.toList());
     }
+
 
     // ── Récupérer une biopsie par ID
     public BiopsieResponseDTO getById(UUID id) {
@@ -125,6 +150,7 @@ public class BiopsieService {
     }
 
     // ── Modifier une biopsie
+    @Transactional
     public BiopsieResponseDTO modifier(UUID id, BiopsieRequestDTO req) {
         Biopsie b = biopsieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Biopsie non trouvée"));
@@ -162,6 +188,7 @@ public class BiopsieService {
     }
 
     // ── Supprimer une biopsie
+    @Transactional
     public void supprimer(UUID id) {
         biopsieRepository.deleteById(id);
     }
@@ -245,5 +272,14 @@ public class BiopsieService {
         }).collect(Collectors.toList()));
 
         return dto;
+    }
+    // Remplace getByDossier par getByPatient
+    @Transactional(readOnly = true)
+    public List<BiopsieResponseDTO> getByPatient(UUID patientId) {
+        return biopsieRepository
+                .findByPatientId(patientId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 }

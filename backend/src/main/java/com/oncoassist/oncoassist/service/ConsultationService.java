@@ -3,10 +3,9 @@ package com.oncoassist.oncoassist.service;
 import com.oncoassist.oncoassist.model.dto.consultation.*;
 import com.oncoassist.oncoassist.model.entity.*;
 import com.oncoassist.oncoassist.repository.*;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +13,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ConsultationService {
 
     private final ExamenManuelRepository examenManuelRepository;
