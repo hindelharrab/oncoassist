@@ -6,5 +6,9 @@ public enum NotificationCategorie {
     rdv,
     clinique,
     dossier,
-    quest
+    quest,
+    patient,
+    planning,    // modifications planning
+    impression,  // dossier imprimé
+    admin        // actions administratives
 }
