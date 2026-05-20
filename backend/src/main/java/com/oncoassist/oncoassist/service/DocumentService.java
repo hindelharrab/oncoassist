@@ -7,10 +7,9 @@ import com.oncoassist.oncoassist.model.entity.DossierMedical;
 import com.oncoassist.oncoassist.model.entity.enums.DocTypeEnum;
 import com.oncoassist.oncoassist.repository.DocumentRepository;
 import com.oncoassist.oncoassist.repository.DossierMedicalRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class DocumentService {
 
     private final DocumentRepository      documentRepository;

@@ -25,7 +25,7 @@ public class ConsultationController {
     // Autorisé : MEDECIN
     // ─────────────────────────────────────────────────────────
     @PostMapping("/dossier/{dossierId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<ConsultationResponseDTO> creerConsultation(
             @PathVariable UUID dossierId,
             @Valid @RequestBody ConsultationRequestDTO dto) {
@@ -40,7 +40,7 @@ public class ConsultationController {
     // Autorisé : MEDECIN, ADMIN
     // ─────────────────────────────────────────────────────────
     @GetMapping("/dossier/{dossierId}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<List<ConsultationResponseDTO>> getConsultations(
             @PathVariable UUID dossierId) {
 
@@ -53,7 +53,7 @@ public class ConsultationController {
     // Autorisé : MEDECIN
     // ─────────────────────────────────────────────────────────
     @PutMapping("/examen/{examenId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<ExamenManuelResponseDTO> modifierExamen(
             @PathVariable UUID examenId,
             @Valid @RequestBody ExamenManuelRequestDTO dto) {
@@ -67,7 +67,7 @@ public class ConsultationController {
     // Autorisé : MEDECIN
     // ─────────────────────────────────────────────────────────
     @DeleteMapping("/examen/{examenId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<Void> supprimerExamen(@PathVariable UUID examenId) {
         consultationService.supprimerExamenManuel(examenId);
         return ResponseEntity.noContent().build();
@@ -79,7 +79,7 @@ public class ConsultationController {
     // Autorisé : MEDECIN
     // ─────────────────────────────────────────────────────────
     @DeleteMapping("/antecedent-medical/{id}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<Void> supprimerAntecedentMedical(@PathVariable UUID id) {
         consultationService.supprimerAntecedentMedical(id);
         return ResponseEntity.noContent().build();
@@ -91,7 +91,7 @@ public class ConsultationController {
     // Autorisé : MEDECIN
     // ─────────────────────────────────────────────────────────
     @DeleteMapping("/antecedent-familial/{id}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<Void> supprimerAntecedentFamilial(@PathVariable UUID id) {
         consultationService.supprimerAntecedentFamilial(id);
         return ResponseEntity.noContent().build();

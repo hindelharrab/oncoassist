@@ -19,8 +19,21 @@ public class RendezVousDTO {
     private LocalDateTime date;
     private String        lieu;
     private LocalDateTime dateCreation;
+
+    // Patient
     private String        patientNom;
     private String        patientPrenom;
     private UUID          patientId;
 
+    // 🔥 AJOUTS POUR LE MÉDECIN
+    private String        medecinNom;
+    private String        medecinPrenom;
+    private UUID          medecinId;
+    private String        medecinSpecialite;
+
+    // 🔥 AJOUTS POUR L'AFFICHAGE PLANNING
+    private String        heure;
+    private Integer       jourOffset;
+    private String        jour;
+    private Integer       duree;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useInView } from 'motion/react';
+import { motion, useInView } from 'framer-motion';
 import {
   Users, Calendar, Clock, UserPlus, Activity,
   ArrowRight, ShieldAlert, ChevronRight, Stethoscope,

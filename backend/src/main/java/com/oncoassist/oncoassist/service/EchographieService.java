@@ -9,7 +9,7 @@ import com.oncoassist.oncoassist.model.entity.enums.BIRADSEnum;
 import com.oncoassist.oncoassist.repository.DossierMedicalRepository;
 import com.oncoassist.oncoassist.repository.EchographieRepository;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class EchographieService {
 
     private final EchographieRepository echographieRepository;
@@ -55,7 +56,6 @@ public class EchographieService {
     // ─────────────────────────────────────────────────────────
     // GET tous les examens d'un dossier
     // ─────────────────────────────────────────────────────────
-    @Transactional
     public List<EchographieResponseDTO> getByDossier(UUID dossierId) {
         if (!dossierMedicalRepository.existsById(dossierId)) {
             throw new RuntimeException("Dossier introuvable : " + dossierId);

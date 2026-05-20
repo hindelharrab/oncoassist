@@ -36,12 +36,13 @@ public class BiopsieController {
     }
 
     // ── GET toutes les biopsies d'un dossier
-    @GetMapping("/dossier/{dossierId}")
+    @GetMapping("/dossier/{patientId}")
     public ResponseEntity<List<BiopsieResponseDTO>> getByDossier(
-            @PathVariable UUID dossierId
-    ) {
-        System.out.println("✅ GET biopsies dossier : " + dossierId);
-        return ResponseEntity.ok(biopsieService.getByDossier(dossierId));
+            @PathVariable UUID patientId) {
+        System.out.println("✅ GET biopsies patient : " + patientId);
+        return ResponseEntity.ok(
+                biopsieService.getByPatient(patientId)
+        );
     }
 
     // ── GET une biopsie par ID

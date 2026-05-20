@@ -13,6 +13,7 @@ import com.oncoassist.oncoassist.repository.QuestionnaireSuiviRepository;
 import com.oncoassist.oncoassist.repository.ReponseQuestionnaireRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,73 +21,93 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ReponseQuestionnaireService {
 
     private final ReponseQuestionnaireRepository reponseRepo;
-    private final PatientRepository patientRepo;
-    private final QuestionnaireSuiviRepository questionRepo;
+    private final PatientRepository              patientRepo;
+    private final QuestionnaireSuiviRepository   questionRepo;
     private final AttributionQuestionnaireRepository attributionRepo;
 
     // Patient soumet ses réponses
-    public void soumettreReponses(UUID patientId,
-                                  ReponseQuestionnaireRequestDTO dto) {
+    @Transactional
+    public void soumettreReponses(
+            UUID patientId,
+            ReponseQuestionnaireRequestDTO dto) {
 
         Patient patient = patientRepo.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient non trouvé"));
+                .orElseThrow(() ->
+                        new RuntimeException("Patient non trouvé")
+                );
 
-        AttributionQuestionnaire attribution = attributionRepo
-                .findById(dto.getAttributionId())
-                .orElseThrow(() -> new RuntimeException("Attribution non trouvée"));
+        AttributionQuestionnaire attribution =
+                attributionRepo.findById(dto.getAttributionId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Attribution non trouvée"
+                                )
+                        );
 
         for (ReponseItemDTO item : dto.getReponses()) {
-            QuestionnaireSuivi question = questionRepo
-                    .findById(item.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Question non trouvée"));
+            QuestionnaireSuivi question =
+                    questionRepo.findById(item.getQuestionId())
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Question non trouvée"
+                                    )
+                            );
 
-            ReponseQuestionnaire reponse = new ReponseQuestionnaire();
+            ReponseQuestionnaire reponse =
+                    new ReponseQuestionnaire();
             reponse.setPatient(patient);
             reponse.setQuestion(question);
             reponse.setAttribution(attribution);
-            reponse.setChoixSelectionne(item.getChoixSelectionne());
+            reponse.setChoixSelectionne(
+                    item.getChoixSelectionne()
+            );
             reponse.setDateReponse(LocalDate.now());
             reponseRepo.save(reponse);
         }
     }
 
-    // Médecin consulte les réponses d'un patient par question
-    // → pour afficher les graphiques
-    public List<ReponseQuestionnaireResponseDTO> getReponsesParQuestion(
-            UUID patientId, UUID questionId) {
-
+    // Médecin consulte les réponses par question
+    @Transactional(readOnly = true)
+    public List<ReponseQuestionnaireResponseDTO>
+    getReponsesParQuestion(UUID patientId, UUID questionId) {
         return reponseRepo
-                .findByPatientIdAndQuestionIdOrderByDateReponse(patientId, questionId)
+                .findByPatientIdAndQuestionIdOrderByDateReponse(
+                        patientId, questionId
+                )
                 .stream()
-                .map(r -> {
-                    ReponseQuestionnaireResponseDTO dto =
-                            new ReponseQuestionnaireResponseDTO();
-                    dto.setId(r.getId());
-                    dto.setTexteQuestion(r.getQuestion().getTexte());
-                    dto.setChoixSelectionne(r.getChoixSelectionne());
-                    dto.setDateReponse(r.getDateReponse());
-                    return dto;
-                })
+                .map(this::toDTO)
                 .toList();
     }
 
     // Médecin consulte toutes les réponses d'un patient
-    public List<ReponseQuestionnaireResponseDTO> getToutesReponses(UUID patientId) {
+    @Transactional(readOnly = true)
+    public List<ReponseQuestionnaireResponseDTO>
+    getToutesReponses(UUID patientId) {
         return reponseRepo
                 .findByPatientIdOrderByDateReponse(patientId)
                 .stream()
-                .map(r -> {
-                    ReponseQuestionnaireResponseDTO dto =
-                            new ReponseQuestionnaireResponseDTO();
-                    dto.setId(r.getId());
-                    dto.setTexteQuestion(r.getQuestion().getTexte());
-                    dto.setChoixSelectionne(r.getChoixSelectionne());
-                    dto.setDateReponse(r.getDateReponse());
-                    return dto;
-                })
+                .map(this::toDTO)
                 .toList();
+    }
+
+    // ── Mapper ────────────────────────────────────
+    private ReponseQuestionnaireResponseDTO toDTO(
+            ReponseQuestionnaire r) {
+        ReponseQuestionnaireResponseDTO dto =
+                new ReponseQuestionnaireResponseDTO();
+        dto.setId(r.getId());
+        // Force le chargement du texte dans la transaction
+        dto.setTexteQuestion(
+                r.getQuestion() != null
+                        ? r.getQuestion().getTexte()
+                        : ""
+        );
+        dto.setChoixSelectionne(r.getChoixSelectionne());
+        dto.setDateReponse(r.getDateReponse());
+        return dto;
     }
 }

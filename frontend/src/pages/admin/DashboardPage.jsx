@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Header } from "../../Shared";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, Stethoscope, Users, Star,
   TrendingUp, ArrowRight, UserCog, FolderOpen,

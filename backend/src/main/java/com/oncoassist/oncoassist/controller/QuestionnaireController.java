@@ -21,15 +21,16 @@ public class QuestionnaireController {
 
     // GET questions globales → MEDECIN seulement
     @GetMapping("/globales")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE')")
     public ResponseEntity<List<QuestionSuiviResponseDTO>> getGlobales() {
+        System.out.println("🟢 getGlobales appelé");  // ← ajoute ça
         return ResponseEntity.ok(
                 questionnaireService.getQuestionsGlobales());
     }
 
     // GET questions pour un patient → MEDECIN seulement
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<List<QuestionSuiviResponseDTO>> getQuestions(
             @PathVariable UUID patientId) {
         return ResponseEntity.ok(
@@ -38,7 +39,7 @@ public class QuestionnaireController {
 
     // POST ajouter question globale → MEDECIN seulement
     @PostMapping("/globale")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<QuestionSuiviResponseDTO> ajouterGlobale(
             @RequestBody QuestionSuiviRequestDTO dto) {
         return ResponseEntity.ok(
@@ -47,7 +48,7 @@ public class QuestionnaireController {
 
     // POST ajouter question custom → MEDECIN seulement
     @PostMapping("/patient/{patientId}/ajouter")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<QuestionSuiviResponseDTO> ajouterCustom(
             @PathVariable UUID patientId,
             @RequestBody QuestionSuiviRequestDTO dto) {
@@ -57,7 +58,7 @@ public class QuestionnaireController {
 
     // DELETE supprimer une question → MEDECIN seulement
     @DeleteMapping("/{questionId}")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<Void> supprimer(
             @PathVariable UUID questionId) {
         questionnaireService.supprimerQuestion(questionId);
@@ -66,7 +67,7 @@ public class QuestionnaireController {
 
     // POST attribuer questionnaire → MEDECIN seulement
     @PostMapping("/attribuer")
-    @PreAuthorize("hasRole('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<Void> attribuer(
             @RequestBody AttributionRequestDTO dto) {
         questionnaireService.attribuerQuestionnaire(dto);

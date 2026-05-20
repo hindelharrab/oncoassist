@@ -25,7 +25,15 @@ public class NotificationController {
                 notificationService.getByMedecin(medecinId)
         );
     }
-
+    // Notifications générales (pas liées à un médecin)
+// Pour la secrétaire — toutes les notifs récentes
+    @GetMapping("/secretaire/{secretaireId}")
+    public ResponseEntity<List<NotificationDTO>> getBySecretaire(
+            @PathVariable UUID secretaireId) {
+        return ResponseEntity.ok(
+                notificationService.getForSecretaire()
+        );
+    }
     // Compter les non lues
     @GetMapping("/medecin/{medecinId}/count")
     public ResponseEntity<Map<String, Long>> countNonLues(
@@ -35,6 +43,7 @@ public class NotificationController {
                 notificationService.countNonLues(medecinId)
         ));
     }
+
 
     // Marquer une notification comme lue
     @PatchMapping("/{id}/lue")

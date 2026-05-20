@@ -20,6 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PriseEnChargeService {
 
     private final PriseEnChargeRepository priseEnChargeRepository;

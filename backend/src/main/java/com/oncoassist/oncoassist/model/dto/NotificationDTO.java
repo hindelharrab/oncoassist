@@ -22,4 +22,5 @@ public class NotificationDTO {
     private boolean lue;
     private boolean archivee;
     private LocalDateTime dateCreation;
+    private String contexte; // "secretaire" ou "medecin"
 }
