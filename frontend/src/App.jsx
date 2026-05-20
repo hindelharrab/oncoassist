@@ -36,6 +36,26 @@ import SecretairePrint from './pages/secretaire/SecretairePrint';
 import SecretaireSettings from './pages/secretaire/SecretaireSettings';
 import DashboardSecretaire from './pages/secretaire/DashboardSecretaire';
 
+// ── Espace Admin ──
+import { Layout } from './Shared';                              // ← AJOUTÉ
+import AdminLoginPage from './pages/admin/LoginPage';
+import AdminDashboardPage from './pages/admin/DashboardPage';
+import AdminDoctorsPage from './pages/admin/DoctorsPage';
+import AdminDoctorDetailPage from './pages/admin/DoctorDetailPage';
+import AdminPatientsPage from './pages/admin/PatientsPage';
+import AdminPatientDetailPage from './pages/admin/PatientDetailPage';
+import AdminSecretariesPage from './pages/admin/SecretariesPage';
+import AdminSpecialitiesPage from './pages/admin/SpecialitiesPage';
+import AdminPlanningPage from './pages/admin/PlanningPage';
+import AdminProfilePage from './pages/admin/ProfilePage';
+import SecretaryDetailPage  from "./pages/admin/SecretaryDetailPage";
+import SpecialityDetailPage from "./pages/admin/SpecialityDetailPage";
+// ── Protected Route Admin ──                                  // ← AJOUTÉ
+const AdminProtectedRoute = ({ children }) => {
+  const ok = localStorage.getItem("adminAuthenticated") === "true";
+  return ok ? children : <Navigate to="/admin/login" replace />;
+};
+
 export default function App() {
   return (
     <Routes>
@@ -58,8 +78,6 @@ export default function App() {
         <Route path="alertes" element={<AlertesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="questionnaires" element={<QuestionnairesPage />} />
-
-        {/* Dossier patient */}
         <Route path="dossier/:id" element={<Navigate to="vue-ensemble" replace />} />
         <Route path="dossier/:id/vue-ensemble" element={<VueEnsemblePage />} />
         <Route path="dossier/:id/questionnaires" element={<PatientQuestionnairePage />} />
@@ -85,6 +103,33 @@ export default function App() {
         <Route path="notifications" element={<SecretaireNotifications />} />
         <Route path="print"         element={<SecretairePrint />} />
         <Route path="settings"      element={<SecretaireSettings />} />
+      </Route>
+
+      {/* ══════════════════════════════
+          ESPACE ADMIN
+      ══════════════════════════════ */}
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+
+      <Route
+        path="/admin"
+        element={
+          <AdminProtectedRoute>
+            <Layout />
+          </AdminProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard"    element={<AdminDashboardPage />}    />
+        <Route path="patients"     element={<AdminPatientsPage />}     />
+        <Route path="patients/:id" element={<AdminPatientDetailPage />}/>
+        <Route path="doctors"      element={<AdminDoctorsPage />}      />
+        <Route path="doctors/:id"  element={<AdminDoctorDetailPage />} />
+        <Route path="secretaries"  element={<AdminSecretariesPage />}  />
+        <Route path="secretaries/:id"  element={<SecretaryDetailPage />}  />
+        <Route path="specialities" element={<AdminSpecialitiesPage />} />
+        <Route path="specialities/:id"  element={<SpecialityDetailPage />}  />
+        <Route path="planning"     element={<AdminPlanningPage />}     />
+        <Route path="profile"      element={<AdminProfilePage />}      />
       </Route>
 
       {/* ── Redirections legacy ── */}
