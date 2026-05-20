@@ -8,8 +8,10 @@ import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
 import com.oncoassist.oncoassist.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -22,25 +24,93 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final MedecinRepository      medecinRepository;
 
-    // ── Récupérer toutes les notifications d'un médecin ──
+    // ── Notifications d'un médecin ────────────────────────
     public List<NotificationDTO> getByMedecin(UUID medecinId) {
         return notificationRepository
-                .findByMedecinIdAndArchiveeFalseOrderByDateCreationDesc(medecinId)
+                .findByMedecinIdAndArchiveeFalseOrderByDateCreationDesc(
+                        medecinId
+                )
                 .stream()
                 .map(this::toDTO)
                 .toList();
     }
 
-    // ── Compter les non lues ─────────────────────────────
+    // ── Notifications pour la secrétaire ─────────────────
+    // rdv + patient + dossier uniquement
+    public List<NotificationDTO> getForSecretaire() {
+        return notificationRepository
+                .findTop20ByArchiveeFalseAndCategorieIn(
+                        List.of(
+                                NotificationCategorie.rdv,
+                                NotificationCategorie.patient,
+                                NotificationCategorie.dossier
+                        ),
+                        Sort.by(Sort.Direction.DESC, "dateCreation")
+                )
+                .stream()
+                .map(n -> {
+                    NotificationDTO dto = toDTO(n);
+                    // Reformater le texte pour la secrétaire
+                    dto.setMessage(
+                            reformaterPourSecretaire(n)
+                    );
+                    dto.setTitre(
+                            reformaterTitrePourSecretaire(n)
+                    );
+                    return dto;
+                })
+                .toList();
+    }
+
+    private String reformaterTitrePourSecretaire(
+            Notification n) {
+        return switch (n.getCategorie()) {
+            case rdv -> "RDV planifié";
+            case patient -> "Nouveau patient";
+            case dossier -> "Dossier mis à jour";
+            default -> n.getTitre();
+        };
+    }
+
+    private String reformaterPourSecretaire(Notification n) {
+        String nomPatient = n.getNomPatient() != null
+                ? n.getNomPatient() : "Patient inconnu";
+
+        return switch (n.getCategorie()) {
+            case rdv ->
+                    "RDV confirmé avec " + nomPatient;
+            case patient ->
+                    "Le dossier de " + nomPatient
+                            + " a été créé avec succès";
+            case dossier ->
+                    "Dossier de " + nomPatient
+                            + " mis à jour";
+            default -> n.getMessage();
+        };
+    }
+
+    // ── Notifications récentes globales ───────────────────
+    public List<NotificationDTO> getRecentes() {
+        return notificationRepository
+                .findTop20ByArchiveeFalseOrderByDateCreationDesc()
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    // ── Compter les non lues ──────────────────────────────
     public long countNonLues(UUID medecinId) {
         return notificationRepository
-                .countByMedecinIdAndLueFalseAndArchiveeFalse(medecinId);
+                .countByMedecinIdAndLueFalseAndArchiveeFalse(
+                        medecinId
+                );
     }
 
     // ── Marquer une notification comme lue ───────────────
     @Transactional
     public NotificationDTO marquerLue(UUID notifId) {
-        Notification notif = notificationRepository.findById(notifId)
+        Notification notif = notificationRepository
+                .findById(notifId)
                 .orElseThrow(() -> new RuntimeException(
                         "Notification non trouvée : " + notifId
                 ));
@@ -48,16 +118,17 @@ public class NotificationService {
         return toDTO(notificationRepository.save(notif));
     }
 
-    // ── Marquer toutes comme lues ────────────────────────
+    // ── Marquer toutes comme lues (médecin) ──────────────
     @Transactional
     public void marquerToutesLues(UUID medecinId) {
         notificationRepository.markAllAsRead(medecinId);
     }
 
-    // ── Archiver une notification ────────────────────────
+    // ── Archiver une notification ─────────────────────────
     @Transactional
     public void archiver(UUID notifId) {
-        Notification notif = notificationRepository.findById(notifId)
+        Notification notif = notificationRepository
+                .findById(notifId)
                 .orElseThrow(() -> new RuntimeException(
                         "Notification non trouvée : " + notifId
                 ));
@@ -65,7 +136,7 @@ public class NotificationService {
         notificationRepository.save(notif);
     }
 
-    // ── Créer une notification (appelé depuis d'autres services) ──
+    // ── Créer une notification ────────────────────────────
     @Transactional
     public void creer(
             UUID medecinId,
@@ -77,7 +148,8 @@ public class NotificationService {
             String nomPatient,
             UUID patientId
     ) {
-        Medecin medecin = medecinRepository.findById(medecinId)
+        Medecin medecin = medecinRepository
+                .findById(medecinId)
                 .orElseThrow(() -> new RuntimeException(
                         "Médecin non trouvé : " + medecinId
                 ));
@@ -99,7 +171,7 @@ public class NotificationService {
         notificationRepository.save(notif);
     }
 
-    // ── Mapper ───────────────────────────────────────────
+    // ── Mapper ────────────────────────────────────────────
     private NotificationDTO toDTO(Notification n) {
         return NotificationDTO.builder()
                 .id(n.getId())

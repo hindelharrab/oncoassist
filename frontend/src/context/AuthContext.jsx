@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  // ── Charge la photo au démarrage ─────────────────────────────────────
+  // ── Charge la photo au démarrage ──────────
 useEffect(() => {
   const chargerPhoto = async () => {
     if (!user?.id || !token) return;

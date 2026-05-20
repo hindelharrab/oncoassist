@@ -29,6 +29,7 @@ public class PatientService {
     private final FileStorageService       fileStorageService;
     private final PasswordEncoder          passwordEncoder;
     private final PriseEnChargeService     priseEnChargeService;
+    private final NotificationService notificationService;
     // ════════════════════════════════════════════════
     // CRÉER
     // ════════════════════════════════════════════════
@@ -70,7 +71,24 @@ public class PatientService {
                     saved.getId(), dto.getMedecinId()
             );
         }
+        if (dto.getMedecinId() != null) {
+            priseEnChargeService.affecter(
+                    saved.getId(), dto.getMedecinId()
+            );
 
+            // Notifier le médecin
+            notificationService.creer(
+                    dto.getMedecinId(),
+                    NotificationCategorie.patient,
+                    NotificationPriorite.NORMALE,
+                    "Nouveau patient affecté",
+                    dto.getPrenom() + " " + dto.getNom()
+                            + " vient d'être ajouté à votre liste",
+                    "/medecin/patients",
+                    dto.getPrenom() + " " + dto.getNom(),
+                    saved.getId()
+            );
+        }
         return saved;
     }
 
