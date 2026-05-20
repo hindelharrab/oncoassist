@@ -11,25 +11,31 @@ export const AuthProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  // ── Charge la photo au démarrage ─────────────────────────────────────
-  useEffect(() => {
-    const chargerPhoto = async () => {
-      if (!user?.id || !token || user?.photoProfil) return;
-      try {
-        const res = await axios.get(`${API_BASE}/api/medecins/${user.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data.photoProfil) {
-          const updatedUser = { ...user, photoProfil: res.data.photoProfil };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          setUser(updatedUser);
-        }
-      } catch (e) {
-        console.error('Erreur chargement photo profil:', e);
+  // ── Charge la photo au démarrage ──────────
+useEffect(() => {
+  const chargerPhoto = async () => {
+    if (!user?.id || !token) return;
+    if (user?.photoProfil) return;
+
+    // Ne charger QUE pour les médecins
+    if (user.role !== 'MEDECIN') return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE}/api/medecins/${user.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.photoProfil) {
+        const updated = { ...user, photoProfil: res.data.photoProfil };
+        localStorage.setItem('user', JSON.stringify(updated));
+        setUser(updated);
       }
-    };
-    chargerPhoto();
-  }, [user?.id]);
+    } catch (e) {
+      console.error('Erreur photo profil:', e);
+    }
+  };
+  chargerPhoto();
+}, [user?.id]);
 
   const login = (authResponse) => {
     localStorage.setItem('token', authResponse.token ?? token);

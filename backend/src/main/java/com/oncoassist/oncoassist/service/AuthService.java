@@ -35,19 +35,40 @@ public class AuthService {
     // ===== LOGIN =====
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse())
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(), request.getMotDePasse()
+                )
         );
 
-        Utilisateur user = utilisateurRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
+        Utilisateur user = utilisateurRepository
+                .findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Utilisateur non trouvé")
+                );
 
-        UserDetails userDetails = org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getMotDePasse())
-                .authorities("ROLE_" + user.getRole().name())
-                .build();
+        UserDetails userDetails =
+                org.springframework.security.core.userdetails.User
+                        .withUsername(user.getEmail())
+                        .password(user.getMotDePasse())
+                        .authorities("ROLE_" + user.getRole().name())
+                        .build();
 
-        String token = jwtService.generateToken(userDetails, user.getRole().name(), user.getId().toString());
+        String token = jwtService.generateToken(
+                userDetails,
+                user.getRole().name(),
+                user.getId().toString()
+        );
+
+        // ── Extraire photoProfil selon le type ────────
+        // Extraire photoProfil selon le type d'utilisateur
+        String photoProfil = null;
+        if (user instanceof Medecin medecin) {
+            photoProfil = medecin.getPhotoProfil();
+        } else if (user instanceof Secretaire secretaire) {
+            photoProfil = secretaire.getPhotoProfil();
+        } else if (user instanceof Patient patient) {
+            photoProfil = patient.getPhotoProfil();
+        }
 
         return AuthResponse.builder()
                 .token(token)
@@ -56,6 +77,7 @@ public class AuthService {
                 .prenom(user.getPrenom())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .photoProfil(photoProfil)  // ← AJOUT
                 .build();
     }
 

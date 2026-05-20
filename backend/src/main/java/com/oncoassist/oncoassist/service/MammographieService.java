@@ -16,7 +16,7 @@ import com.oncoassist.oncoassist.repository.MedecinRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class MammographieService {
 
     private final AiInferenceService       aiInferenceService;
@@ -56,6 +57,7 @@ public class MammographieService {
     // ════════════════════════════════════════════════
     // ANALYSER + SAUVEGARDER
     // ════════════════════════════════════════════════
+    @Transactional
     public MammographieResponseDTO analyzeAndSave(
             UUID patientId,
             MultipartFile imageFile,
@@ -155,6 +157,7 @@ public class MammographieService {
     // ════════════════════════════════════════════════
     // MÉTHODE POUR CRÉER LA NOTIFICATION
     // ════════════════════════════════════════════════
+    @Transactional
     private void creerNotificationApresAnalyse(Mammographie mammo, DossierMedical dossier, UUID medecinId) {
         // Déterminer la priorité selon le BI-RADS
         NotificationPriorite priorite;
@@ -211,6 +214,7 @@ public class MammographieService {
     // ════════════════════════════════════════════════
     // MÉTHODES PRIVÉES (inchangées)
     // ════════════════════════════════════════════════
+    @Transactional
     private String saveBase64Image(
             String base64Data,
             String filename) throws IOException {

@@ -11,7 +11,7 @@ import com.oncoassist.oncoassist.repository.DocumentRepository;
 import com.oncoassist.oncoassist.repository.DossierMedicalRepository;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
 import com.oncoassist.oncoassist.repository.PlanTraitementRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PlanTraitementService {
 
     private final PlanTraitementRepository planTraitementRepository;

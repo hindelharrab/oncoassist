@@ -20,7 +20,7 @@ public class PriseEnChargeController {
 
     // Secrétaire affecte un médecin à un patient
     @PostMapping("/affecter")
-    @PreAuthorize("hasRole('SECRETAIRE')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE')")
     public ResponseEntity<PriseEnCharge> affecter(@RequestBody Map<String, String> body) {
         UUID patientId = UUID.fromString(body.get("patientId"));
         UUID medecinId = UUID.fromString(body.get("medecinId"));
@@ -29,7 +29,7 @@ public class PriseEnChargeController {
 
     // Clôturer une prise en charge
     @PutMapping("/{id}/cloturer")
-    @PreAuthorize("hasAnyRole('SECRETAIRE', 'MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN')")
     public ResponseEntity<PriseEnCharge> cloturer(
             @PathVariable UUID id,
             @RequestBody Map<String, String> body) {
@@ -38,14 +38,14 @@ public class PriseEnChargeController {
 
     // Voir les prises en charge d'un patient
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'SECRETAIRE', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<List<PriseEnChargeResponseDTO>> findByPatient(@PathVariable UUID patientId) {
         return ResponseEntity.ok(priseEnChargeService.findByPatientDTO(patientId));
     }
 
     // Voir les patients d'un médecin
     @GetMapping("/medecin/{medecinId}")
-    @PreAuthorize("hasAnyRole('MEDECIN', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'ADMIN')")
     public ResponseEntity<List<PriseEnCharge>> findByMedecin(@PathVariable UUID medecinId) {
         return ResponseEntity.ok(priseEnChargeService.findByMedecin(medecinId));
     }
