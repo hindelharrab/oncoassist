@@ -26,7 +26,7 @@ public class RendezVousController {
 
     // ── Planning semaine ──────────────────────────
     @GetMapping("/planning")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<List<RendezVousDTO>> getPlanning(
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -39,7 +39,7 @@ public class RendezVousController {
 
     // ── Créer RDV (secrétaire) ────────────────────
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<RendezVousDTO> creer(
             @RequestBody RendezVousDTO dto) {
         return ResponseEntity.ok(
@@ -49,7 +49,7 @@ public class RendezVousController {
 
     // ── Modifier RDV ──────────────────────────────
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<RendezVousDTO> modifier(
             @PathVariable UUID id,
             @RequestBody RendezVousDTO dto) {

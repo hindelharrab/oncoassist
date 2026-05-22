@@ -42,5 +42,6 @@ public interface NotificationRepository
     @Modifying
     @Query("UPDATE Notification n SET n.lue = true WHERE n.medecin.id = :medecinId")
     void markAllAsRead(UUID medecinId);
-
+    long countByArchiveeFalseAndLueFalse();
+    long countByArchiveeFalse();
 }

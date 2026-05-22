@@ -35,4 +35,10 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, UUID> {
             @Param("statut") StatutRDVEnum statut);
     List<RendezVous> findByPatientIdAndStatut(UUID patientId, StatutRDVEnum statut);
     List<RendezVous> findByDateBetween(LocalDateTime start, LocalDateTime end);
+    long countByDateBetween(
+            LocalDateTime debut, LocalDateTime fin);
+
+    long countByStatutAndDateBetween(
+            StatutRDVEnum statut,
+            LocalDateTime debut, LocalDateTime fin);
 }

@@ -70,11 +70,6 @@ public class PatientService {
             priseEnChargeService.affecter(
                     saved.getId(), dto.getMedecinId()
             );
-        }
-        if (dto.getMedecinId() != null) {
-            priseEnChargeService.affecter(
-                    saved.getId(), dto.getMedecinId()
-            );
 
             // Notifier le médecin
             notificationService.creer(

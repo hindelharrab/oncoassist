@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,4 +18,10 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
     @Query("SELECT DISTINCT p FROM Patient p JOIN p.prisesEnCharge pec WHERE pec.medecin.id = :medecinId AND pec.dateFin IS NULL")
     List<Patient> findByMedecinActif(@Param("medecinId") UUID medecinId);
+    @Query("SELECT COUNT(p) FROM Patient p " +
+            "JOIN p.dossierMedical d " +
+            "WHERE d.dateCreation >= :debut")
+    long countNouveauxDepuis(
+            @Param("debut") LocalDate debut
+    );
 }

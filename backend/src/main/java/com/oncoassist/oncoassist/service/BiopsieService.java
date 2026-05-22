@@ -194,6 +194,7 @@ public class BiopsieService {
     }
 
     // ── Analyser des images via FastAPI
+    @Transactional
     public AnalyseResultDTO analyser(UUID biopsieId,
                                      List<MultipartFile> images,
                                      String grossissement) throws IOException {
