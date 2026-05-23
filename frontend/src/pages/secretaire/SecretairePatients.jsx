@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, UserPlus, Search, Filter, Printer, Edit2,
-  X, CheckCircle2, Phone, Mail, Stethoscope,
+  Users, UserPlus, Search, Filter,
+  Edit2, X, CheckCircle2, Phone, Mail, Stethoscope,
   ChevronLeft, ChevronRight, User, Activity,
   ShieldAlert, Archive, Eye, Loader2, AlertCircle
 } from 'lucide-react';
-import patientService from '../../services/secretairePatientService';
 import axiosInstance from '../../services/axiosInstance';
 
 const fadeUp = (delay = 0) => ({
@@ -18,7 +17,7 @@ const fadeUp = (delay = 0) => ({
 /* ── Badge statut ── */
 const StatutBadge = ({ statut }) => {
   const map = {
-    NOUVELLE:     { label: 'Nouvelle',     className: 'bg-violet-50 text-violet-700 border-violet-200',   icon: UserPlus },
+    NOUVELLE:     { label: 'Nouvelle',     className: 'bg-violet-50 text-violet-700 border-violet-200',    icon: UserPlus },
     STABLE:       { label: 'Stable',       className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
     EN_SUIVI:     { label: 'En suivi',     className: 'bg-blue-50 text-blue-700 border-blue-200',          icon: Activity },
     A_SURVEILLER: { label: 'À surveiller', className: 'bg-amber-50 text-amber-700 border-amber-200',       icon: Eye },
@@ -35,6 +34,35 @@ const StatutBadge = ({ statut }) => {
   );
 };
 
+/* ── Avatar patient ── */
+const PatientAvatar = ({ patient }) => {
+  const [imgError, setImgError] = useState(false);
+  const initiales = `${patient.nom?.[0] || ''}${patient.prenom?.[0] || ''}`.toUpperCase();
+
+  const photoUrl = patient.photoProfil
+    ? patient.photoProfil.startsWith('http')
+      ? patient.photoProfil
+      : `http://localhost:8080/${patient.photoProfil}`
+    : null;
+
+  if (photoUrl && !imgError) {
+    return (
+      <img
+        src={photoUrl}
+        alt={initiales}
+        className="w-9 h-9 rounded-xl object-cover shrink-0"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-[11px] font-black text-gray-600 shrink-0">
+      {initiales}
+    </div>
+  );
+};
+
 /* ── Ligne patient ── */
 const PatientRow = ({ patient, index, onEdit }) => (
   <motion.tr
@@ -48,9 +76,7 @@ const PatientRow = ({ patient, index, onEdit }) => (
   >
     <td className="py-3.5 px-5">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-[11px] font-black text-gray-600 shrink-0">
-          {patient.nom?.[0]}{patient.prenom?.[0]}
-        </div>
+        <PatientAvatar patient={patient} />
         <div>
           <p className="text-[13px] font-bold text-gray-900 leading-none">
             {patient.nom} {patient.prenom}
@@ -100,9 +126,7 @@ const PatientRow = ({ patient, index, onEdit }) => (
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-gray-400 italic">
-          Non assigné
-        </span>
+        <span className="text-[11px] text-gray-400 italic">Non assigné</span>
       )}
     </td>
 
@@ -128,7 +152,11 @@ const PatientRow = ({ patient, index, onEdit }) => (
 );
 
 /* ── Champs formulaire ── */
-const inputClass = 'w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-900 outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all placeholder:text-gray-300';
+const inputClass =
+  'w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-[13px] ' +
+  'font-medium text-gray-900 outline-none focus:border-pink-300 ' +
+  'focus:ring-2 focus:ring-pink-100 transition-all placeholder:text-gray-300';
+
 const FormField = ({ label, required, children }) => (
   <div className="space-y-1.5">
     <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
@@ -140,6 +168,7 @@ const FormField = ({ label, required, children }) => (
 
 /* ── Modal créer patient ── */
 const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
+  const submittingRef = useRef(false);
   const [form, setForm] = useState({
     nom: '', prenom: '', dateNaissance: '',
     telephone: '', email: '', adresse: '', ville: '',
@@ -152,43 +181,41 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!form.nom || !form.prenom || !form.email) {
       setError('Nom, prénom et email sont obligatoires');
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
       const payload = {
-        nom:              form.nom,
-        prenom:           form.prenom,
-        email:            form.email,
-        telephone:        form.telephone,
-        adresse:          form.adresse
-                            + (form.ville ? ', ' + form.ville : ''),
-        dateNaissance:    form.dateNaissance || null,
+        nom:               form.nom,
+        prenom:            form.prenom,
+        email:             form.email,
+        telephone:         form.telephone,
+        adresse:           form.adresse + (form.ville ? ', ' + form.ville : ''),
+        dateNaissance:     form.dateNaissance || null,
         personneConfiance: form.personneConfiance,
-        motDePasse:       'ChangeMe2026!',
-        medecinId:        form.medecinId || null
+        motDePasse:        'ChangeMe2026!',
+        medecinId:         form.medecinId || null,
       };
 
-      await onSave(payload);
-      onClose();
+      await onSave(payload); // onSave ferme la modal elle-même
     } catch (err) {
       setError(
-        err.response?.data?.message
-        || 'Erreur lors de la création'
+        err.response?.data?.message || 'Erreur lors de la création'
       );
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
-  const medecinChoisi = medecins.find(
-    m => m.id === form.medecinId
-  );
+  const medecinChoisi = medecins.find(m => m.id === form.medecinId);
 
   return (
     <>
@@ -196,10 +223,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         exit={{ opacity: 0 }} onClick={onClose}
         className="fixed inset-0 z-40"
-        style={{
-          backgroundColor: 'rgba(10,10,20,0.5)',
-          backdropFilter: 'blur(8px)',
-        }}
+        style={{ backgroundColor: 'rgba(10,10,20,0.5)', backdropFilter: 'blur(8px)' }}
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <motion.div
@@ -215,9 +239,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
                 <UserPlus size={18} className="text-white" strokeWidth={2} />
               </div>
               <div>
-                <h2 className="text-[15px] font-bold text-gray-900">
-                  Nouveau patient
-                </h2>
+                <h2 className="text-[15px] font-bold text-gray-900">Nouveau patient</h2>
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   Remplissez les informations du dossier
                 </p>
@@ -231,7 +253,6 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
 
           {/* Body */}
           <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
-
             {error && (
               <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-[12px]">
                 <AlertCircle size={14} /> {error}
@@ -245,21 +266,16 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField label="Nom" required>
-                  <input className={inputClass}
-                    placeholder="Bennani"
-                    value={form.nom}
-                    onChange={set('nom')} />
+                  <input className={inputClass} placeholder="Bennani"
+                    value={form.nom} onChange={set('nom')} />
                 </FormField>
                 <FormField label="Prénom" required>
-                  <input className={inputClass}
-                    placeholder="Salma"
-                    value={form.prenom}
-                    onChange={set('prenom')} />
+                  <input className={inputClass} placeholder="Salma"
+                    value={form.prenom} onChange={set('prenom')} />
                 </FormField>
                 <FormField label="Date de naissance">
                   <input type="date" className={inputClass}
-                    value={form.dateNaissance}
-                    onChange={set('dateNaissance')} />
+                    value={form.dateNaissance} onChange={set('dateNaissance')} />
                 </FormField>
               </div>
             </div>
@@ -271,28 +287,21 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField label="Téléphone">
-                  <input className={inputClass}
-                    placeholder="06 XX XX XX XX"
-                    value={form.telephone}
-                    onChange={set('telephone')} />
+                  <input className={inputClass} placeholder="06 XX XX XX XX"
+                    value={form.telephone} onChange={set('telephone')} />
                 </FormField>
                 <FormField label="Email" required>
                   <input type="email" className={inputClass}
                     placeholder="patient@email.com"
-                    value={form.email}
-                    onChange={set('email')} />
+                    value={form.email} onChange={set('email')} />
                 </FormField>
                 <FormField label="Adresse">
-                  <input className={inputClass}
-                    placeholder="Rue, numéro…"
-                    value={form.adresse}
-                    onChange={set('adresse')} />
+                  <input className={inputClass} placeholder="Rue, numéro…"
+                    value={form.adresse} onChange={set('adresse')} />
                 </FormField>
                 <FormField label="Ville">
-                  <input className={inputClass}
-                    placeholder="Casablanca"
-                    value={form.ville}
-                    onChange={set('ville')} />
+                  <input className={inputClass} placeholder="Casablanca"
+                    value={form.ville} onChange={set('ville')} />
                 </FormField>
               </div>
             </div>
@@ -303,8 +312,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
                 <User size={12} /> Personne de confiance
               </p>
               <FormField label="Nom complet">
-                <input className={inputClass}
-                  placeholder="Nom de la personne"
+                <input className={inputClass} placeholder="Nom de la personne"
                   value={form.personneConfiance}
                   onChange={set('personneConfiance')} />
               </FormField>
@@ -317,8 +325,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
               </p>
               <FormField label="Médecin référent">
                 <select className={inputClass}
-                  value={form.medecinId}
-                  onChange={set('medecinId')}>
+                  value={form.medecinId} onChange={set('medecinId')}>
                   <option value="">Choisir un médecin…</option>
                   {medecins.map(m => (
                     <option key={m.id} value={m.id}>
@@ -330,8 +337,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
               </FormField>
               {medecinChoisi && (
                 <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                   className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl"
                 >
                   <CheckCircle2 size={14} className="text-emerald-500" />
@@ -356,8 +362,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
             >
               {loading
                 ? <Loader2 size={15} className="animate-spin" />
-                : <CheckCircle2 size={15} />
-              }
+                : <CheckCircle2 size={15} />}
               {loading ? 'Création...' : 'Créer le dossier'}
             </button>
           </div>
@@ -370,7 +375,7 @@ const ModalCreerPatient = ({ onClose, onSave, medecins }) => {
 /* ── Constantes ── */
 const STATUTS_FILTRE = [
   'Tous', 'NOUVELLE', 'STABLE', 'EN_SUIVI',
-  'A_SURVEILLER', 'CRITIQUE', 'ARCHIVEE'
+  'A_SURVEILLER', 'CRITIQUE', 'ARCHIVEE',
 ];
 const STATUTS_LABELS = {
   Tous: 'Tous', NOUVELLE: 'Nouvelle', STABLE: 'Stable',
@@ -402,7 +407,7 @@ export default function SecretairePatients() {
       try {
         const [patientsRes, medecinsRes] = await Promise.all([
           axiosInstance.get('/patients'),
-          axiosInstance.get('/medecins/avec-statut')
+          axiosInstance.get('/medecins/avec-statut'),
         ]);
         setPatients(patientsRes.data);
         setMedecins(medecinsRes.data);
@@ -424,32 +429,30 @@ export default function SecretairePatients() {
       || p.prenom?.toLowerCase().includes(q)
       || p.telephone?.includes(q)
       || p.email?.toLowerCase().includes(q);
-    const matchMedecin = filtreMedecin === 'Tous'
-      || p.medecinRef === filtreMedecin;
-    const matchStatut = filtreStatut === 'Tous'
-      || p.statut === filtreStatut;
+    const matchMedecin = filtreMedecin === 'Tous' || p.medecinRef === filtreMedecin;
+    const matchStatut  = filtreStatut  === 'Tous' || p.statut === filtreStatut;
     return matchSearch && matchMedecin && matchStatut;
   }), [patients, search, filtreMedecin, filtreStatut]);
 
   const totalPages = Math.ceil(filtered.length / PAR_PAGE);
-  const paginated  = filtered.slice(
-    (page - 1) * PAR_PAGE, page * PAR_PAGE
-  );
+  const paginated  = filtered.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
 
   // Médecins uniques pour le filtre
   const medecinsFiltre = ['Tous', ...new Set(
     patients.map(p => p.medecinRef).filter(Boolean)
   )];
 
-  // Créer patient
+  // Créer patient — ferme la modal et réinitialise
   const handleSave = async (payload) => {
     await axiosInstance.post('/patients', payload);
     const res = await axiosInstance.get('/patients');
     setPatients(res.data);
+    setPage(1);
+    setSearch('');
+    setShowModal(false); // ← fermeture ici
   };
 
-  const filtersActifs = filtreMedecin !== 'Tous'
-    || filtreStatut !== 'Tous';
+  const filtersActifs = filtreMedecin !== 'Tous' || filtreStatut !== 'Tous';
 
   if (loading) {
     return (
@@ -478,14 +481,10 @@ export default function SecretairePatients() {
     <>
       <div
         className="space-y-5 pb-8 transition-all duration-200"
-        style={showModal
-          ? { filter: 'blur(2px)', pointerEvents: 'none' }
-          : {}
-        }
+        style={showModal ? { filter: 'blur(2px)', pointerEvents: 'none' } : {}}
       >
         {/* Header */}
-        <motion.div {...fadeUp(0)}
-          className="flex items-center justify-between">
+        <motion.div {...fadeUp(0)} className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">
               Patients
@@ -505,12 +504,12 @@ export default function SecretairePatients() {
         </motion.div>
 
         {/* Recherche */}
-        <motion.div {...fadeUp(0.05)}
-          className="flex flex-col sm:flex-row gap-3">
+        <motion.div {...fadeUp(0.05)} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
+              autoComplete="off"
               placeholder="Rechercher par nom, prénom, email…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -533,9 +532,7 @@ export default function SecretairePatients() {
           >
             <Filter size={15} />
             Filtres
-            {filtersActifs && (
-              <span className="w-2 h-2 rounded-full bg-pink-400" />
-            )}
+            {filtersActifs && <span className="w-2 h-2 rounded-full bg-pink-400" />}
           </button>
         </motion.div>
 
@@ -558,9 +555,7 @@ export default function SecretairePatients() {
                     onChange={(e) => { setFiltreMedecin(e.target.value); setPage(1); }}
                     className="h-9 px-3 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-gray-800 outline-none"
                   >
-                    {medecinsFiltre.map(m => (
-                      <option key={m}>{m}</option>
-                    ))}
+                    {medecinsFiltre.map(m => <option key={m}>{m}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5 min-w-[160px]">
@@ -573,9 +568,7 @@ export default function SecretairePatients() {
                     className="h-9 px-3 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-gray-800 outline-none"
                   >
                     {STATUTS_FILTRE.map(s => (
-                      <option key={s} value={s}>
-                        {STATUTS_LABELS[s]}
-                      </option>
+                      <option key={s} value={s}>{STATUTS_LABELS[s]}</option>
                     ))}
                   </select>
                 </div>

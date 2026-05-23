@@ -53,17 +53,8 @@ const BiopsiePage = () => {
  const imageUrl = (chemin) => {
   if (!chemin) return null;
   if (chemin.startsWith('http')) return chemin;
-  
-  // Grad-CAM → servi par FastAPI (port 8001) qui a le fichier physiquement
-  if (chemin.includes('gradcam_')) {
-    const filename = chemin.split('/').pop();
-    return `http://localhost:8001/uploads/photos/${filename}`;
-  }
-  
-  // Autres images → Spring Boot (port 8080)
-  return `http://localhost:8081${chemin}`;
+  return `http://localhost:8080${chemin}`;
 };
-
   useEffect(() => {
     if (!dossierId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
