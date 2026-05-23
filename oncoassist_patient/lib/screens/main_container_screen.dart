@@ -203,12 +203,13 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (ctx) => QuestionnaireBotSheet(
+        patientId: widget.patientId,
         onSubmitted: (pain, fatigue, nausea, description, notes) {
           setState(() {
             _clinicalStatusText = "Bilan soumis • Stable";
             _clinicalStatusTime = "Validé à l'instant";
           });
-          _showToast("Votre bilan a bien été enregistré !");
+          _showToast("Votre bilan a bien été enregistré ! 💌");
         },
       ),
     );

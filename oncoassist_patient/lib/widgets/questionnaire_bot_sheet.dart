@@ -1,79 +1,172 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class QuestionnaireBotSheet extends StatefulWidget {
   final Function(double, bool, bool, String, String) onSubmitted;
-  const QuestionnaireBotSheet({Key? key, required this.onSubmitted}) : super(key: key);
+  final String patientId;
+
+  const QuestionnaireBotSheet({
+    Key? key,
+    required this.onSubmitted,
+    required this.patientId,
+  }) : super(key: key);
 
   @override
   _QuestionnaireBotSheetState createState() => _QuestionnaireBotSheetState();
 }
 
 class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
-  double _painLevel = 3.0;
-  bool _sympFatigue = false;
-  bool _sympNausea = false;
-  bool _sympSleep = false;
-  bool _sympAppetite = false;
-  bool _breastChange = false;
-  String _breastChangeDesc = "";
-  String _surveyNotes = "";
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+  String? _error;
 
-  String _getEmojiForPain(int level) {
-    if (level == 0) return "😊";
-    if (level <= 3) return "🙂";
-    if (level <= 6) return "😔";
-    return "😰";
+  List<_Question> _questions = [];
+  final Map<String, String?> _reponses = {};
+
+  double _fatigueLevel = 3.0;
+  String? _fatigueQuestionId;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchQuestions();
   }
 
-  String _getPainLabel(int level) {
-    if (level == 0) return "Aucune douleur";
-    if (level <= 3) return "Légère douleur";
-    if (level <= 6) return "Douleur modérée";
-    return "Douleur intense";
+  // ── Charger les questions du patient ─────────────────────
+  Future<void> _fetchQuestions() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final List<dynamic> data = await ApiService.get(
+          '/questionnaire/patient/${widget.patientId}');
+
+      if (!mounted) return;
+
+      final questions = data.map((q) => _Question.fromJson(q)).toList();
+      questions.sort((a, b) => a.ordre.compareTo(b.ordre));
+
+      final fatigueQ = questions.firstWhere(
+            (q) => q.texte.toLowerCase().contains('fatigue'),
+        orElse: () =>
+            _Question(id: '', texte: '', choix: [], ordre: 0, globale: true),
+      );
+
+      setState(() {
+        _questions = questions;
+        _fatigueQuestionId = fatigueQ.id.isNotEmpty ? fatigueQ.id : null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = "Impossible de charger les questions.";
+        _isLoading = false;
+      });
+    }
+  }
+
+  // ── Soumettre les réponses ────────────────────────────────
+  Future<void> _submit() async {
+    if (!mounted) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      final reponses = <Map<String, dynamic>>[];
+
+      for (final q in _questions) {
+        if (q.id == _fatigueQuestionId) {
+          reponses.add({
+            'questionId': q.id,
+            'choixSelectionne': _fatigueLevel.toInt().toString(),
+          });
+        } else {
+          final rep = _reponses[q.id];
+          if (rep != null) {
+            reponses.add({
+              'questionId': q.id,
+              'choixSelectionne': rep,
+            });
+          }
+        }
+      }
+
+      await ApiService.post(
+        '/reponses/patient/${widget.patientId}/soumettre',
+        {
+          'attributionId': null,
+          'reponses': reponses,
+        },
+      );
+
+      if (!mounted) return;
+      widget.onSubmitted(_fatigueLevel, false, false, '', '');
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Erreur lors de l'envoi. Réessayez."),
+          backgroundColor: Color(0xFFE53935),
+        ),
+      );
+    }
+  }
+
+  String _emojiForFatigue(int level) {
+    if (level <= 2) return "😊";
+    if (level <= 5) return "😔";
+    if (level <= 8) return "😣";
+    return "😰";
   }
 
   @override
   Widget build(BuildContext context) {
-    final int painInt = _painLevel.toInt();
-
     return Container(
       margin: const EdgeInsets.all(14),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      constraints:
+      BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFEDE7F6)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── HEADER ──────────────────────────────────────────────
+
+          // ── HEADER ──────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      const Text("📋 ", style: TextStyle(fontSize: 12)),
-                      const Flexible(
-                        child: Text(
-                          "QUESTIONNAIRE ONCOSUIVI",
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFFB39DDB)),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                const Row(
+                  children: [
+                    Text("📋 ", style: TextStyle(fontSize: 13)),
+                    Text(
+                      "QUESTIONNAIRE DE SUIVI",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                        color: Color(0xFFB39DDB),
+                        letterSpacing: 0.5,
                       ),
-                      const Text(" • 🎀", style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(color: Color(0xFFF5F5F5), shape: BoxShape.circle),
-                    child: const Icon(Icons.close, size: 14, color: Color(0xFF757575)),
+                    decoration: const BoxDecoration(
+                        color: Color(0xFFF5F5F5), shape: BoxShape.circle),
+                    child: const Icon(Icons.close,
+                        size: 14, color: Color(0xFF757575)),
                   ),
                 ),
               ],
@@ -81,177 +174,157 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
           ),
           const Divider(height: 1, color: Color(0xFFEDE7F6)),
 
-          // ── BODY (scroll) ───────────────────────────────────────
+          // ── BODY ────────────────────────────────────────────
           Flexible(
-            child: SingleChildScrollView(
+            child: _isLoading
+                ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(
+                    color: Color(0xFFB39DDB), strokeWidth: 2),
+              ),
+            )
+                : _error != null
+                ? Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Color(0xFFE53935), size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFFE53935)),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _fetchQuestions,
+                    child: const Text("Réessayer",
+                        style:
+                        TextStyle(color: Color(0xFFB39DDB))),
+                  ),
+                ],
+              ),
+            )
+                : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
 
-                  // ── Slider douleur ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Niveau de douleur globale :",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF424242))),
-                      Text("$painInt / 10 (${_getEmojiForPain(painInt)} ${_getPainLabel(painInt)})",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFE91E8C))),
-                    ],
-                  ),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFFB39DDB),
-                      inactiveTrackColor: const Color(0xFFFCE4EC),
-                      thumbColor: const Color(0xFFB39DDB),
-                      trackHeight: 4,
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                    ),
-                    child: Slider(
-                      value: _painLevel,
-                      min: 0,
-                      max: 10,
-                      divisions: 10,
-                      onChanged: (val) => setState(() => _painLevel = val),
-                    ),
-                  ),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Aucune 😊", style: TextStyle(fontSize: 9, color: Colors.grey)),
-                      Text("Modérée 😔", style: TextStyle(fontSize: 9, color: Colors.grey)),
-                      Text("Intense 😰", style: TextStyle(fontSize: 9, color: Colors.grey)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Symptômes checklist ──
-                  const Text("Symptômes ressentis récents :",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF424242))),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _symptomBtn("😴 Fatigue accrue", _sympFatigue, () => setState(() => _sympFatigue = !_sympFatigue))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _symptomBtn("🤢 Nausées", _sympNausea, () => setState(() => _sympNausea = !_sympNausea))),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _symptomBtn("💤 Sommeil difficile", _sympSleep, () => setState(() => _sympSleep = !_sympSleep))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _symptomBtn("🍽️ Perte d'appétit", _sympAppetite, () => setState(() => _sympAppetite = !_sympAppetite))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Breast change toggle ──
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCE4EC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFF8BBD0)),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Expanded(
-                              child: Text("Changement observé au niveau du sein ?",
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFE91E8C))),
+                  // ── Slider fatigue ──
+                  if (_fatigueQuestionId != null) ...[
+                    _sectionTitle("Niveau de fatigue globale"),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAFA),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: const Color(0xFFEDE7F6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "${_fatigueLevel.toInt()} / 10",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFB39DDB),
+                                ),
+                              ),
+                              Text(
+                                _emojiForFatigue(
+                                    _fatigueLevel.toInt()),
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                            ],
+                          ),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor:
+                              const Color(0xFFB39DDB),
+                              inactiveTrackColor:
+                              const Color(0xFFFCE4EC),
+                              thumbColor: const Color(0xFFB39DDB),
+                              trackHeight: 4,
+                              overlayShape:
+                              const RoundSliderOverlayShape(
+                                  overlayRadius: 14),
                             ),
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: Checkbox(
-                                value: _breastChange,
-                                activeColor: const Color(0xFFE91E8C),
-                                onChanged: (val) => setState(() => _breastChange = val ?? false),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_breastChange) ...[
-                          const SizedBox(height: 8),
-                          TextField(
-                            onChanged: (val) => _breastChangeDesc = val,
-                            style: const TextStyle(fontSize: 11),
-                            decoration: InputDecoration(
-                              hintText: "Décrivez brièvement le changement (rougeur, gonflement)...",
-                              hintStyle: const TextStyle(fontSize: 11, color: Colors.grey),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFFEDE7F6)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFFEDE7F6)),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFFB39DDB)),
-                              ),
+                            child: Slider(
+                              value: _fatigueLevel,
+                              min: 0,
+                              max: 10,
+                              divisions: 10,
+                              onChanged: (val) =>
+                                  setState(() => _fatigueLevel = val),
                             ),
                           ),
+                          const Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Aucune",
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.grey)),
+                              Text("Modérée",
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.grey)),
+                              Text("Intense",
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.grey)),
+                            ],
+                          ),
                         ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Free comment ──
-                  const Text("Message facultatif pour votre équipe :",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF424242))),
-                  const SizedBox(height: 6),
-                  TextField(
-                    onChanged: (val) => _surveyNotes = val,
-                    maxLines: 2,
-                    style: const TextStyle(fontSize: 12),
-                    decoration: InputDecoration(
-                      hintText: "Un message ou symptôme pour le Dr Leila Mansouri...",
-                      hintStyle: const TextStyle(fontSize: 11, color: Colors.grey),
-                      filled: true,
-                      fillColor: const Color(0xFFFAFAFA),
-                      contentPadding: const EdgeInsets.all(10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFEDE7F6)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFEDE7F6)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFB39DDB)),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 20),
+                  ],
 
-                  // ── Warning info ──
+                  // ── Questions QCM ──
+                  ..._questions
+                      .where((q) =>
+                  q.id != _fatigueQuestionId &&
+                      q.choix.isNotEmpty)
+                      .map((q) => _buildQcmQuestion(q))
+                      .toList(),
+
+                  const SizedBox(height: 8),
+
+                  // ── Info ──
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: const Color(0xFFEEEEEE)),
                     ),
-                    child: Row(
+                    child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFB39DDB)),
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 12, color: Color(0xFFB39DDB)),
                         SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            "En validant, ces symptômes sont consignés directement dans votre dossier clinique au CHU. Si fièvre élevée, contactez de suite le 15.",
-                            style: TextStyle(fontSize: 9, color: Colors.grey, height: 1.4),
+                            "Vos réponses sont transmises directement à votre équipe médicale au CHU.",
+                            style: TextStyle(
+                                fontSize: 9,
+                                color: Colors.grey,
+                                height: 1.4),
                           ),
                         ),
                       ],
@@ -259,22 +332,35 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Submit button ──
+                  // ── Bouton soumettre ──
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFB39DDB),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius:
+                            BorderRadius.circular(30)),
+                        elevation: 0,
                       ),
-                      onPressed: () {
-                        widget.onSubmitted(_painLevel, _sympFatigue, _sympNausea, _breastChangeDesc, _surveyNotes);
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Envoyer mon bilan 💌",
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                      onPressed: _isSubmitting ? null : _submit,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2),
+                      )
+                          : const Text(
+                        "Envoyer mon bilan 💌",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13),
+                      ),
                     ),
                   ),
                 ],
@@ -286,35 +372,120 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
     );
   }
 
-  Widget _symptomBtn(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEDE7F6).withOpacity(0.4) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: selected ? const Color(0xFFB39DDB) : const Color(0xFFE0E0E0)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: selected ? const Color(0xFFB39DDB) : const Color(0xFF757575),
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+  // ── Widget QCM ───────────────────────────────────────────
+  Widget _buildQcmQuestion(_Question q) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle(q.texte),
+          const SizedBox(height: 8),
+          ...q.choix.map((choix) {
+            final selected = _reponses[q.id] == choix;
+            return GestureDetector(
+              onTap: () => setState(() => _reponses[q.id] = choix),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFEDE7F6).withOpacity(0.6)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFFB39DDB)
+                        : const Color(0xFFE0E0E0),
+                    width: selected ? 1.5 : 1,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: selected
+                            ? const Color(0xFFB39DDB)
+                            : Colors.white,
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFFB39DDB)
+                              : const Color(0xFFBDBDBD),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: selected
+                          ? const Icon(Icons.check,
+                          size: 11, color: Colors.white)
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        choix,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: selected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: selected
+                              ? const Color(0xFFB39DDB)
+                              : const Color(0xFF424242),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (selected)
-              const Icon(Icons.check_circle, size: 12, color: Color(0xFFB39DDB)),
-          ],
-        ),
+            );
+          }).toList(),
+        ],
       ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+        color: Color(0xFF424242),
+      ),
+    );
+  }
+}
+
+// ── Modèle local ─────────────────────────────────────────────
+class _Question {
+  final String id;
+  final String texte;
+  final List<String> choix;
+  final int ordre;
+  final bool globale;
+
+  _Question({
+    required this.id,
+    required this.texte,
+    required this.choix,
+    required this.ordre,
+    required this.globale,
+  });
+
+  factory _Question.fromJson(Map<String, dynamic> json) {
+    return _Question(
+      id: json['id']?.toString() ?? '',
+      texte: json['texte'] ?? '',
+      choix: (json['choix'] as List<dynamic>?)
+          ?.map((c) => c.toString())
+          .toList() ??
+          [],
+      ordre: json['ordre'] ?? 0,
+      globale: json['globale'] ?? true,
     );
   }
 }
