@@ -59,15 +59,30 @@ public class AuthService {
                 user.getId().toString()
         );
 
+
         // ── Extraire photoProfil selon le type ────────
-        // Extraire photoProfil selon le type d'utilisateur
+        // ── Extraire photoProfil selon le type ────────
         String photoProfil = null;
+        UUID dossierMedicalId = null;
+        String dateNaissance = null;
+        String folderCode = null;
+
         if (user instanceof Medecin medecin) {
             photoProfil = medecin.getPhotoProfil();
         } else if (user instanceof Secretaire secretaire) {
             photoProfil = secretaire.getPhotoProfil();
         } else if (user instanceof Patient patient) {
             photoProfil = patient.getPhotoProfil();
+            // ── AJOUT ──
+            if (patient.getDossierMedical() != null) {
+                dossierMedicalId = patient.getDossierMedical().getId();
+                folderCode = "#DOSS-" +
+                        patient.getDossierMedical().getId()
+                                .toString().substring(0, 4).toUpperCase();
+            }
+            if (patient.getDateNaissance() != null) {
+                dateNaissance = patient.getDateNaissance().toString();
+            }
         }
 
         return AuthResponse.builder()
@@ -77,7 +92,11 @@ public class AuthService {
                 .prenom(user.getPrenom())
                 .email(user.getEmail())
                 .role(user.getRole())
-                .photoProfil(photoProfil)  // ← AJOUT
+                .photoProfil(photoProfil)
+                // ── AJOUT ──
+                .dossierMedicalId(dossierMedicalId)
+                .dateNaissance(dateNaissance)
+                .folderCode(folderCode)
                 .build();
     }
 

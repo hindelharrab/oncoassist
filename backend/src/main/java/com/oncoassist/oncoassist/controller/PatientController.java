@@ -44,7 +44,7 @@ public class PatientController {
 
     // ── Lire un ───────────────────────────────────
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN','PATIENT')")
     public ResponseEntity<PatientDetailDTO> findById(
             @PathVariable UUID id) {
         return ResponseEntity.ok(
@@ -85,6 +85,7 @@ public class PatientController {
         );
     }
 
+
     // ── Supprimer ─────────────────────────────────
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
@@ -96,7 +97,7 @@ public class PatientController {
 
     // ── Liste avec statut (vue médecin) ───────────
     @GetMapping("/medecin/{medecinId}/avec-statut")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE','PATIENT')")
     public ResponseEntity<List<PatientListItemDTO>>
     findPatientsAvecStatut(@PathVariable UUID medecinId) {
         return ResponseEntity.ok(

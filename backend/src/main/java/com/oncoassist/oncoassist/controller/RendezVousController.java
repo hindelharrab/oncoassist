@@ -132,7 +132,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN','PATIENT')")
     public ResponseEntity<List<RendezVousDTO>> findByPatient(
             @PathVariable UUID patientId) {
         return ResponseEntity.ok(

@@ -22,7 +22,7 @@ class DocumentItem {
   final String name;
   final String date;
   final String size;
-  final String category; // "Résultats", "Ordonnances", "Dossier"
+  final String category;
   final bool isSharedByDoctor;
 
   const DocumentItem({
@@ -36,13 +36,15 @@ class DocumentItem {
 
 class TimelineEvent {
   final String id;
-  final String type; // "RDV", "EXAMEN", "QUESTIONNAIRE", "PLAN", "DOCUMENT"
+  final String type;
   final String title;
   final String subtitle;
   final String date;
+  final String? rawDate;   // ← AJOUT pour le tri chronologique
   final String badge;
   final Color color;
   final String desc;
+
 
   const TimelineEvent({
     required this.id,
@@ -50,6 +52,7 @@ class TimelineEvent {
     required this.title,
     required this.subtitle,
     required this.date,
+    this.rawDate,           // ← optionnel
     required this.badge,
     required this.color,
     required this.desc,

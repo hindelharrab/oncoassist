@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class PlanTraitementController {
     }
 
     @GetMapping("/dossier/{dossierId}")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN', 'PATIENT')")
     public ResponseEntity<List<PlanTraitementResponseDTO>> getByDossier(
             @PathVariable UUID dossierId) {
         return ResponseEntity.ok(planTraitementService.getByDossier(dossierId));

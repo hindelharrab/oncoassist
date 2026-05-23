@@ -4,11 +4,13 @@ import '../models/models.dart';
 class ProfilScreen extends StatelessWidget {
   final Patient patient;
   final Function(String) onShowToast;
+  final VoidCallback onLogout; // 👈 AJOUTÉ
 
   const ProfilScreen({
     Key? key,
     required this.patient,
     required this.onShowToast,
+    required this.onLogout, // 👈 AJOUTÉ
   }) : super(key: key);
 
   @override
@@ -243,6 +245,25 @@ class ProfilScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+
+        // ── BOUTON DÉCONNEXION (endroit 2) ───────────────────────
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFCE4EC),
+              foregroundColor: const Color(0xFFE91E8C),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: onLogout, // 👈 appelle la déconnexion centralisée du MainContainer
+            icon: const Icon(Icons.logout, size: 16),
+            label: const Text("Se déconnecter",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }

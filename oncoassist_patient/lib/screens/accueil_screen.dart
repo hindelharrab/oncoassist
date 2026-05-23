@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import '../services/api_service.dart';
 
 class AccueilScreen extends StatefulWidget {
   final Patient patient;
@@ -8,6 +11,8 @@ class AccueilScreen extends StatefulWidget {
   final String clinicalStatusTime;
   final VoidCallback onOpenQuestionnaire;
   final Function(String) onShowToast;
+  final String patientId;
+  final String token;
 
   const AccueilScreen({
     Key? key,
@@ -16,6 +21,8 @@ class AccueilScreen extends StatefulWidget {
     required this.clinicalStatusTime,
     required this.onOpenQuestionnaire,
     required this.onShowToast,
+    required this.patientId,
+    required this.token,
   }) : super(key: key);
 
   @override
@@ -25,6 +32,20 @@ class AccueilScreen extends StatefulWidget {
 class _AccueilScreenState extends State<AccueilScreen> {
   int _currentQuoteIndex = 0;
   bool _surveyBannerVisible = true;
+
+  // ── Données backend ──────────────────────────────
+  bool _isLoading = true;
+  String _statusText = "Chargement...";
+  String _statusTime = "...";
+  Color _statusColor = const Color(0xFFE91E8C);
+  int _nombreDocuments = 0;
+  int _nombreExamens = 0;
+
+  // Prochain RDV
+  String? _prochainRdvDate;
+  String? _prochainRdvMedecin;
+  String? _prochainRdvSpecialite;
+  String? _prochainRdvDans;
 
   final List<String> _quotes = [
     "Chaque jour est une victoire 💪",
@@ -45,6 +66,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
         });
       }
     });
+    _fetchData();
   }
 
   @override
@@ -53,7 +75,119 @@ class _AccueilScreenState extends State<AccueilScreen> {
     super.dispose();
   }
 
-  // Pain level data for the week
+  // ── Fetch données patient + RDV ──────────────────
+  Future<void> _fetchData() async {
+    try {
+      await Future.wait([
+        _fetchPatientDetail(),
+        _fetchProchainRdv(),
+      ]);
+    } catch (e) {
+      // silencieux
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchPatientDetail() async {
+    try {
+      final data = await ApiService.get('/patients/${widget.patientId}');
+      if (!mounted) return;
+      setState(() {
+        _nombreExamens = data['nombreExamens'] ?? 0;
+        _statusText = _getStatusText(data['statut'] ?? 'EN_SUIVI');
+        _statusColor = _getStatusColor(data['statut'] ?? 'EN_SUIVI');
+        _statusTime = "Mis à jour aujourd'hui";
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusText = widget.clinicalStatusText;
+          _statusColor = const Color(0xFFE91E8C);
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchProchainRdv() async {
+    try {
+      final List<dynamic> rdvs = await ApiService.get(
+        '/rendez-vous/patient/${widget.patientId}',
+      );
+
+      // Filtrer RDV futurs planifiés ou en attente
+      final now = DateTime.now();
+      final futurs = rdvs.where((rdv) {
+        if (rdv['date'] == null) return false;
+        final date = DateTime.tryParse(rdv['date']);
+        if (date == null) return false;
+        final statut = rdv['statut'] ?? '';
+        return date.isAfter(now) &&
+            (statut == 'PLANIFIE' || statut == 'EN_ATTENTE');
+      }).toList();
+
+      // Trier par date croissante
+      futurs.sort((a, b) {
+        final da = DateTime.parse(a['date']);
+        final db = DateTime.parse(b['date']);
+        return da.compareTo(db);
+      });
+
+      if (!mounted) return;
+      if (futurs.isNotEmpty) {
+        final rdv = futurs.first;
+        final date = DateTime.parse(rdv['date']);
+        final diff = date.difference(now).inDays;
+
+        setState(() {
+          _prochainRdvDate = _formatDate(date);
+          _prochainRdvMedecin =
+          'Dr. ${rdv['medecinPrenom'] ?? ''} ${rdv['medecinNom'] ?? ''}';
+          _prochainRdvSpecialite =
+              rdv['medecinSpecialite'] ?? rdv['motif'] ?? 'Consultation';
+          _prochainRdvDans = diff == 0
+              ? "Aujourd'hui"
+              : diff == 1
+              ? "Demain"
+              : "Dans ${diff}j";
+        });
+      }
+    } catch (e) {
+      // pas de RDV — silencieux
+    }
+  }
+
+  // ── Helpers statut ───────────────────────────────
+  String _getStatusText(String statut) {
+    switch (statut) {
+      case 'NOUVELLE':     return "Nouveau dossier";
+      case 'STABLE':       return "Suivi stable";
+      case 'EN_SUIVI':     return "Suivi régulier";
+      case 'A_SURVEILLER': return "À surveiller";
+      case 'CRITIQUE':     return "Attention requise";
+      case 'ARCHIVEE':     return "Dossier archivé";
+      default:             return "Suivi régulier";
+    }
+  }
+
+  Color _getStatusColor(String statut) {
+    switch (statut) {
+      case 'CRITIQUE':     return const Color(0xFFE53935);
+      case 'A_SURVEILLER': return const Color(0xFFFF8F00);
+      case 'NOUVELLE':     return const Color(0xFFB39DDB);
+      case 'ARCHIVEE':     return Colors.grey;
+      default:             return const Color(0xFFE91E8C);
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    const mois = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun',
+      'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    final heure = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return '${jours[date.weekday - 1]} ${date.day} ${mois[date.month - 1]} • $heure';
+  }
+
   final List<int> _painLevels = [2, 3, 2, 4, 3, 3, 3];
   final List<String> _painDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
@@ -86,47 +220,23 @@ class _AccueilScreenState extends State<AccueilScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "ESPACE PATIENTE",
-                          style: TextStyle(
-                            color: Color(0xFFB39DDB),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
+                        const Text("ESPACE PATIENTE",
+                            style: TextStyle(color: Color(0xFFB39DDB), fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 1.5)),
                         const SizedBox(height: 4),
-                        Text(
-                          "Bonjour, ${widget.patient.firstName}",
-                          style: const TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D2D2D),
-                          ),
-                        ),
+                        Text("Bonjour, ${widget.patient.firstName}",
+                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
                         const SizedBox(height: 4),
-                        Text(
-                          _quotes[_currentQuoteIndex],
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFFE91E8C),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text(_quotes[_currentQuoteIndex],
+                            style: const TextStyle(fontSize: 12, color: Color(0xFFE91E8C), fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
-                  // Avatar
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: const Color(0xFFF8BBD0),
                     child: Text(
-                      "${widget.patient.firstName[0]}${widget.patient.lastName[0]}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE91E8C),
-                        fontSize: 14,
-                      ),
+                      "${widget.patient.firstName.isNotEmpty ? widget.patient.firstName[0] : ''}${widget.patient.lastName.isNotEmpty ? widget.patient.lastName[0] : ''}",
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C), fontSize: 14),
                     ),
                   ),
                 ],
@@ -137,10 +247,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "📅 Date de suivi : Jeudi 21 mai 2026",
-                    style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
-                  ),
+                  const Text("📅 Date de suivi : aujourd'hui",
+                      style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
@@ -148,15 +256,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFFEDE7F6)),
                     ),
-                    child: Text(
-                      widget.patient.folderID,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFB39DDB),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
+                    child: Text(widget.patient.folderID,
+                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFB39DDB), fontFamily: 'monospace')),
                   ),
                 ],
               ),
@@ -173,7 +274,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFB39DDB).withOpacity(0.4)),
           ),
-          child: Row(
+          child: _isLoading
+              ? const Center(child: Padding(
+              padding: EdgeInsets.all(8),
+              child: CircularProgressIndicator(color: Color(0xFFB39DDB), strokeWidth: 2)))
+              : Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -182,69 +287,36 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFB39DDB),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                        Container(width: 6, height: 6,
+                            decoration: BoxDecoration(color: _statusColor, shape: BoxShape.circle)),
                         const SizedBox(width: 6),
-                        const Text(
-                          "STATUT CLINIQUE DE SUIVI",
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: Color(0xFF757575),
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                        const Text("STATUT CLINIQUE DE SUIVI",
+                            style: TextStyle(fontSize: 9, color: Color(0xFF757575), fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      widget.clinicalStatusText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE91E8C),
-                      ),
-                    ),
+                    Text(_statusText,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _statusColor)),
                     const SizedBox(height: 2),
-                    Text(
-                      widget.clinicalStatusTime,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF757575),
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
+                    Text(_statusTime,
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF757575), fontStyle: FontStyle.italic)),
                   ],
                 ),
               ),
               Column(
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 52, height: 52,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFE1F5FE), width: 2),
                     ),
-                    child: const Icon(Icons.favorite, color: Color(0xFFB39DDB), size: 21),
+                    child: Icon(Icons.favorite, color: _statusColor, size: 21),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    "STABLE",
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF757575),
-                      letterSpacing: 1,
-                    ),
-                  ),
+                  Text(_getStatusBadge(_statusText),
+                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF757575), letterSpacing: 1)),
                 ],
               ),
             ],
@@ -267,17 +339,14 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   ),
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEDE7F6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.folder_outlined, size: 18, color: Color(0xFFB39DDB)),
-                      ),
+                      Container(padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(color: Color(0xFFEDE7F6), shape: BoxShape.circle),
+                          child: const Icon(Icons.folder_outlined, size: 18, color: Color(0xFFB39DDB))),
                       const SizedBox(height: 6),
-                      const Text("4", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
-                      const Text("Documents dispo", style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.bold)),
+                      Text(_nombreDocuments.toString(),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
+                      const Text("Documents dispo",
+                          style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -296,17 +365,14 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   ),
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFCE4EC),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.show_chart, size: 18, color: Color(0xFFE91E8C)),
-                      ),
+                      Container(padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(color: Color(0xFFFCE4EC), shape: BoxShape.circle),
+                          child: const Icon(Icons.show_chart, size: 18, color: Color(0xFFE91E8C))),
                       const SizedBox(height: 6),
-                      const Text("7", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
-                      const Text("Examens & Suivi", style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.bold)),
+                      Text(_nombreExamens.toString(),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
+                      const Text("Examens & Suivi",
+                          style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -322,57 +388,15 @@ class _AccueilScreenState extends State<AccueilScreen> {
           children: const [
             Text("PROCHAIN RENDEZ-VOUS",
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF757575), letterSpacing: 0.5)),
-            Text("CHU Cabinet 3B",
-                style: TextStyle(fontSize: 10, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
+            Text("CHU", style: TextStyle(fontSize: 10, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFEDE7F6)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFCE4EC),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.calendar_month, color: Color(0xFFE91E8C), size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Mardi 27 Mai • 14:30",
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
-                    SizedBox(height: 2),
-                    Text("Dr. Leila Mansouri",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF757575))),
-                    SizedBox(height: 1),
-                    Text("Consultation sénologie post-opératoire",
-                        style: TextStyle(fontSize: 11, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDE7F6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text("Dans 6j",
-                    style: TextStyle(fontSize: 10, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
+        _isLoading
+            ? _rdvSkeleton()
+            : _prochainRdvDate != null
+            ? _rdvCard()
+            : _rdvVide(),
         const SizedBox(height: 12),
 
         // ── BANNIÈRE QUESTIONNAIRE ───────────────────────────────
@@ -392,10 +416,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
                       child: const Icon(Icons.assignment_outlined, size: 16, color: Color(0xFFB39DDB)),
                     ),
                     const SizedBox(width: 10),
@@ -406,10 +427,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
                           Text("Questionnaire du jour",
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
                           SizedBox(height: 4),
-                          Text(
-                            "Partagez comment vous vous sentez — cela aide votre équipe de sénologie au CHU à mieux vous accompagner.",
-                            style: TextStyle(fontSize: 11, color: Colors.black87, height: 1.3),
-                          ),
+                          Text("Partagez comment vous vous sentez — cela aide votre équipe de sénologie au CHU à mieux vous accompagner.",
+                              style: TextStyle(fontSize: 11, color: Colors.black87, height: 1.3)),
                         ],
                       ),
                     ),
@@ -446,25 +465,6 @@ class _AccueilScreenState extends State<AccueilScreen> {
           ),
         const SizedBox(height: 12),
 
-        // ── EXAMENS RÉCENTS ──────────────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("EXAMENS RÉCENTS",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF757575), letterSpacing: 0.5)),
-            GestureDetector(
-              onTap: () => widget.onShowToast("Voir le parcours complet →"),
-              child: const Text("Voir Parcours →",
-                  style: TextStyle(fontSize: 10, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        _examItem("🧬", "Biopsie mammaire gauche", "02 Mai 2026", "Stable • Validé", const Color(0xFFE1F5FE), const Color(0xFFB39DDB)),
-        const SizedBox(height: 6),
-        _examItem("🎀", "Échographie mammaire", "15 Avril 2026", "BIRADS 4", const Color(0xFFEDE7F6), const Color(0xFFB39DDB)),
-        const SizedBox(height: 12),
-
         // ── SUIVI DOULEUR SEMAINE ────────────────────────────────
         Container(
           padding: const EdgeInsets.all(12),
@@ -476,10 +476,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "SUIVI HEBDOMADAIRE DE LA DOULEUR",
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF757575), letterSpacing: 0.5),
-              ),
+              const Text("SUIVI HEBDOMADAIRE DE LA DOULEUR",
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF757575), letterSpacing: 0.5)),
               const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -487,38 +485,20 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   final level = _painLevels[i];
                   Color bgColor;
                   Color textColor;
-                  if (level > 5) {
-                    bgColor = const Color(0xFFEF9A9A);
-                    textColor = Colors.white;
-                  } else if (level > 3) {
-                    bgColor = const Color(0xFFFFF9C4);
-                    textColor = const Color(0xFF795548);
-                  } else {
-                    bgColor = const Color(0xFFEDE7F6);
-                    textColor = const Color(0xFFB39DDB);
-                  }
+                  if (level > 5) { bgColor = const Color(0xFFEF9A9A); textColor = Colors.white; }
+                  else if (level > 3) { bgColor = const Color(0xFFFFF9C4); textColor = const Color(0xFF795548); }
+                  else { bgColor = const Color(0xFFEDE7F6); textColor = const Color(0xFFB39DDB); }
                   return Expanded(
                     child: Column(
                       children: [
                         Container(
                           height: 28,
                           margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "$level",
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textColor),
-                            ),
-                          ),
+                          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
+                          child: Center(child: Text("$level", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textColor))),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          _painDays[i],
-                          style: const TextStyle(fontSize: 8, color: Colors.grey),
-                        ),
+                        Text(_painDays[i], style: const TextStyle(fontSize: 8, color: Colors.grey)),
                       ],
                     ),
                   );
@@ -529,6 +509,87 @@ class _AccueilScreenState extends State<AccueilScreen> {
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  // ── Widgets helpers ──────────────────────────────
+  String _getStatusBadge(String statusText) {
+    if (statusText.contains("Attention") || statusText.contains("critique")) return "ALERTE";
+    if (statusText.contains("surveiller")) return "VIGILANCE";
+    if (statusText.contains("archivé")) return "ARCHIVÉ";
+    return "STABLE";
+  }
+
+  Widget _rdvCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEDE7F6)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: const Color(0xFFFCE4EC), borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.calendar_month, color: Color(0xFFE91E8C), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_prochainRdvDate ?? '',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
+                const SizedBox(height: 2),
+                Text(_prochainRdvMedecin ?? '',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF757575))),
+                const SizedBox(height: 1),
+                Text(_prochainRdvSpecialite ?? '',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFEDE7F6), borderRadius: BorderRadius.circular(20)),
+            child: Text(_prochainRdvDans ?? '',
+                style: const TextStyle(fontSize: 10, color: Color(0xFFB39DDB), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rdvVide() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEDE7F6)),
+      ),
+      child: const Center(
+        child: Text("Aucun rendez-vous planifié",
+            style: TextStyle(fontSize: 12, color: Colors.grey)),
+      ),
+    );
+  }
+
+  Widget _rdvSkeleton() {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEDE7F6)),
+      ),
+      child: const Center(
+        child: SizedBox(width: 20, height: 20,
+            child: CircularProgressIndicator(color: Color(0xFFB39DDB), strokeWidth: 2)),
+      ),
     );
   }
 
