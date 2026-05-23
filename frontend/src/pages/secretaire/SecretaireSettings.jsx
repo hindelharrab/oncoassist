@@ -189,23 +189,27 @@ export default function SecretaireSettings() {
   };
 
   // Changer photo
-  const handlePhotoChange = async (e) => {
+ const handlePhotoChange = async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  // Aperçu local immédiat — garde même si API échoue
+  // Aperçu local immédiat
   const blobUrl = URL.createObjectURL(file);
   setPhotoPreview(blobUrl);
 
   try {
-    const updated = await secretaireSettingsService
-      .changerPhoto(user.id, file);
-    // Mettre à jour le contexte auth avec le vrai chemin
+    const updated = await secretaireSettingsService.changerPhoto(user.id, file);
+    
+    // ✅ Mettre à jour le contexte avec le chemin réel retourné par l'API
+    // L'API retourne un objet Secretaire avec photoProfil
     login({ ...user, photoProfil: updated.photoProfil });
+    
+    // Libérer le blob et laisser getPhotoUrl() utiliser le vrai chemin
+    URL.revokeObjectURL(blobUrl);
+    setPhotoPreview(null);
   } catch (err) {
     console.error('Erreur photo:', err);
-    // Ne pas annuler l'aperçu — la photo est visible localement
-    // mais ne sera pas persistée
+    // L'aperçu blob reste visible localement seulement
   }
 };
   // Initiales

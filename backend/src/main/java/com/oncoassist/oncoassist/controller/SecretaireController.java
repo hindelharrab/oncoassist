@@ -1,6 +1,10 @@
 package com.oncoassist.oncoassist.controller;
 
+import com.oncoassist.oncoassist.model.dto.admin.AdminSecretaireDTO;
+import com.oncoassist.oncoassist.model.dto.admin.SecretaireCreationDTO;
 import com.oncoassist.oncoassist.model.entity.Secretaire;
+import com.oncoassist.oncoassist.model.entity.enums.RoleEnum;
+import com.oncoassist.oncoassist.service.AdminSecretaireService;
 import com.oncoassist.oncoassist.service.SecretaireService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,16 +23,29 @@ import java.util.UUID;
 public class SecretaireController {
 
     private final SecretaireService secretaireService;
+    private final AdminSecretaireService adminSecretaireService; //  ajouté
 
     // ── Créer ─────────────────────────────────────
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN')")
-    public ResponseEntity<Secretaire> creer(
-            @RequestBody Secretaire secretaire,
-            @RequestParam UUID specialiteId) {
-        return ResponseEntity.ok(
-                secretaireService.creer(secretaire, specialiteId)
-        );
+    public ResponseEntity<AdminSecretaireDTO> creer(        //  retourne DTO
+                                                            @RequestBody SecretaireCreationDTO dto,
+                                                            @RequestParam(required = false) UUID specialiteId) {
+
+        Secretaire secretaire = new Secretaire();
+        secretaire.setNom(dto.getNom());
+        secretaire.setPrenom(dto.getPrenom());
+        secretaire.setEmail(dto.getEmail());
+        secretaire.setMotDePasse(dto.getMotDePasse());
+        secretaire.setTelephone(dto.getTelephone());
+        secretaire.setRole(RoleEnum.SECRETAIRE);
+
+        UUID finalSpecialiteId = specialiteId != null ? specialiteId : dto.getSpecialiteId();
+
+        Secretaire saved = secretaireService.creer(secretaire, finalSpecialiteId);
+
+        // ✅ recharge depuis la BDD avec la spécialité via le service admin
+        return ResponseEntity.ok(adminSecretaireService.findById(saved.getId()));
     }
 
     // ── Liste tous ────────────────────────────────

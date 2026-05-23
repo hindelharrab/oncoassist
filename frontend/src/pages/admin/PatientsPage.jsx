@@ -1,189 +1,306 @@
-// ── PatientsPage.jsx ─────────────────────────────────────────────────────────
-import { useState } from "react";
-import { Search, Filter, UserPlus, Calendar, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+// ── pages/admin/PatientsPage.jsx ─────────────────────────────────────────────
+import { useState, useEffect, useCallback } from "react";
+import {
+  Search, Filter, UserPlus, Calendar, ArrowRight,
+  ChevronLeft, ChevronRight, Loader2, AlertCircle,
+  RefreshCw, Users, AlertTriangle, Activity,
+} from "lucide-react";
 import { Header, Button, cn } from "../../Shared";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
+import adminPatientService, { getPhotoUrl } from "../../services/adminPatientService";
 
 const NAVY = "#002855";
 const RED  = "#E31E24";
 
-export const mockPatients = [
-  { id:1,  firstName:"Alice",   lastName:"Bernard",  age:34, phone:"06 12 34 56 78", cin:"AB123456", lastVisit:"2024-05-10", speciality:"Cardiologie",   doctor:"Dr. Marc Durand"    },
-  { id:2,  firstName:"Bob",     lastName:"Petit",    age:45, phone:"06 23 45 67 89", cin:"CD234567", lastVisit:"2024-05-12", speciality:"Pédiatrie",     doctor:"Dr. Sophie Martin"  },
-  { id:3,  firstName:"Charlie", lastName:"Grand",    age:28, phone:"06 34 56 78 90", cin:"EF345678", lastVisit:"2024-05-14", speciality:"Dermatologie",  doctor:"Dr. Jean Dupont"    },
-  { id:4,  firstName:"David",   lastName:"Leroux",   age:52, phone:"06 45 67 89 01", cin:"GH456789", lastVisit:"2024-04-20", speciality:"Ophtalmologie", doctor:"Dr. Claire Lemoine" },
-  { id:5,  firstName:"Emma",    lastName:"Vidal",    age:19, phone:"06 56 78 90 12", cin:"IJ567890", lastVisit:"2024-05-15", speciality:"Dentaire",      doctor:"Dr. Thomas Meyer"   },
-  { id:6,  firstName:"Félix",   lastName:"Guerin",   age:61, phone:"06 67 89 01 23", cin:"KL678901", lastVisit:"2024-05-08", speciality:"Cardiologie",   doctor:"Dr. Marc Durand"    },
-  { id:7,  firstName:"Gisèle",  lastName:"Moreau",   age:72, phone:"06 78 90 12 34", cin:"MN789012", lastVisit:"2024-05-11", speciality:"Généraliste",   doctor:"Dr. Luc Leroy"      },
-  { id:8,  firstName:"Hugo",    lastName:"Fontaine", age:41, phone:"06 89 01 23 45", cin:"OP890123", lastVisit:"2024-05-05", speciality:"Pédiatrie",     doctor:"Dr. Sophie Martin"  },
-  { id:9,  firstName:"Inès",    lastName:"Caron",    age:25, phone:"06 90 12 34 56", cin:"QR901234", lastVisit:"2024-05-16", speciality:"Dentaire",      doctor:"Dr. Thomas Meyer"   },
-  { id:10, firstName:"Jules",   lastName:"Roux",     age:38, phone:"06 01 23 45 67", cin:"ST012345", lastVisit:"2024-05-13", speciality:"Dermatologie",  doctor:"Dr. Jean Dupont"    },
-  { id:11, firstName:"Karine",  lastName:"Dufour",   age:47, phone:"06 11 22 33 44", cin:"UV112233", lastVisit:"2024-05-01", speciality:"Cardiologie",   doctor:"Dr. Marc Durand"    },
-];
+const statutConfig = {
+  NOUVELLE:     { label: "Nouvelle",     bg: "rgba(14,165,233,0.1)",  color: "#0284c7" },
+  STABLE:       { label: "Stable",       bg: "rgba(16,185,129,0.1)", color: "#059669" },
+  EN_SUIVI:     { label: "En suivi",     bg: "rgba(0,40,85,0.08)",   color: NAVY      },
+  A_SURVEILLER: { label: "À surveiller", bg: "rgba(245,158,11,0.1)", color: "#d97706" },
+  CRITIQUE:     { label: "Critique",     bg: "rgba(227,30,36,0.1)",  color: RED       },
+  ARCHIVEE:     { label: "Archivée",     bg: "rgba(100,116,139,0.1)",color: "#64748b" },
+};
+
+const PatientAvatar = ({ patient }) => {
+  const photoUrl = getPhotoUrl(patient.photoProfil);
+  const [err, setErr] = useState(false);
+  const src = photoUrl && !err ? photoUrl
+    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.nom}`;
+  return (
+    <img src={src} onError={() => setErr(true)} alt={patient.prenom}
+      className="w-11 h-11 rounded-xl object-cover bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0" />
+  );
+};
 
 const PatientCard = ({ patient }) => {
   const navigate = useNavigate();
-  const isNew = patient.id % 3 === 0;
+  const statut = statutConfig[patient.statut] || statutConfig.STABLE;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity:0, y:12 }}
-      animate={{ opacity:1, y:0 }}
-      exit={{ opacity:0, scale:0.96 }}
+    <motion.div layout initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, scale:0.96 }}
       onClick={() => navigate(`/admin/patients/${patient.id}`)}
       className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group relative overflow-hidden"
     >
-      {/* Trait de couleur en haut au hover */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{ background: NAVY }}
-      />
+      <div className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: NAVY }} />
 
-      {isNew && (
-        <div
-          className="absolute top-0 right-0 text-white text-[8px] font-black px-2.5 py-1 rounded-bl-xl uppercase tracking-wider"
-          style={{ background: RED }}
-        >
-          Nouveau
+      {patient.statut === "CRITIQUE" && (
+        <div className="absolute top-0 right-0 text-white text-[8px] font-black px-2.5 py-1 rounded-bl-xl uppercase tracking-wider" style={{ background: RED }}>
+          Critique
         </div>
       )}
 
-      <div className="flex items-start gap-3 mb-4">
-        <img
-          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.lastName}`}
-          alt=""
-          className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0"
-        />
+      <div className="flex items-start gap-3 mb-3">
+        <PatientAvatar patient={patient} />
         <div className="flex-1 min-w-0">
-          <h3
-            className="text-sm font-black text-slate-900 dark:text-white leading-snug transition-colors duration-200"
-            style={{ "--hover-color": NAVY }}
-          >
+          <h3 className="text-sm font-black text-slate-900 dark:text-white leading-snug">
             <span className="group-hover:text-[#002855] dark:group-hover:text-[#4a8fd4] transition-colors">
-              {patient.firstName} {patient.lastName}
+              {patient.prenom} {patient.nom}
             </span>
           </h3>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-            #{patient.id.toString().padStart(3,"0")} · {patient.age} ans
+          <p className="text-[10px] text-slate-400 font-medium">
+            {patient.age != null ? `${patient.age} ans` : "—"} · {patient.email}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 font-medium mb-4">
-        <Calendar size={13} />
-        <span>{patient.lastVisit}</span>
-      </div>
+      {patient.derniereConsultation && (
+        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium mb-3">
+          <Calendar size={12} />
+          <span>Dernière visite : {patient.derniereConsultation}</span>
+        </div>
+      )}
+
+      {patient.prochainRendezVous && (
+        <div className="flex items-center gap-2 text-[11px] font-medium mb-3" style={{ color: "#059669" }}>
+          <Calendar size={12} />
+          <span>Prochain RDV : {patient.prochainRendezVous}</span>
+        </div>
+      )}
+
+      {patient.medecinRef && (
+        <p className="text-[10px] text-slate-400 font-medium mb-3 truncate">🩺 {patient.medecinRef}</p>
+      )}
 
       <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800">
-        <span
-          className="px-2 py-0.5 text-[9px] font-black rounded-lg uppercase tracking-wider"
-          style={{ background:"rgba(0,40,85,0.07)", color:NAVY }}
-        >
-          {patient.speciality}
+        <span className="px-2 py-0.5 text-[9px] font-black rounded-lg uppercase tracking-wider"
+          style={{ background: statut.bg, color: statut.color }}>
+          {statut.label}
         </span>
-        <ArrowRight
-          size={14}
-          className="text-slate-200 dark:text-slate-700 group-hover:translate-x-0.5 transition-all duration-200"
-          style={{ color: undefined }}
-          onMouseEnter={undefined}
-        />
+        <div className="flex items-center gap-2">
+          {patient.nombreRendezVous > 0 && (
+            <span className="text-[9px] font-bold text-slate-400">{patient.nombreRendezVous} RDV</span>
+          )}
+          <ArrowRight size={14} className="text-slate-200 group-hover:translate-x-0.5 transition-all" />
+        </div>
       </div>
     </motion.div>
   );
 };
 
+const SkeletonCard = () => (
+  <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 animate-pulse">
+    <div className="flex items-start gap-3 mb-4">
+      <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
+        <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
+      </div>
+    </div>
+    <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded w-2/3 mb-4" />
+    <div className="pt-3 border-t border-slate-50 flex justify-between">
+      <div className="h-5 bg-slate-100 dark:bg-slate-800 rounded w-20" />
+      <div className="h-4 w-4 bg-slate-100 dark:bg-slate-800 rounded" />
+    </div>
+  </div>
+);
+
+const PAGE_SIZE = 12;
+
 export default function PatientsPage() {
-  const [search, setSearch] = useState("");
-  const filtered = mockPatients.filter((p) =>
-    `${p.firstName} ${p.lastName} ${p.cin}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const [allPatients, setAllPatients] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
+  const [search, setSearch]           = useState("");
+  const [searching, setSearching]     = useState(false);
+  const [page, setPage]               = useState(1);
+  const [filterStatut, setFilterStatut] = useState("");
+  const [showFilters, setShowFilters]   = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      setLoading(true); setError(null);
+      const data = await adminPatientService.getAll();
+      setAllPatients(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Impossible de charger les patients.");
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Debounce search
+  useEffect(() => {
+    if (!search.trim()) return;
+    const t = setTimeout(async () => {
+      try {
+        setSearching(true);
+        const data = await adminPatientService.search(search.trim());
+        setAllPatients(Array.isArray(data) ? data : []);
+        setPage(1);
+      } finally { setSearching(false); }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => { if (search === "") fetchAll(); }, [search, fetchAll]);
+
+  const filtered = allPatients.filter(p => !filterStatut || p.statut === filterStatut);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Stats rapides
+  const stats = {
+    total:    allPatients.length,
+    critique: allPatients.filter(p => p.statut === "CRITIQUE").length,
+    surveiller: allPatients.filter(p => p.statut === "A_SURVEILLER").length,
+    suiviActif: allPatients.filter(p => p.statut === "EN_SUIVI").length,
+  };
 
   return (
     <div className="pb-10">
       <Header title="Registre Patients" breadcrumb="Patients" />
       <div className="px-8 py-6">
 
-        {/* Barre de recherche + actions */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6 items-center bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-          <div className="relative flex-1 w-full group">
-            <Search
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors"
-              style={{ color: undefined }}
-            />
-            <input
-              type="text"
-              placeholder="Rechercher (Nom, CIN…)"
-              onChange={(e) => setSearch(e.target.value)}
+        {/* Stats */}
+        {!loading && !error && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[
+              { label: "Total patients",  value: stats.total,      color: NAVY,      icon: <Users size={18} /> },
+              { label: "Critiques",       value: stats.critique,   color: RED,       icon: <AlertTriangle size={18} /> },
+              { label: "À surveiller",    value: stats.surveiller, color: "#d97706", icon: <AlertCircle size={18} /> },
+              { label: "En suivi actif",  value: stats.suiviActif, color: "#059669", icon: <Activity size={18} /> },
+            ].map((s) => (
+              <div key={s.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 px-5 py-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${s.color}15`, color: s.color }}>
+                  {s.icon}
+                </div>
+                <div>
+                  <span className="text-2xl font-black" style={{ color: s.color }}>{s.value}</span>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Barre recherche */}
+        <div className="flex flex-col md:flex-row gap-4 mb-4 items-center bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <div className="relative flex-1 w-full">
+            {searching
+              ? <Loader2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />
+              : <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            }
+            <input type="text" placeholder="Rechercher (Nom, Prénom, Email…)" value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none border border-transparent text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
-              style={{ "--tw-ring-color": `${NAVY}33` }}
               onFocus={(e) => { e.target.style.borderColor = NAVY; e.target.style.boxShadow = `0 0 0 3px ${NAVY}20`; }}
               onBlur={(e)  => { e.target.style.borderColor = "transparent"; e.target.style.boxShadow = "none"; }}
             />
           </div>
           <div className="flex gap-2 w-full md:w-auto">
-            <Button variant="outline" className="h-10 px-4">
+            <Button variant="outline" className="h-10 px-4" onClick={() => setShowFilters(v => !v)}>
               <Filter size={16} />
               <span className="text-xs font-black uppercase tracking-wider">Filtres</span>
             </Button>
-            <button
-              className="h-10 px-6 rounded-xl text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-opacity hover:opacity-90"
-              style={{ background: NAVY }}
-            >
-              <UserPlus size={16} />
-              Admission
+            <button onClick={fetchAll} className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-[#002855] hover:border-[#002855] transition-all" title="Rafraîchir">
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             </button>
+         
           </div>
         </div>
 
-        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-5">
-          {filtered.length} patient{filtered.length > 1 ? "s" : ""} trouvé{filtered.length > 1 ? "s" : ""}
+        {/* Filtres statut */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }} exit={{ opacity:0, height:0 }} className="overflow-hidden mb-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-wrap gap-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider self-center mr-2">Statut :</span>
+                {[{ value: "", label: "Tous" }, ...Object.entries(statutConfig).map(([k, v]) => ({ value: k, label: v.label }))].map(opt => (
+                  <button key={opt.value} onClick={() => { setFilterStatut(opt.value); setPage(1); }}
+                    className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                    style={filterStatut === opt.value ? { background: NAVY, color: "#fff" } : { background: "rgba(0,40,85,0.06)", color: NAVY }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5">
+          {loading ? "Chargement…" : `${filtered.length} patient${filtered.length > 1 ? "s" : ""} trouvé${filtered.length > 1 ? "s" : ""}`}
         </p>
 
-        {/* Grille cartes */}
+        {/* Erreur */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 rounded-2xl mb-6" style={{ background: "rgba(227,30,36,0.06)", border: "1px solid rgba(227,30,36,0.15)" }}>
+            <AlertCircle size={18} style={{ color: RED }} />
+            <div className="flex-1">
+              <p className="text-sm font-black" style={{ color: RED }}>Erreur de chargement</p>
+              <p className="text-xs text-slate-500 mt-0.5">{error}</p>
+            </div>
+            <button onClick={fetchAll} className="text-xs font-black px-3 py-1.5 rounded-xl" style={{ background: "rgba(227,30,36,0.1)", color: RED }}>Réessayer</button>
+          </div>
+        )}
+
+        {/* Grille */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <AnimatePresence>
-            {filtered.map((p) => <PatientCard key={p.id} patient={p} />)}
-          </AnimatePresence>
+          {loading
+            ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+            : <AnimatePresence>{paginated.map(p => <PatientCard key={p.id} patient={p} />)}</AnimatePresence>
+          }
         </div>
 
         {/* Vide */}
-        {filtered.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <div className="text-center py-24">
             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search size={24} className="text-slate-300 dark:text-slate-600" />
+              <Search size={24} className="text-slate-300" />
             </div>
             <p className="font-black text-slate-700 dark:text-slate-300">Aucun résultat</p>
-            <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Modifiez vos critères de recherche</p>
+            <p className="text-sm text-slate-400 mt-1">{search ? "Modifiez vos critères" : "Aucun patient enregistré"}</p>
           </div>
         )}
 
         {/* Pagination */}
-        <div className="mt-10 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-5">
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-            Affichage de <span className="text-slate-900 dark:text-white">{filtered.length}</span> patients
-          </p>
-          <div className="flex items-center gap-2">
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:border-[#002855] hover:text-[#002855] transition-all">
-              <ChevronLeft size={18} />
-            </button>
-            <span
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-white text-xs font-black"
-              style={{ background: NAVY }}
-            >
-              1
-            </span>
-            <span className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 text-xs font-black hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-all">
-              2
-            </span>
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:border-[#002855] hover:text-[#002855] transition-all">
-              <ChevronRight size={18} />
-            </button>
+        {!loading && filtered.length > PAGE_SIZE && (
+          <div className="mt-10 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-5">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Page <span className="text-slate-900 dark:text-white">{page}</span> / {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:border-[#002855] hover:text-[#002855] transition-all disabled:opacity-40">
+                <ChevronLeft size={18} />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))
+                .map(p => (
+                  <button key={p} onClick={() => setPage(p)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition-all"
+                    style={p === page ? { background: NAVY, color: "#fff" } : { color: "#64748b" }}>
+                    {p}
+                  </button>
+                ))}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:border-[#002855] hover:text-[#002855] transition-all disabled:opacity-40">
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
-        </div>
-
+        )}
       </div>
     </div>
   );

@@ -67,16 +67,8 @@ public class PatientService {
 
         // Affecter médecin référent si fourni
         if (dto.getMedecinId() != null) {
-            priseEnChargeService.affecter(
-                    saved.getId(), dto.getMedecinId()
-            );
-        }
-        if (dto.getMedecinId() != null) {
-            priseEnChargeService.affecter(
-                    saved.getId(), dto.getMedecinId()
-            );
+            priseEnChargeService.affecter(saved.getId(), dto.getMedecinId());
 
-            // Notifier le médecin
             notificationService.creer(
                     dto.getMedecinId(),
                     NotificationCategorie.patient,

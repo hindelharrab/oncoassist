@@ -29,6 +29,9 @@ public class Specialite {
 
     private String description;
 
+    @Column(name = "duree_consultation")
+    private Integer dureeConsultation = 30; // valeur par défaut
+
     @OneToMany(mappedBy = "specialite", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Medecin> medecins;

@@ -1,37 +1,65 @@
-// src/services/documentService.js
 import axiosInstance from './axiosInstance';
 
-// GET ordonnances d'un dossier
+const getMedecinId = () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.userId || payload.medecinId || payload.id || payload.sub || null;
+  } catch { return null; }
+};
+
+const authHeader = () => {
+  const id = getMedecinId();
+  return id ? { 'X-Medecin-Id': id } : {};
+};
+
 export const getOrdonnances = async (dossierId) => {
-  const { data } = await axiosInstance.get(`/documents/dossier/${dossierId}/ordonnances`);
+  const { data } = await axiosInstance.get(
+    `/documents/dossier/${dossierId}/ordonnances`,
+    { headers: authHeader() }
+  );
   return data;
 };
 
-// GET résultats d'un dossier
 export const getResultats = async (dossierId) => {
-  const { data } = await axiosInstance.get(`/documents/dossier/${dossierId}/resultats`);
+  const { data } = await axiosInstance.get(
+    `/documents/dossier/${dossierId}/resultats`,
+    { headers: authHeader() }
+  );
   return data;
 };
 
-// POST créer un document (ordonnance manuelle ou résultat)
 export const creerDocument = async (dossierId, payload) => {
-  const { data } = await axiosInstance.post(`/documents/dossier/${dossierId}`, payload);
+  const { data } = await axiosInstance.post(
+    `/documents/dossier/${dossierId}`,
+    payload,
+    { headers: authHeader() }
+  );
   return data;
 };
 
-// PUT modifier un document
 export const modifierDocument = async (id, payload) => {
-  const { data } = await axiosInstance.put(`/documents/${id}`, payload);
+  const { data } = await axiosInstance.put(
+    `/documents/${id}`,
+    payload,
+    { headers: authHeader() }
+  );
   return data;
 };
 
-// DELETE supprimer un document
 export const supprimerDocument = async (id) => {
-  await axiosInstance.delete(`/documents/${id}`);
+  await axiosInstance.delete(
+    `/documents/${id}`,
+    { headers: authHeader() }
+  );
 };
 
-// PUT toggle visibilité patient
 export const toggleVisibilite = async (id) => {
-  const { data } = await axiosInstance.put(`/documents/${id}/visibilite`);
+  const { data } = await axiosInstance.put(
+    `/documents/${id}/visibilite`,
+    {},
+    { headers: authHeader() }
+  );
   return data;
 };
