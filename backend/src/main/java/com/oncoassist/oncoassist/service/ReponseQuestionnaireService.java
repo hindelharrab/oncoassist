@@ -37,56 +37,36 @@ public class ReponseQuestionnaireService {
 
         Patient patient = patientRepo.findById(patientId)
                 .orElseThrow(() ->
-                        new RuntimeException("Patient non trouvé")
-                );
+                        new RuntimeException("Patient non trouvé"));
 
-        AttributionQuestionnaire attribution =
-                attributionRepo.findById(dto.getAttributionId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attribution non trouvée"
-                                )
-                        );
+        // ✅ attributionId peut être null (Flutter envoie null si pas d'attribution active)
+        AttributionQuestionnaire attribution = null;
+        if (dto.getAttributionId() != null) {
+            attribution = attributionRepo.findById(dto.getAttributionId())
+                    .orElseThrow(() ->
+                            new RuntimeException("Attribution non trouvée"));
+        }
 
         for (ReponseItemDTO item : dto.getReponses()) {
             QuestionnaireSuivi question =
                     questionRepo.findById(item.getQuestionId())
                             .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "Question non trouvée"
-                                    )
-                            );
+                                    new RuntimeException("Question non trouvée"));
 
-            ReponseQuestionnaire reponse =
-                    new ReponseQuestionnaire();
+            ReponseQuestionnaire reponse = new ReponseQuestionnaire();
             reponse.setPatient(patient);
             reponse.setQuestion(question);
-            reponse.setAttribution(attribution);
-            reponse.setChoixSelectionne(
-                    item.getChoixSelectionne()
-            );
+            reponse.setAttribution(attribution); // ✅ peut être null
+            reponse.setChoixSelectionne(item.getChoixSelectionne());
             reponse.setDateReponse(LocalDate.now());
             reponseRepo.save(reponse);
         }
     }
 
-    // Médecin consulte les réponses par question
-    @Transactional(readOnly = true)
-    public List<ReponseQuestionnaireResponseDTO>
-    getReponsesParQuestion(UUID patientId, UUID questionId) {
-        return reponseRepo
-                .findByPatientIdAndQuestionIdOrderByDateReponse(
-                        patientId, questionId
-                )
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
-
     // Médecin consulte toutes les réponses d'un patient
     @Transactional(readOnly = true)
-    public List<ReponseQuestionnaireResponseDTO>
-    getToutesReponses(UUID patientId) {
+    public List<ReponseQuestionnaireResponseDTO> getToutesReponses(
+            UUID patientId) {
         return reponseRepo
                 .findByPatientIdOrderByDateReponse(patientId)
                 .stream()
@@ -94,18 +74,27 @@ public class ReponseQuestionnaireService {
                 .toList();
     }
 
+    // Médecin consulte les réponses par question (pour graphiques)
+    @Transactional(readOnly = true)
+    public List<ReponseQuestionnaireResponseDTO> getReponsesParQuestion(
+            UUID patientId, UUID questionId) {
+        return reponseRepo
+                .findByPatientIdAndQuestionIdOrderByDateReponse(
+                        patientId, questionId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
     // ── Mapper ────────────────────────────────────
-    private ReponseQuestionnaireResponseDTO toDTO(
-            ReponseQuestionnaire r) {
+    private ReponseQuestionnaireResponseDTO toDTO(ReponseQuestionnaire r) {
         ReponseQuestionnaireResponseDTO dto =
                 new ReponseQuestionnaireResponseDTO();
         dto.setId(r.getId());
-        // Force le chargement du texte dans la transaction
         dto.setTexteQuestion(
                 r.getQuestion() != null
                         ? r.getQuestion().getTexte()
-                        : ""
-        );
+                        : "");
         dto.setChoixSelectionne(r.getChoixSelectionne());
         dto.setDateReponse(r.getDateReponse());
         return dto;

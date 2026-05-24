@@ -20,11 +20,15 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
   bool _isSubmitting = false;
   String? _error;
 
+  // Questions chargées depuis le backend
   List<_Question> _questions = [];
+
+  // Réponses QCM : questionId -> choix sélectionné
   final Map<String, String?> _reponses = {};
 
-  double _fatigueLevel = 3.0;
-  String? _fatigueQuestionId;
+  // Slider douleur/fatigue (question globale spéciale)
+  double _douleurLevel = 3.0;
+  String? _douleurQuestionId;
 
   @override
   void initState() {
@@ -32,7 +36,7 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
     _fetchQuestions();
   }
 
-  // ── Charger les questions du patient ─────────────────────
+  // ── Charger les questions du patient depuis la BDD ───────
   Future<void> _fetchQuestions() async {
     if (!mounted) return;
     setState(() {
@@ -49,15 +53,18 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
       final questions = data.map((q) => _Question.fromJson(q)).toList();
       questions.sort((a, b) => a.ordre.compareTo(b.ordre));
 
-      final fatigueQ = questions.firstWhere(
-            (q) => q.texte.toLowerCase().contains('fatigue'),
+      // Identifier la question douleur/fatigue -> devient le slider
+      final douleurQ = questions.firstWhere(
+            (q) =>
+        q.texte.toLowerCase().contains('douleur') ||
+            q.texte.toLowerCase().contains('fatigue'),
         orElse: () =>
             _Question(id: '', texte: '', choix: [], ordre: 0, globale: true),
       );
 
       setState(() {
         _questions = questions;
-        _fatigueQuestionId = fatigueQ.id.isNotEmpty ? fatigueQ.id : null;
+        _douleurQuestionId = douleurQ.id.isNotEmpty ? douleurQ.id : null;
         _isLoading = false;
       });
     } catch (e) {
@@ -69,7 +76,7 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
     }
   }
 
-  // ── Soumettre les réponses ────────────────────────────────
+  // ── Soumettre les réponses au backend ───────────────────
   Future<void> _submit() async {
     if (!mounted) return;
     setState(() => _isSubmitting = true);
@@ -78,10 +85,11 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
       final reponses = <Map<String, dynamic>>[];
 
       for (final q in _questions) {
-        if (q.id == _fatigueQuestionId) {
+        if (q.id == _douleurQuestionId) {
+          // Slider -> valeur numérique
           reponses.add({
             'questionId': q.id,
-            'choixSelectionne': _fatigueLevel.toInt().toString(),
+            'choixSelectionne': _douleurLevel.toInt().toString(),
           });
         } else {
           final rep = _reponses[q.id];
@@ -103,7 +111,7 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
       );
 
       if (!mounted) return;
-      widget.onSubmitted(_fatigueLevel, false, false, '', '');
+      widget.onSubmitted(_douleurLevel, false, false, '', '');
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -117,11 +125,36 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
     }
   }
 
-  String _emojiForFatigue(int level) {
+  // ── Icône par choix de symptôme ─────────────────────────
+  IconData _iconForChoix(String c) {
+    final l = c.toLowerCase();
+    if (l.contains('fatigue')) return Icons.battery_2_bar_rounded;
+    if (l.contains('nausée') || l.contains('nausee')) return Icons.sick_outlined;
+    if (l.contains('sommeil')) return Icons.bedtime_outlined;
+    if (l.contains('appétit') || l.contains('appetit')) {
+      return Icons.no_meals_outlined;
+    }
+    if (l.contains('douleur')) return Icons.healing_outlined;
+    if (l.contains('aucun') || l.contains('non')) {
+      return Icons.check_circle_outline;
+    }
+    return Icons.circle_outlined;
+  }
+
+  String _douleurEmoji(int level) {
     if (level <= 2) return "😊";
-    if (level <= 5) return "😔";
+    if (level <= 4) return "😉";
+    if (level <= 6) return "😔";
     if (level <= 8) return "😣";
     return "😰";
+  }
+
+  String _douleurLabel(int level) {
+    if (level <= 2) return "Très légère";
+    if (level <= 4) return "Légère douleur";
+    if (level <= 6) return "Modérée";
+    if (level <= 8) return "Forte";
+    return "Très intense";
   }
 
   @override
@@ -132,32 +165,38 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
       BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFEDE7F6)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
 
-          // ── HEADER ──────────────────────────────────────────
+          // ── HEADER ──────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(18, 16, 14, 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
-                  children: [
-                    Text("📋 ", style: TextStyle(fontSize: 13)),
-                    Text(
-                      "QUESTIONNAIRE DE SUIVI",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        color: Color(0xFFB39DDB),
-                        letterSpacing: 0.5,
+                const Flexible(
+                  child: Row(
+                    children: [
+                      Text("📋 ", style: TextStyle(fontSize: 14)),
+                      Flexible(
+                        child: Text(
+                          "QUESTIONNAIRE ONCOSUIVI",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            color: Color(0xFFB39DDB),
+                            letterSpacing: 0.4,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
+                      Text(" • 🎀", style: TextStyle(fontSize: 13)),
+                    ],
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
@@ -166,7 +205,7 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
                     decoration: const BoxDecoration(
                         color: Color(0xFFF5F5F5), shape: BoxShape.circle),
                     child: const Icon(Icons.close,
-                        size: 14, color: Color(0xFF757575)),
+                        size: 15, color: Color(0xFF757575)),
                   ),
                 ),
               ],
@@ -174,7 +213,7 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
           ),
           const Divider(height: 1, color: Color(0xFFEDE7F6)),
 
-          // ── BODY ────────────────────────────────────────────
+          // ── BODY ────────────────────────────────────────
           Flexible(
             child: _isLoading
                 ? const Center(
@@ -203,136 +242,61 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
                   TextButton(
                     onPressed: _fetchQuestions,
                     child: const Text("Réessayer",
-                        style:
-                        TextStyle(color: Color(0xFFB39DDB))),
+                        style: TextStyle(color: Color(0xFFB39DDB))),
                   ),
                 ],
               ),
             )
                 : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
 
-                  // ── Slider fatigue ──
-                  if (_fatigueQuestionId != null) ...[
-                    _sectionTitle("Niveau de fatigue globale"),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFA),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: const Color(0xFFEDE7F6)),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "${_fatigueLevel.toInt()} / 10",
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFFB39DDB),
-                                ),
-                              ),
-                              Text(
-                                _emojiForFatigue(
-                                    _fatigueLevel.toInt()),
-                                style: const TextStyle(fontSize: 24),
-                              ),
-                            ],
-                          ),
-                          SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor:
-                              const Color(0xFFB39DDB),
-                              inactiveTrackColor:
-                              const Color(0xFFFCE4EC),
-                              thumbColor: const Color(0xFFB39DDB),
-                              trackHeight: 4,
-                              overlayShape:
-                              const RoundSliderOverlayShape(
-                                  overlayRadius: 14),
-                            ),
-                            child: Slider(
-                              value: _fatigueLevel,
-                              min: 0,
-                              max: 10,
-                              divisions: 10,
-                              onChanged: (val) =>
-                                  setState(() => _fatigueLevel = val),
-                            ),
-                          ),
-                          const Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text("Aucune",
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.grey)),
-                              Text("Modérée",
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.grey)),
-                              Text("Intense",
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.grey)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                  // ── 1. SLIDER DOULEUR (question globale) ──
+                  if (_douleurQuestionId != null) ...[
+                    _buildDouleurSection(),
+                    const SizedBox(height: 24),
                   ],
 
-                  // ── Questions QCM ──
+                  // ── 2. QCM SYMPTÔMES (depuis backend) ──
                   ..._questions
                       .where((q) =>
-                  q.id != _fatigueQuestionId &&
+                  q.id != _douleurQuestionId &&
                       q.choix.isNotEmpty)
                       .map((q) => _buildQcmQuestion(q))
                       .toList(),
 
-                  const SizedBox(height: 8),
-
-                  // ── Info ──
+                  // ── INFO ──
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: const Color(0xFFEEEEEE)),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                      Border.all(color: const Color(0xFFEEEEEE)),
                     ),
                     child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline,
-                            size: 12, color: Color(0xFFB39DDB)),
-                        SizedBox(width: 6),
+                        Icon(Icons.warning_amber_rounded,
+                            size: 14, color: Color(0xFFB39DDB)),
+                        SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            "Vos réponses sont transmises directement à votre équipe médicale au CHU.",
+                            "En validant, ces symptômes sont consignés directement dans votre dossier clinique au CHU. Si fièvre élevée, contactez de suite le 15.",
                             style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey,
+                                fontSize: 9.5,
+                                color: Color(0xFF9E9E9E),
                                 height: 1.4),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                  // ── Bouton soumettre ──
+                  // ── BOUTON SOUMETTRE ──
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -340,7 +304,7 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
                         backgroundColor: const Color(0xFFB39DDB),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                            vertical: 14),
+                            vertical: 15),
                         shape: RoundedRectangleBorder(
                             borderRadius:
                             BorderRadius.circular(30)),
@@ -349,17 +313,16 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
                       onPressed: _isSubmitting ? null : _submit,
                       child: _isSubmitting
                           ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2),
-                      )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2))
                           : const Text(
                         "Envoyer mon bilan 💌",
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            fontSize: 13),
+                            fontSize: 13.5),
                       ),
                     ),
                   ),
@@ -372,89 +335,161 @@ class _QuestionnaireBotSheetState extends State<QuestionnaireBotSheet> {
     );
   }
 
-  // ── Widget QCM ───────────────────────────────────────────
+  // ── Section slider douleur ──────────────────────────────
+  Widget _buildDouleurSection() {
+    final douleurInt = _douleurLevel.toInt();
+    // Récupérer le texte réel de la question depuis le backend
+    final douleurQ = _questions.firstWhere(
+          (q) => q.id == _douleurQuestionId,
+      orElse: () => _Question(
+          id: '', texte: 'Niveau de douleur globale', choix: [], ordre: 0, globale: true),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                "${douleurQ.texte} :",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12.5,
+                  color: Color(0xFF2D2D2D),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                "$douleurInt / 10 (${_douleurEmoji(douleurInt)} ${_douleurLabel(douleurInt)})",
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12.5,
+                  color: Color(0xFFE91E8C),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: const Color(0xFFB39DDB),
+            inactiveTrackColor: const Color(0xFFEDE7F6),
+            thumbColor: const Color(0xFFB39DDB),
+            trackHeight: 5,
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
+          ),
+          child: Slider(
+            value: _douleurLevel,
+            min: 0,
+            max: 10,
+            divisions: 10,
+            onChanged: (val) => setState(() => _douleurLevel = val),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Aucune 😊",
+                  style:
+                  TextStyle(fontSize: 9.5, color: Color(0xFF9E9E9E))),
+              Text("Modérée 😣",
+                  style:
+                  TextStyle(fontSize: 9.5, color: Color(0xFF9E9E9E))),
+              Text("Intense 😰",
+                  style:
+                  TextStyle(fontSize: 9.5, color: Color(0xFF9E9E9E))),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Question QCM (grille 2 colonnes) ────────────────────
   Widget _buildQcmQuestion(_Question q) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(q.texte),
-          const SizedBox(height: 8),
-          ...q.choix.map((choix) {
-            final selected = _reponses[q.id] == choix;
-            return GestureDetector(
-              onTap: () => setState(() => _reponses[q.id] = choix),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 11),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? const Color(0xFFEDE7F6).withOpacity(0.6)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xFFB39DDB)
-                        : const Color(0xFFE0E0E0),
-                    width: selected ? 1.5 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected
-                            ? const Color(0xFFB39DDB)
-                            : Colors.white,
-                        border: Border.all(
-                          color: selected
-                              ? const Color(0xFFB39DDB)
-                              : const Color(0xFFBDBDBD),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: selected
-                          ? const Icon(Icons.check,
-                          size: 11, color: Colors.white)
-                          : null,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        choix,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: selected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: selected
-                              ? const Color(0xFFB39DDB)
-                              : const Color(0xFF424242),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+          Text(
+            "${q.texte} :",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12.5,
+              color: Color(0xFF2D2D2D),
+            ),
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 3.4,
+            children: q.choix.map((c) => _buildChoixChip(q, c)).toList(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 12,
-        color: Color(0xFF424242),
+  // ── Chip de choix (grille) ──────────────────────────────
+  Widget _buildChoixChip(_Question q, String choix) {
+    final selected = _reponses[q.id] == choix;
+    return GestureDetector(
+      onTap: () => setState(() => _reponses[q.id] = choix),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFEDE7F6).withOpacity(0.6)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+            selected ? const Color(0xFFB39DDB) : const Color(0xFFE0E0E0),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _iconForChoix(choix),
+              size: 16,
+              color: selected
+                  ? const Color(0xFFB39DDB)
+                  : const Color(0xFF9E9E9E),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                choix,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                  color: selected
+                      ? const Color(0xFFB39DDB)
+                      : const Color(0xFF424242),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (selected)
+              const Icon(Icons.check_circle,
+                  size: 14, color: Color(0xFFB39DDB)),
+          ],
+        ),
       ),
     );
   }

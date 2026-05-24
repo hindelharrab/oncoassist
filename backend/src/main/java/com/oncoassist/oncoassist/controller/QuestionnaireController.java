@@ -19,18 +19,18 @@ public class QuestionnaireController {
 
     private final QuestionnaireService questionnaireService;
 
-    // GET questions globales → MEDECIN seulement
+    // GET questions globales → ADMIN, MEDECIN, SECRETAIRE
     @GetMapping("/globales")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE')")
     public ResponseEntity<List<QuestionSuiviResponseDTO>> getGlobales() {
-        System.out.println("🟢 getGlobales appelé");  // ← ajoute ça
         return ResponseEntity.ok(
                 questionnaireService.getQuestionsGlobales());
     }
 
-    // GET questions pour un patient → MEDECIN seulement
+    // GET questions pour un patient → MEDECIN + PATIENT
+    // ✅ PATIENT ajouté : le Flutter appelle cet endpoint avec token PATIENT
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyAuthority('MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'PATIENT')")
     public ResponseEntity<List<QuestionSuiviResponseDTO>> getQuestions(
             @PathVariable UUID patientId) {
         return ResponseEntity.ok(
@@ -46,7 +46,7 @@ public class QuestionnaireController {
                 questionnaireService.ajouterQuestionGlobale(dto));
     }
 
-    // POST ajouter question custom → MEDECIN seulement
+    // POST ajouter question custom pour un patient → MEDECIN seulement
     @PostMapping("/patient/{patientId}/ajouter")
     @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<QuestionSuiviResponseDTO> ajouterCustom(
