@@ -36,6 +36,8 @@ public class SpecialiteService {
         Specialite specialite = findById(id);
         specialite.setNom(data.getNom());
         specialite.setDescription(data.getDescription());
+        if (data.getDureeConsultation() != null)
+            specialite.setDureeConsultation(data.getDureeConsultation());
         return specialiteRepository.save(specialite);
     }
     @Transactional

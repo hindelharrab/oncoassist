@@ -31,7 +31,7 @@ public class Document {
     @Column(nullable = false)
     private DocTypeEnum type;
 
-    @Column(name = "chemin_fichier", nullable = false,columnDefinition = "TEXT")
+    @Column(name = "chemin_fichier", nullable = false)
     private String cheminFichier;
 
     @Column(name = "date_ajout", nullable = false)

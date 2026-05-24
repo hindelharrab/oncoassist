@@ -193,8 +193,8 @@ public class BiopsieService {
         biopsieRepository.deleteById(id);
     }
 
-    // ── Analyser des images via FastAPI
     @Transactional
+    // ── Analyser des images via FastAPI
     public AnalyseResultDTO analyser(UUID biopsieId,
                                      List<MultipartFile> images,
                                      String grossissement) throws IOException {

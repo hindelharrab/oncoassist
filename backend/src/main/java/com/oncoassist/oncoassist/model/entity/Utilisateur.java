@@ -6,6 +6,7 @@ import com.oncoassist.oncoassist.model.entity.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -43,4 +44,14 @@ public abstract class Utilisateur {
 
     @Column(name = "photo_profil")
     private String photoProfil;
+
+    @Column(name = "date_creation", updatable = false)
+    private LocalDateTime dateCreation;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.dateCreation == null) {
+            this.dateCreation = LocalDateTime.now();
+        }
+    }
 }

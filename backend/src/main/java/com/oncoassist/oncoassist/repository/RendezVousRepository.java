@@ -35,10 +35,98 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, UUID> {
             @Param("statut") StatutRDVEnum statut);
     List<RendezVous> findByPatientIdAndStatut(UUID patientId, StatutRDVEnum statut);
     List<RendezVous> findByDateBetween(LocalDateTime start, LocalDateTime end);
-    long countByDateBetween(
-            LocalDateTime debut, LocalDateTime fin);
+    // Spark : count par jour sur les N derniers jours
+    @Query("""
+    SELECT CAST(r.date AS date), COUNT(r)
+    FROM RendezVous r
+    WHERE r.date >= :from
+    GROUP BY CAST(r.date AS date)
+    ORDER BY CAST(r.date AS date)
+""")
+    List<Object[]> countByDay(@Param("from") LocalDateTime from);
 
-    long countByStatutAndDateBetween(
-            StatutRDVEnum statut,
-            LocalDateTime debut, LocalDateTime fin);
+    // RDV par mois + statut (pour le chart mensuel)
+    @Query("""
+    SELECT MONTH(r.date), r.statut, COUNT(r)
+    FROM RendezVous r
+    WHERE r.date >= :from AND r.date < :to
+    GROUP BY MONTH(r.date), r.statut
+    ORDER BY MONTH(r.date)
+""")
+    List<Object[]> countByMonthAndStatut(
+            @Param("from") LocalDateTime from,
+            @Param("to")   LocalDateTime to
+    );
+
+    // Patients suivis par médecin (actifs)
+    @Query("""
+    SELECT r.medecin.id, COUNT(DISTINCT r.patient.id)
+    FROM RendezVous r
+    GROUP BY r.medecin.id
+""")
+    List<Object[]> countPatientsByMedecin();
+
+    // RDV d'un médecin sur un mois donné
+    @Query("""
+    SELECT COUNT(r) FROM RendezVous r
+    WHERE r.medecin.id = :medecinId
+      AND MONTH(r.date) = :month
+      AND YEAR(r.date)  = :year
+""")
+    long countByMedecinAndMonth(
+            @Param("medecinId") UUID medecinId,
+            @Param("month")     int month,
+            @Param("year")      int year
+    );
+
+    // RDV gérés par secrétaire ce mois
+    @Query("""
+    SELECT r.secretaire.id, r.statut, COUNT(r)
+    FROM RendezVous r
+    WHERE r.secretaire IS NOT NULL
+      AND r.date >= :from AND r.date < :to
+    GROUP BY r.secretaire.id, r.statut
+""")
+    List<Object[]> countBySecretaireAndStatutThisMonth(
+            @Param("from") LocalDateTime from,
+            @Param("to")   LocalDateTime to
+    );
+
+    // Nouveaux patients par semaine (7 dernières semaines)
+    @Query("""
+    SELECT WEEK(r.date), COUNT(DISTINCT r.patient.id)
+    FROM RendezVous r
+    WHERE r.date >= :from
+    GROUP BY WEEK(r.date)
+    ORDER BY WEEK(r.date)
+""")
+    List<Object[]> countNewPatientsByWeek(@Param("from") LocalDateTime from);
+
+    @Query("""
+    SELECT r FROM RendezVous r
+    LEFT JOIN FETCH r.patient
+    LEFT JOIN FETCH r.medecin
+    LEFT JOIN FETCH r.secretaire
+    WHERE r.date >= :from AND r.date < :to
+    ORDER BY r.date ASC
+""")
+    List<RendezVous> findByPeriodWithDetails(
+            @Param("from") LocalDateTime from,
+            @Param("to")   LocalDateTime to
+    );
+
+    @Query("""
+    SELECT r FROM RendezVous r
+    LEFT JOIN FETCH r.patient
+    LEFT JOIN FETCH r.medecin
+    LEFT JOIN FETCH r.secretaire
+    WHERE r.medecin.id = :medecinId
+      AND r.date >= :from AND r.date < :to
+    ORDER BY r.date ASC
+""")
+    List<RendezVous> findByMedecinAndPeriodWithDetails(
+            @Param("medecinId") UUID medecinId,
+            @Param("from")      LocalDateTime from,
+            @Param("to")        LocalDateTime to
+    );
 }

@@ -25,13 +25,13 @@ const secretaireSettingsService = {
 
   // Changer la photo de profil
 changerPhoto: async (id, file) => {
-    const formData = new FormData();
-    formData.append('photo', file);
-    const res = await axiosInstance.post(  // ← PUT → POST
-        `/secretaires/${id}/photo`, formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-    );
-    return res.data;
+  const formData = new FormData();
+  formData.append('photo', file); // ← "photo" correspond au @PutMapping
+  const res = await axiosInstance.put(  // ← PUT, pas POST
+    `/secretaires/${id}/photo`, formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return res.data;
 }
 };
 
