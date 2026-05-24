@@ -61,7 +61,7 @@ const BiopsiePage = () => {
   }
   
   // Autres images → Spring Boot (port 8080)
-  return `http://localhost:8081${chemin}`;
+  return `http://localhost:8080${chemin}`;
 };
 
   useEffect(() => {

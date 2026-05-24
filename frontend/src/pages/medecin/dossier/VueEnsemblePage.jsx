@@ -40,6 +40,7 @@ function useVueEnsemble(patientId) {
     } finally { setLoading(false); }
   }, [patientId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData(); }, [fetchData]);
   return { data, loading, error, refetch: fetchData };
 }

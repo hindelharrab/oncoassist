@@ -2,7 +2,6 @@ package com.oncoassist.oncoassist.controller;
 
 import com.oncoassist.oncoassist.model.dto.dashboard.DashboardSecretaireDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
-import com.oncoassist.oncoassist.service.DashboardSecretaireService;
 import com.oncoassist.oncoassist.service.DashboardService;
 import com.oncoassist.oncoassist.service.MedecinService;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,10 +22,6 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
     private final MedecinService medecinService;
-
-    private final DashboardSecretaireService
-            dashboardSecretaireService;
-
 
     // Récupérer le médecin connecté
     private UUID getCurrentMedecinId() {
@@ -65,12 +59,5 @@ public class DashboardController {
 
         return ResponseEntity.ok(dashboardData);
     }
-    @GetMapping("/secretaire/stats")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','ADMIN')")
-    public ResponseEntity<DashboardSecretaireDTO>
-    getStatsSecretaire() {
-        return ResponseEntity.ok(
-                dashboardSecretaireService.getStats()
-        );
-    }
+
 }

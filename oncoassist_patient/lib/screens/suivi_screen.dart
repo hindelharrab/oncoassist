@@ -31,12 +31,17 @@ class _SuiviScreenState extends State<SuiviScreen> {
   }
 
   Future<void> _fetchPlans() async {
-    setState(() { _isLoading = true; _error = null; });
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final List<dynamic> data = await ApiService.get(
           '/plans-traitement/dossier/${widget.dossierMedicalId}');
 
-      // Faits triés par date décroissante, puis à venir
+      if (!mounted) return;
+
       final faits = data
           .where((p) => p['statut'] == 'fait')
           .map((p) => _PlanItem.fromJson(p))
@@ -53,20 +58,59 @@ class _SuiviScreenState extends State<SuiviScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() { _error = "Impossible de charger le parcours."; _isLoading = false; });
+      if (!mounted) return;
+      setState(() {
+        _error = "Impossible de charger le parcours.";
+        _isLoading = false;
+      });
     }
   }
 
-  String _emojiForEtape(String etape) {
+  // ── Icône PRO + couleur selon le type d'étape ───────────
+  _EtapeStyle _styleForEtape(String etape) {
     final e = etape.toLowerCase();
-    if (e.contains('mammo'))    return '🔬';
-    if (e.contains('echo'))     return '📡';
-    if (e.contains('irm') || e.contains('rm')) return '🧲';
-    if (e.contains('biopsie'))  return '🧬';
-    if (e.contains('examen'))   return '🩺';
-    if (e.contains('chimio'))   return '💊';
-    if (e.contains('radio'))    return '☢️';
-    return '🏥';
+    if (e.contains('mammo')) {
+      return const _EtapeStyle(
+          Icons.radio_button_checked_rounded, Color(0xFF7E57C2)); // violet
+    }
+    if (e.contains('echo')) {
+      return const _EtapeStyle(
+          Icons.graphic_eq_rounded, Color(0xFF26A69A)); // teal
+    }
+    if (e.contains('irm') || e.contains('rm')) {
+      return const _EtapeStyle(
+          Icons.blur_circular_rounded, Color(0xFF5C6BC0)); // indigo
+    }
+    if (e.contains('biopsie')) {
+      return const _EtapeStyle(
+          Icons.biotech_rounded, Color(0xFFEC407A)); // rose
+    }
+    if (e.contains('consult')) {
+      return const _EtapeStyle(
+          Icons.monitor_heart_rounded, Color(0xFF42A5F5)); // bleu
+    }
+    if (e.contains('examen')) {
+      return const _EtapeStyle(
+          Icons.medical_services_rounded, Color(0xFF42A5F5)); // bleu
+    }
+    if (e.contains('chimio')) {
+      return const _EtapeStyle(
+          Icons.medication_rounded, Color(0xFFFFA726)); // orange
+    }
+    if (e.contains('tamox') || e.contains('hormono')) {
+      return const _EtapeStyle(
+          Icons.medication_liquid_rounded, Color(0xFFFF7043)); // deep orange
+    }
+    if (e.contains('radio')) {
+      return const _EtapeStyle(
+          Icons.flare_rounded, Color(0xFFEF5350)); // rouge
+    }
+    if (e.contains('chirurg') || e.contains('opér')) {
+      return const _EtapeStyle(
+          Icons.healing_rounded, Color(0xFF66BB6A)); // vert
+    }
+    return const _EtapeStyle(
+        Icons.local_hospital_rounded, Color(0xFFB39DDB)); // défaut violet
   }
 
   @override
@@ -92,11 +136,16 @@ class _SuiviScreenState extends State<SuiviScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("RAPPORT HEBDOMADAIRE",
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800,
-                            color: Colors.grey, letterSpacing: 0.5)),
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.grey,
+                            letterSpacing: 0.5)),
                     SizedBox(height: 4),
                     Text("Partagez en direct votre état de douleur",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                             color: Color(0xFF2D2D2D))),
                   ],
                 ),
@@ -106,14 +155,17 @@ class _SuiviScreenState extends State<SuiviScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFB39DDB),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
                 onPressed: widget.onOpenQuestionnaire,
                 icon: const Icon(Icons.add, size: 12),
                 label: const Text("Bilan du jour",
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 10, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -126,18 +178,24 @@ class _SuiviScreenState extends State<SuiviScreen> {
           children: [
             const Flexible(
               child: Text("MON PARCOURS DE SOINS",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                      color: Color(0xFFB39DDB), letterSpacing: 0.5)),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFB39DDB),
+                      letterSpacing: 0.5)),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: const Color(0xFFEDE7F6),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 _isLoading ? 'Chargement...' : '${_plans.length} étapes',
-                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold,
+                style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
                     color: Color(0xFFB39DDB)),
               ),
             ),
@@ -169,12 +227,15 @@ class _SuiviScreenState extends State<SuiviScreen> {
                 const Icon(Icons.warning_amber_rounded,
                     color: Color(0xFFE53935), size: 18),
                 const SizedBox(width: 8),
-                Expanded(child: Text(_error!,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFFE53935)))),
+                Expanded(
+                    child: Text(_error!,
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFFE53935)))),
                 TextButton(
                   onPressed: _fetchPlans,
                   child: const Text("Réessayer",
-                      style: TextStyle(fontSize: 11, color: Color(0xFFB39DDB))),
+                      style: TextStyle(
+                          fontSize: 11, color: Color(0xFFB39DDB))),
                 ),
               ],
             ),
@@ -205,28 +266,34 @@ class _SuiviScreenState extends State<SuiviScreen> {
                 final plan = _plans[index];
                 final isFait = plan.statut == 'fait';
                 final isLast = index == _plans.length - 1;
+                final style = _styleForEtape(plan.etape);
 
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Dot + ligne ──
+                    // ── Dot coloré + ligne ──
                     Column(
                       children: [
                         Container(
-                          width: 12, height: 12,
+                          width: 14,
+                          height: 14,
                           margin: const EdgeInsets.only(top: 4),
                           decoration: BoxDecoration(
-                            color: isFait
-                                ? const Color(0xFFE91E8C)
-                                : const Color(0xFFB0BEC5),
+                            color: isFait ? style.color : Colors.white,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(
+                              color: isFait
+                                  ? style.color
+                                  : const Color(0xFFB0BEC5),
+                              width: 2.5,
+                            ),
                           ),
                         ),
                         if (!isLast)
                           Container(
-                            width: 1.5, height: 90,
-                            color: const Color(0xFFB39DDB).withOpacity(0.3),
+                            width: 2,
+                            height: 110,
+                            color: const Color(0xFFB39DDB).withOpacity(0.25),
                           ),
                       ],
                     ),
@@ -235,97 +302,112 @@ class _SuiviScreenState extends State<SuiviScreen> {
                     // ── Carte ──
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.only(bottom: 16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Badge statut + date
+                            // Badge date + statut (ligne du haut)
                             Row(
                               children: [
+                                Text(
+                                  isFait
+                                      ? plan.dateFormatee.toUpperCase()
+                                      : 'EN ATTENTE',
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFF9E9E9E),
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.3),
+                                ),
+                                const Spacer(),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
+                                      horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: isFait
-                                        ? const Color(0xFFE8F5E9)
+                                        ? style.color.withOpacity(0.12)
                                         : const Color(0xFFF5F5F5),
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    isFait ? 'FAIT' : 'À VENIR',
+                                    isFait ? 'Effectué' : 'À venir',
                                     style: TextStyle(
-                                      fontSize: 8,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.w800,
                                       color: isFait
-                                          ? const Color(0xFF388E3C)
-                                          : const Color(0xFF757575),
-                                      letterSpacing: 0.5,
+                                          ? style.color
+                                          : const Color(0xFF9E9E9E),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  isFait ? plan.dateFormatee : 'En attente',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey,
-                                      fontWeight: FontWeight.bold),
-                                ),
                               ],
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
 
-                            // Carte blanche
+                            // Carte blanche avec icône pro colorée
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isFait
-                                      ? const Color(0xFFEDE7F6)
-                                      : const Color(0xFFEEEEEE),
+                                  color: const Color(0xFFEDE7F6),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.03),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Emoji étape
-                                  Text(_emojiForEtape(plan.etape),
-                                      style: const TextStyle(fontSize: 20)),
+                                  // Icône dans pastille colorée
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: style.color.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(style.icon,
+                                        color: style.color, size: 22),
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          plan.etape.toUpperCase(),
+                                          plan.etape,
                                           style: const TextStyle(
-                                            fontSize: 13,
+                                            fontSize: 13.5,
                                             fontWeight: FontWeight.w800,
                                             color: Color(0xFF2D2D2D),
-                                            letterSpacing: 0.3,
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
+                                        const SizedBox(height: 3),
                                         Text(
                                           plan.medecinLabel,
                                           style: const TextStyle(
                                               fontSize: 11,
-                                              color: Color(0xFF757575)),
+                                              color: Color(0xFF9E9E9E)),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  // Icône état
                                   Icon(
                                     isFait
-                                        ? Icons.check_circle
-                                        : Icons.schedule,
+                                        ? Icons.check_circle_rounded
+                                        : Icons.schedule_rounded,
                                     color: isFait
-                                        ? const Color(0xFF81C784)
+                                        ? style.color
                                         : const Color(0xFFB0BEC5),
-                                    size: 18,
+                                    size: 20,
                                   ),
                                 ],
                               ),
@@ -341,6 +423,13 @@ class _SuiviScreenState extends State<SuiviScreen> {
       ],
     );
   }
+}
+
+// ── Style d'étape (icône + couleur) ──────────────────────────
+class _EtapeStyle {
+  final IconData icon;
+  final Color color;
+  const _EtapeStyle(this.icon, this.color);
 }
 
 // ── Modèle local ─────────────────────────────────────────────
@@ -379,9 +468,13 @@ class _PlanItem {
     if (raw == null || raw.isEmpty) return 'En attente';
     try {
       final d = DateTime.parse(raw);
-      const m = ['Jan','Fév','Mar','Avr','Mai','Jun',
-        'Jul','Aoû','Sep','Oct','Nov','Déc'];
-      return '${d.day.toString().padLeft(2,'0')}/${m[d.month-1]}/${d.year}';
-    } catch (_) { return raw; }
+      const m = [
+        'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun',
+        'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'
+      ];
+      return '${d.day.toString().padLeft(2, '0')} ${m[d.month - 1]} ${d.year}';
+    } catch (_) {
+      return raw;
+    }
   }
 }
