@@ -9,6 +9,7 @@ import '../widgets/questionnaire_bot_sheet.dart';
 import 'login_screen.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/ribbon_painter.dart';
 
 class MainContainerScreen extends StatefulWidget {
   final String patientNom;
@@ -39,7 +40,28 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
   String _clinicalStatusText = "Suivi régulier";
   String _clinicalStatusTime = "Mise à jour aujourd'hui";
 
-  late final _Patient _patient;
+  String _photoProfil = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPhotoProfil();
+  }
+
+  Future<void> _loadPhotoProfil() async {
+    try {
+      final data = await ApiService.get('/patients/${widget.patientId}');
+      if (mounted) {
+        setState(() => _photoProfil = data['photoProfil'] ?? '');
+      }
+    } catch (_) {}
+  }
+
+  String get _avatarUrl {
+    if (_photoProfil.isEmpty) return '';
+    if (_photoProfil.startsWith('http')) return _photoProfil;
+    return 'http://10.0.2.2:8080/$_photoProfil';
+  }
 
   List<Map<String, dynamic>> _mockNotifications = [
     {"id": "not-1", "title": "Rendez-vous à venir", "message": "Dr. Leila Mansouri vous attend le 27 mai à 14h30 au CHU.", "time": "Il y a 2h", "isRead": false},
@@ -47,24 +69,14 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
     {"id": "not-3", "title": "Rappel d'hormonothérapie", "message": "Avez-vous bien validé votre prise de Tamoxifène ce matin ?", "time": "Lundi 19 mai", "isRead": true},
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _patient = _Patient(
-      firstName: widget.patientPrenom,
-      lastName: widget.patientNom,
-      birthDate: widget.dateNaissance,
-      folderID: widget.folderCode.isNotEmpty ? widget.folderCode : "#DOSS-0000",
-    );
-  }
-
   void _showToast(String text) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Container(width: 16, height: 16, margin: const EdgeInsets.only(right: 8),
+            Container(
+                width: 16, height: 16, margin: const EdgeInsets.only(right: 8),
                 child: CustomPaint(painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
             Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white))),
           ],
@@ -217,7 +229,6 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Patient compatible avec AccueilScreen et ProfilScreen
     final patient = Patient(
       firstName: widget.patientPrenom,
       lastName: widget.patientNom,
@@ -227,7 +238,7 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       folderID: widget.folderCode.isNotEmpty ? widget.folderCode : "#DOSS-0000",
     );
 
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       AccueilScreen(
         patient: patient,
         clinicalStatusText: _clinicalStatusText,
@@ -248,6 +259,7 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         patient: patient,
         onShowToast: _showToast,
         onLogout: _handleLogout,
+        patientId: widget.patientId,        // ← AJOUTÉ
       ),
     ];
 
@@ -376,12 +388,28 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                     children: [
                       Container(
                         width: 40, height: 40,
-                        decoration: BoxDecoration(color: const Color(0xFFFCE4EC), shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2)),
-                        child: Center(
-                          child: Text(
-                            "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFE91E8C)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFCE4EC),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: ClipOval(
+                          child: _avatarUrl.isNotEmpty
+                              ? Image.network(
+                            _avatarUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(
+                                "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFE91E8C)),
+                              ),
+                            ),
+                          )
+                              : Center(
+                            child: Text(
+                              "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFE91E8C)),
+                            ),
                           ),
                         ),
                       ),
@@ -444,7 +472,7 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         ),
       ),
 
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -492,46 +520,4 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       ),
     );
   }
-}
-
-// Classe interne pour éviter le conflit avec Patient de models.dart
-class _Patient {
-  final String firstName;
-  final String lastName;
-  final String birthDate;
-  final String folderID;
-  _Patient({required this.firstName, required this.lastName,
-    required this.birthDate, required this.folderID});
-}
-
-class RibbonPainter extends CustomPainter {
-  final Color color;
-  const RibbonPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = size.width * 0.12
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path();
-    path.moveTo(size.width * 0.5, size.width * 0.2);
-    path.cubicTo(size.width * 0.35, size.width * 0.2, size.width * 0.25, size.width * 0.35, size.width * 0.25, size.width * 0.5);
-    path.cubicTo(size.width * 0.25, size.width * 0.65, size.width * 0.35, size.width * 0.8, size.width * 0.5, size.width * 0.95);
-    path.cubicTo(size.width * 0.65, size.width * 0.8, size.width * 0.75, size.width * 0.65, size.width * 0.75, size.width * 0.5);
-    path.cubicTo(size.width * 0.75, size.width * 0.35, size.width * 0.65, size.width * 0.2, size.width * 0.5, size.width * 0.2);
-    canvas.drawPath(path, paint);
-
-    final pathTail = Path();
-    pathTail.moveTo(size.width * 0.35, size.width * 0.88);
-    pathTail.lineTo(size.width * 0.5, size.width * 0.68);
-    pathTail.lineTo(size.width * 0.65, size.width * 0.88);
-    canvas.drawPath(pathTail, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
