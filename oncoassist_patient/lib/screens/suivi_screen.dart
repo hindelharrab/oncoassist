@@ -79,7 +79,7 @@ class _SuiviScreenState extends State<SuiviScreen> {
     if (e.contains('irm') || e.contains('rm')) {
       return const _EtapeStyle(Icons.blur_circular_rounded, Color(0xFF5C6BC0));
     }
-    if (e.contains('biopsie')) {
+    if (e.contains('biopsie') || e.contains('analyse') || e.contains('tissulaire')) {
       return const _EtapeStyle(Icons.biotech_rounded, Color(0xFFEC407A));
     }
     if (e.contains('consult')) {
@@ -112,7 +112,7 @@ class _SuiviScreenState extends State<SuiviScreen> {
   // ── Couleur du dot selon le type (comme React) ──────────
   Color _dotColor(String etape) {
     final e = etape.toLowerCase();
-    if (e.contains('biopsie') || e.contains('document')) {
+    if (e.contains('biopsie') || e.contains('analyse') || e.contains('tissulaire') || e.contains('document')) {
       return const Color(0xFFF8BBD0); // rose
     }
     if (e.contains('mammo') || e.contains('examen')) {

@@ -7,6 +7,7 @@ class ApiService {
   static String? _token;
 
   static void setToken(String token) => _token = token;
+  static String get token => _token ?? '';
 
   static Map<String, String> get _headers => {
     'Content-Type': 'application/json',

@@ -157,7 +157,6 @@ public class MammographieService {
     // ════════════════════════════════════════════════
     // MÉTHODE POUR CRÉER LA NOTIFICATION
     // ════════════════════════════════════════════════
-    @Transactional
     private void creerNotificationApresAnalyse(Mammographie mammo, DossierMedical dossier, UUID medecinId) {
         // Déterminer la priorité selon le BI-RADS
         NotificationPriorite priorite;
@@ -214,7 +213,6 @@ public class MammographieService {
     // ════════════════════════════════════════════════
     // MÉTHODES PRIVÉES (inchangées)
     // ════════════════════════════════════════════════
-    @Transactional
     private String saveBase64Image(
             String base64Data,
             String filename) throws IOException {

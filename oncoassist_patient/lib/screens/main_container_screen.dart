@@ -39,8 +39,10 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
   int _currentIndex = 0;
   String _clinicalStatusText = "Suivi régulier";
   String _clinicalStatusTime = "Mise à jour aujourd'hui";
-
   String _photoProfil = '';
+
+  // Clé pour ouvrir le drawer depuis l'AppBar
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -100,7 +102,8 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const LoginScreen(),
-        transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
+        transitionsBuilder: (_, anim, __, child) =>
+            FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
@@ -128,7 +131,10 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFEDE7F6)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 16, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4))],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -139,11 +145,13 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("NOTIFICATIONS CLINIQUE",
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFB39DDB))),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
+                                color: Color(0xFFB39DDB))),
                         GestureDetector(
                           onTap: () { Navigator.pop(ctx); _markAllRead(); },
                           child: const Text("Tout lire",
-                              style: TextStyle(fontSize: 11, color: Color(0xFFE91E8C), fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontSize: 11, color: Color(0xFFE91E8C),
+                                  fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -168,7 +176,10 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                               color: unread ? const Color(0xFFFCE4EC) : Colors.white,
                               borderRadius: BorderRadius.circular(10),
                               border: Border(left: BorderSide(
-                                  color: unread ? const Color(0xFFE91E8C) : Colors.transparent, width: 2)),
+                                  color: unread
+                                      ? const Color(0xFFE91E8C)
+                                      : Colors.transparent,
+                                  width: 2)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,17 +188,28 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(child: Text(notif["title"],
-                                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 10,
-                                            color: unread ? const Color(0xFF2D2D2D) : Colors.grey),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 10,
+                                            color: unread
+                                                ? const Color(0xFF2D2D2D)
+                                                : Colors.grey),
                                         overflow: TextOverflow.ellipsis)),
-                                    Text(notif["time"], style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                                    Text(notif["time"],
+                                        style: const TextStyle(
+                                            fontSize: 8, color: Colors.grey)),
                                   ],
                                 ),
                                 const SizedBox(height: 3),
                                 Text(notif["message"],
-                                    style: TextStyle(fontSize: 9.5,
-                                        color: unread ? const Color(0xFF616161) : Colors.grey, height: 1.3),
-                                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    style: TextStyle(
+                                        fontSize: 9.5,
+                                        color: unread
+                                            ? const Color(0xFF616161)
+                                            : Colors.grey,
+                                        height: 1.3),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis),
                               ],
                             ),
                           ),
@@ -206,14 +228,18 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
 
   void _openChatBotModal() {
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => OncoBotBotSheet(onShowToast: _showToast),
     );
   }
 
   void _openQuestionnaireForm() {
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => QuestionnaireBotSheet(
         patientId: widget.patientId,
         onSubmitted: (pain, fatigue, nausea, description, notes) {
@@ -227,6 +253,113 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
     );
   }
 
+  // ── Bouton IA chatbot ROND avec badge ────────────────────
+  Widget _buildIaButton() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Cercle principal
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEDE7F6),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFB39DDB).withOpacity(0.2),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.chat_bubble_rounded,
+              color: Color(0xFFB39DDB),
+              size: 17,
+            ),
+          ),
+        ),
+        // Badge IA en haut à droite
+        Positioned(
+          top: -3,
+          right: -5,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE91E8C),
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            child: const Text(
+              "IA",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 7,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Avatar photo de profil (AppBar action) ───────────────
+  Widget _buildAvatarButton() {
+    final initiales =
+        "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}"
+        "${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}";
+
+    return GestureDetector(
+      onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12, top: 9, bottom: 9),
+        child: _avatarUrl.isNotEmpty
+            ? CircleAvatar(
+          radius: 15,
+          backgroundColor: const Color(0xFFFCE4EC),
+          child: ClipOval(
+            child: Image.network(
+              _avatarUrl,
+              fit: BoxFit.cover,
+              width: 30,
+              height: 30,
+              errorBuilder: (_, __, ___) => Text(
+                initiales.toUpperCase(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: Color(0xFFE91E8C),
+                ),
+              ),
+            ),
+          ),
+        )
+            : Container(
+          width: 30,
+          height: 30,
+          decoration: const BoxDecoration(
+            color: Color(0xFFFCE4EC),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              initiales.toUpperCase(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                color: Color(0xFFE91E8C),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final patient = Patient(
@@ -235,7 +368,9 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       birthDate: widget.dateNaissance,
       bloodType: "A+",
       allergies: "",
-      folderID: widget.folderCode.isNotEmpty ? widget.folderCode : "#DOSS-0000",
+      folderID: widget.folderCode.isNotEmpty
+          ? widget.folderCode
+          : "#DOSS-0000",
     );
 
     final List<Widget> pages = [
@@ -254,45 +389,35 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         patientId: widget.patientId,
         dossierMedicalId: widget.dossierMedicalId,
       ),
-      DocumentsScreen(onShowToast: _showToast),
+      // ✅ CHANGEMENT 4 : patientNom + patientPrenom passés à DocumentsScreen
+      DocumentsScreen(
+        onShowToast: _showToast,
+        dossierMedicalId: widget.dossierMedicalId,
+        patientNom: widget.patientNom,
+        patientPrenom: widget.patientPrenom,
+      ),
       ProfilScreen(
         patient: patient,
         onShowToast: _showToast,
         onLogout: _handleLogout,
-        patientId: widget.patientId,        // ← AJOUTÉ
+        patientId: widget.patientId,
       ),
     ];
 
     return Scaffold(
+      key: _scaffoldKey,  // ← clé pour ouvrir le drawer depuis _buildAvatarButton
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: GestureDetector(
-          onTap: _openChatBotModal,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE7F6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(child: Icon(Icons.chat_rounded, color: Color(0xFFB39DDB), size: 20)),
-                ),
-                Positioned(
-                  top: 0, left: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(color: const Color(0xFFE91E8C), borderRadius: BorderRadius.circular(6)),
-                    child: const Text("IA", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
+        // ✅ CHANGEMENT 1 : Bouton IA ROND avec badge
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 10, top: 8, bottom: 8),
+          child: GestureDetector(
+            onTap: _openChatBotModal,
+            child: _buildIaButton(),
           ),
         ),
         title: Column(
@@ -303,38 +428,49 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text("OncoAssist",
-                    style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFB39DDB), fontSize: 22)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFB39DDB),
+                        fontSize: 22)),
                 const SizedBox(width: 8),
-                SizedBox(width: 24, height: 24,
-                    child: CustomPaint(painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
+                SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CustomPaint(
+                        painter: RibbonPainter(
+                            color: const Color(0xFFE91E8C)))),
               ],
             ),
             const Text("Mon parcours de soins",
-                style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.normal)),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF757575),
+                    fontWeight: FontWeight.normal)),
           ],
         ),
         actions: [
+          // Notifications
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none_outlined, color: Color(0xFFB39DDB)),
+                icon: const Icon(Icons.notifications_none_outlined,
+                    color: Color(0xFFB39DDB)),
                 onPressed: _openNotificationsDropdown,
               ),
               if (_mockNotifications.any((n) => n["isRead"] == false))
                 Positioned(
                   right: 10, top: 10,
-                  child: Container(width: 8, height: 8,
-                      decoration: const BoxDecoration(color: Color(0xFFE91E8C), shape: BoxShape.circle)),
+                  child: Container(
+                      width: 8, height: 8,
+                      decoration: const BoxDecoration(
+                          color: Color(0xFFE91E8C),
+                          shape: BoxShape.circle)),
                 ),
             ],
           ),
-          Builder(
-            builder: (ctx) => IconButton(
-              icon: const Icon(Icons.menu, color: Colors.grey),
-              onPressed: () => Scaffold.of(ctx).openEndDrawer(),
-            ),
-          ),
+          // ✅ CHANGEMENT 2 : Photo de profil ronde à la place du menu hamburger
+          _buildAvatarButton(),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
@@ -346,7 +482,8 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         width: MediaQuery.of(context).size.width * 0.8,
         backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.horizontal(left: Radius.circular(24))),
+            borderRadius:
+            BorderRadius.horizontal(left: Radius.circular(24))),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -360,17 +497,26 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                     children: [
                       Row(children: [
                         const Text("OncoAssist",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFE91E8C))),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Color(0xFFE91E8C))),
                         const SizedBox(width: 6),
-                        SizedBox(width: 16, height: 16,
-                            child: CustomPaint(painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
+                        SizedBox(
+                            width: 16, height: 16,
+                            child: CustomPaint(
+                                painter: RibbonPainter(
+                                    color: const Color(0xFFE91E8C)))),
                       ]),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Color(0xFFFAFAFA), shape: BoxShape.circle),
-                          child: const Icon(Icons.close, size: 16, color: Color(0xFF757575)),
+                          decoration: const BoxDecoration(
+                              color: Color(0xFFFAFAFA),
+                              shape: BoxShape.circle),
+                          child: const Icon(Icons.close,
+                              size: 16, color: Color(0xFF757575)),
                         ),
                       ),
                     ],
@@ -388,10 +534,9 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                     children: [
                       Container(
                         width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFCE4EC),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFCE4EC),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: ClipOval(
                           child: _avatarUrl.isNotEmpty
@@ -401,14 +546,20 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                             errorBuilder: (_, __, ___) => Center(
                               child: Text(
                                 "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFE91E8C)),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: Color(0xFFE91E8C)),
                               ),
                             ),
                           )
                               : Center(
                             child: Text(
                               "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFE91E8C)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFFE91E8C)),
                             ),
                           ),
                         ),
@@ -418,14 +569,24 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("${widget.patientPrenom} ${widget.patientNom}",
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
+                            Text(
+                                "${widget.patientPrenom} ${widget.patientNom}",
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2D2D2D))),
                             const SizedBox(height: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: const Color(0xFFFCE4EC), borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFFCE4EC),
+                                  borderRadius: BorderRadius.circular(20)),
                               child: const Text("Patiente",
-                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFE91E8C))),
                             ),
                           ],
                         ),
@@ -434,20 +595,27 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _drawerLink("Mon profil patient", () { Navigator.pop(context); setState(() => _currentIndex = 3); }),
-                _drawerLink("Mes prochains rendez-vous", () { Navigator.pop(context); setState(() => _currentIndex = 0); }),
-                _drawerLink("Dossier d'examens", () { Navigator.pop(context); setState(() => _currentIndex = 2); }),
-                _drawerLink("Historique & Symptômes", () { Navigator.pop(context); setState(() => _currentIndex = 1); }),
+                _drawerLink("Mon profil patient",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 3); }),
+                _drawerLink("Mes prochains rendez-vous",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 0); }),
+                _drawerLink("Dossier d'examens",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 2); }),
+                _drawerLink("Historique & Symptômes",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 1); }),
                 const SizedBox(height: 8),
                 const Divider(height: 1, color: Color(0xFFEDE7F6)),
                 const SizedBox(height: 8),
-                _drawerTextLink("⚙️ Paramètres de l'application", () { Navigator.pop(context); _showToast("Paramètres OncoAssist v1.2 ⚙️"); }),
-                _drawerTextLink("💡 Aide & Support client", () { Navigator.pop(context); _showToast("Aide et Support médical 24h/24 🎀"); }),
+                _drawerTextLink("⚙️ Paramètres de l'application",
+                        () { Navigator.pop(context); _showToast("Paramètres OncoAssist v1.2 ⚙️"); }),
+                _drawerTextLink("💡 Aide & Support client",
+                        () { Navigator.pop(context); _showToast("Aide et Support médical 24h/24 🎀"); }),
                 const Spacer(),
                 const Divider(height: 1, color: Color(0xFFEDE7F6)),
                 const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                  Text("OncoAssist Premium v1.2", style: TextStyle(fontSize: 10, color: Color(0xFF757575))),
+                  Text("OncoAssist Premium v1.2",
+                      style: TextStyle(fontSize: 10, color: Color(0xFF757575))),
                   SizedBox(width: 4),
                   Text("🎀", style: TextStyle(fontSize: 10)),
                 ]),
@@ -460,10 +628,16 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                       foregroundColor: const Color(0xFFE91E8C),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: () { Navigator.pop(context); _handleLogout(); },
-                    child: const Text("Se déconnecter", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _handleLogout();
+                    },
+                    child: const Text("Se déconnecter",
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -481,13 +655,18 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFFB39DDB),
         unselectedItemColor: Colors.grey,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+        selectedLabelStyle:
+        const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: "Accueil"),
-          BottomNavigationBarItem(icon: Icon(Icons.monitor_heart_outlined), label: "Suivi"),
-          BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), label: "Dossier"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Profil"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.assignment_outlined), label: "Accueil"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.monitor_heart_outlined), label: "Suivi"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.folder_outlined), label: "Dossier"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: "Profil"),
         ],
       ),
     );
@@ -502,8 +681,13 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF2D2D2D))),
-            const Icon(Icons.chevron_right, size: 16, color: Color(0xFFB39DDB)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF2D2D2D))),
+            const Icon(Icons.chevron_right,
+                size: 16, color: Color(0xFFB39DDB)),
           ],
         ),
       ),
@@ -516,7 +700,11 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF757575))),
+        child: Text(label,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF757575))),
       ),
     );
   }

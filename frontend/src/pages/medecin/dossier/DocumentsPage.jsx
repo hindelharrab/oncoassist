@@ -457,7 +457,7 @@ const EXAM_CONFIG = {
   },
   RESULTAT_BIOPSIE: {
     Icon: Microscope, color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500',
-    label: 'Biopsie & IA', PdfComponent: null,
+    label: 'Analyse tissulaire', PdfComponent: null,
     docTitle: 'Analyse de Biopsie', docIcon: Microscope,
   },
   RESULTAT_MAMMOGRAPHIE: {
@@ -870,8 +870,11 @@ const DocumentsPage = () => {
   const renderOpenDoc = () => {
     if (!openDoc) return null;
 
+    // eslint-disable-next-line no-useless-assignment
     let pdfContent = null;
+    // eslint-disable-next-line no-useless-assignment
     let docTitle   = '';
+    // eslint-disable-next-line no-useless-assignment
     let DocIcon    = FileText;
 
     if (openDoc.type === 'ORDONNANCE') {

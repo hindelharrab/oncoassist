@@ -71,6 +71,7 @@ public class RendezVousController {
                 ));
     }
 
+
     // ── Planifier RDV (secrétaire) ────────────────
     @PutMapping("/{id}/planifier")
     @PreAuthorize("hasAnyAuthority('SECRETAIRE')")

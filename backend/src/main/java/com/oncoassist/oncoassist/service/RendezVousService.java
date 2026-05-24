@@ -25,6 +25,7 @@ public class RendezVousService {
     private final PatientService patientService;
 
     // ── Mutations (restent avec RendezVous) ──────────────────────────────
+    @Transactional
     public RendezVous demander(UUID medecinId, UUID patientId, String motif) {
         RendezVous rdv = new RendezVous();
         rdv.setMedecin(medecinService.findById(medecinId));
