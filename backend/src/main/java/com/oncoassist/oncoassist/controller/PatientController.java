@@ -104,4 +104,24 @@ public class PatientController {
                 patientService.findByMedecinAvecStatut(medecinId)
         );
     }
+    // ── Modifier son propre profil (PATIENT) ──────────────
+    @PutMapping(value = "/{id}/profil", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyAuthority('PATIENT', 'ADMIN', 'SECRETAIRE')")
+    public ResponseEntity<PatientDetailDTO> modifierProfil(
+            @PathVariable UUID id,
+            @RequestParam(value = "telephone", required = false) String telephone,
+            @RequestParam(value = "adresse", required = false) String adresse,
+            @RequestParam(value = "personneConfiance", required = false) String personneConfiance,
+            @RequestParam(value = "photo", required = false) MultipartFile photo
+    ) throws IOException {
+        Patient data = new Patient();
+        data.setTelephone(telephone);
+        data.setAdresse(adresse);
+        data.setPersonneConfiance(personneConfiance);
+        return ResponseEntity.ok(
+                patientService.findByIdDetail(
+                        patientService.modifier(id, data, photo).getId()
+                )
+        );
+    }
 }

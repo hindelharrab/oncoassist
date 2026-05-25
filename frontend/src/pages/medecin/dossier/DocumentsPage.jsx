@@ -19,7 +19,6 @@ import { getIRMs }               from '../../../services/irmService';
 import { getBiopsiesByDossier }  from '../../../services/biopsieService';
 import mammographieService       from '../../../services/mammographieService';
 
-// ─── helpers ──────────────────────────────────────────────────
 const fmt     = (v) => v || '—';
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR') : '—';
 const fmtBool = (v)  => (v === true || v === 'Oui') ? 'Oui' : 'Non';
@@ -31,9 +30,7 @@ const TYPE_LABELS_BIO = {
   mucinous_carcinoma: 'Carcinome Mucineux',
 };
 
-// ══════════════════════════════════════════════════════════════
-// COMPOSANTS PDF PARTAGÉS
-// ══════════════════════════════════════════════════════════════
+// ─── Composants PDF partagés ──────────────────────────────────
 const PdfWrap = ({ children }) => (
   <div className="w-full min-h-[297mm] bg-white p-[15mm] relative flex flex-col"
        style={{ fontFamily: 'system-ui,sans-serif' }}>
@@ -59,9 +56,7 @@ const PdfHeader = ({ title, subtitle, date, docteur }) => (
     </div>
     <div className="text-right">
       <p className="text-[11px] font-black uppercase tracking-[0.25em] text-pink-600">{title}</p>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-0.5">
-        {subtitle}
-      </p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-0.5">{subtitle}</p>
       <p className="text-[9px] font-bold text-slate-400 mt-1">{date}</p>
       {docteur && (
         <p className="text-[9px] font-black text-slate-700 mt-0.5 uppercase">Dr. {docteur}</p>
@@ -79,8 +74,7 @@ const PdfFooter = ({ id }) => (
       </p>
     </div>
     <div className="flex flex-col items-center opacity-30">
-      <div className="w-10 h-10 border border-slate-400 flex items-center
-                      justify-center rounded mb-1">
+      <div className="w-10 h-10 border border-slate-400 flex items-center justify-center rounded mb-1">
         <span className="text-[5px] font-mono leading-none text-center">QR VALIDÉ</span>
       </div>
       <p className="text-[6px] font-black uppercase">Signé électroniquement</p>
@@ -116,7 +110,7 @@ const PdfTexte = ({ text }) => (
 );
 
 // ══════════════════════════════════════════════════════════════
-// PDF RAPPORT — composants
+// COMPOSANTS PDF RAPPORT DE SYNTHESE
 // ══════════════════════════════════════════════════════════════
 const RapportSection = ({ title }) => (
   <div className="mt-6 mb-2">
@@ -142,9 +136,6 @@ const RapportTexte = ({ text }) => (
     : null
 );
 
-// ══════════════════════════════════════════════════════════════
-// PDF RAPPORT DE SYNTHÈSE
-// ══════════════════════════════════════════════════════════════
 const PdfRapport = ({ selection, examensData, patient }) => {
   const hasManuel  = selection.examenManuel && examensData.RESULTAT_MANUEL?.length  > 0;
   const hasMammo   = selection.mammographie && examensData.RESULTAT_MAMMOGRAPHIE?.length > 0;
@@ -154,6 +145,7 @@ const PdfRapport = ({ selection, examensData, patient }) => {
 
   return (
     <PdfWrap>
+      {/* En-tête rapport */}
       <div className="mb-8 pb-5 border-b-2 border-slate-900 flex justify-between items-start">
         <div>
           <h2 className="text-xl font-black tracking-tighter text-slate-900 italic uppercase">
@@ -176,7 +168,7 @@ const PdfRapport = ({ selection, examensData, patient }) => {
         </div>
       </div>
 
-      {/* INFOS GÉNÉRALES */}
+      {/* ── INFOS GÉNÉRALES ── */}
       {selection.infosGenerales && (<>
         <RapportSection title="Informations Générales" />
         {patient ? (<>
@@ -191,6 +183,8 @@ const PdfRapport = ({ selection, examensData, patient }) => {
         </>) : (
           <RapportTexte text="Informations patient non disponibles." />
         )}
+
+        {/* Antécédents depuis la dernière consultation */}
         {examensData.RESULTAT_MANUEL?.length > 0 && (() => {
           const last  = examensData.RESULTAT_MANUEL[0];
           const medic = last.antecedentsMedicaux  || [];
@@ -199,13 +193,14 @@ const PdfRapport = ({ selection, examensData, patient }) => {
             {medic.length > 0 && (<>
               <RapportSection title="Antécédents Médicaux" />
               {medic.map((a, i) => (
-                <RapportRow key={i} label={a.maladie}
+                <RapportRow key={i}
+                  label={a.maladie}
                   value={[
                     a.statut?.replace('_', ' '),
-                    a.dateDiagnostic
-                      ? new Date(a.dateDiagnostic).getFullYear() : null,
+                    a.dateDiagnostic ? new Date(a.dateDiagnostic).getFullYear() : null,
                     a.traitements || null,
-                  ].filter(Boolean).join(' — ')} />
+                  ].filter(Boolean).join(' — ')}
+                />
               ))}
             </>)}
             {famil.length > 0 && (<>
@@ -213,14 +208,15 @@ const PdfRapport = ({ selection, examensData, patient }) => {
               {famil.map((a, i) => (
                 <RapportRow key={i}
                   label={`${a.lienFamilial} — ${a.maladie}`}
-                  value={a.ageSurvenue ? `Détecté à ${a.ageSurvenue} ans` : '—'} />
+                  value={a.ageSurvenue ? `Détecté à ${a.ageSurvenue} ans` : '—'}
+                />
               ))}
             </>)}
           </>);
         })()}
       </>)}
 
-      {/* EXAMEN MANUEL */}
+      {/* ── EXAMEN MANUEL ── */}
       {hasManuel && (() => {
         const consult = examensData.RESULTAT_MANUEL[0];
         const em      = consult.examenManuel;
@@ -248,7 +244,7 @@ const PdfRapport = ({ selection, examensData, patient }) => {
         </>);
       })()}
 
-      {/* MAMMOGRAPHIE */}
+      {/* ── MAMMOGRAPHIE ── */}
       {hasMammo && (() => {
         const exam    = examensData.RESULTAT_MAMMOGRAPHIE[0];
         const isMalin = exam.predictionIA === 'MALIGNANT';
@@ -256,10 +252,12 @@ const PdfRapport = ({ selection, examensData, patient }) => {
         const birads  = exam.scoreBIRADS?.replace('BIRADS_', 'BI-RADS ') || '—';
         return (<>
           <RapportSection title="Mammographie Numérique" />
-          <RapportRow label="Date"              value={fmtDate(exam.dateExamen)} />
+          <RapportRow label="Date"
+            value={fmtDate(exam.dateExamen)} />
           <RapportRow label="Médecin"
             value={`Dr. ${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`} />
-          <RapportRow label="Classification BI-RADS" value={birads} />
+          <RapportRow label="Classification BI-RADS"
+            value={birads} />
           <RapportRow label="Résultat IA"
             value={`${isMalin ? 'Malin' : 'Bénin'} — ${conf}% de confiance`} />
           {exam.typeTumeur && (
@@ -278,33 +276,47 @@ const PdfRapport = ({ selection, examensData, patient }) => {
                            mt-2 mb-1">Observations</p>
             <RapportTexte text={exam.biradsDescription} />
           </>)}
-          
+          <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-2">
+            Modèle : EfficientNet-B3 · AUC 0.80
+          </p>
         </>);
       })()}
 
-      {/* ÉCHOGRAPHIE */}
+      {/* ── ÉCHOGRAPHIE ── */}
       {hasEcho && (() => {
         const exam = examensData.RESULTAT_ECHOGRAPHIE[0];
         return (<>
           <RapportSection title="Échographie Mammaire" />
-          <RapportRow label="Date"             value={fmtDate(exam.date)} />
+          <RapportRow label="Date"
+            value={fmtDate(exam.date)} />
           <RapportRow label="Médecin"
             value={`Dr. ${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`} />
-          <RapportRow label="Sein Examiné"     value={fmt(exam.seinExamine)} />
-          <RapportRow label="Quadrant"         value={fmt(exam.quadrant)} />
+          <RapportRow label="Sein Examiné"
+            value={fmt(exam.seinExamine)} />
+          <RapportRow label="Quadrant"
+            value={fmt(exam.quadrant)} />
           <RapportRow label="Distance Mamelon"
             value={exam.distanceMamelon ? `${exam.distanceMamelon} cm` : '—'} />
-          <RapportRow label="Type Structure"   value={fmt(exam.typeStructure)} />
-          <RapportRow label="Forme"            value={fmt(exam.forme)} />
-          <RapportRow label="Orientation"      value={fmt(exam.orientation)} />
-          <RapportRow label="Contours"         value={fmt(exam.contours)} />
-          <RapportRow label="Échostructure"    value={fmt(exam.echostructure)} />
-          <RapportRow label="Vascularisation"  value={fmt(exam.vascularisationDoppler)} />
-          <RapportRow label="Taille"
+          <RapportRow label="Type Structure"
+            value={fmt(exam.typeStructure)} />
+          <RapportRow label="Forme"
+            value={fmt(exam.forme)} />
+          <RapportRow label="Orientation"
+            value={fmt(exam.orientation)} />
+          <RapportRow label="Contours"
+            value={fmt(exam.contours)} />
+          <RapportRow label="Échostructure"
+            value={fmt(exam.echostructure)} />
+          <RapportRow label="Vascularisation Doppler"
+            value={fmt(exam.vascularisationDoppler)} />
+          <RapportRow label="Taille (axe 1×2×3)"
             value={`${exam.tailleAxe1||'0'} × ${exam.tailleAxe2||'0'} × ${exam.tailleAxe3||'0'} mm`} />
-          <RapportRow label="Calcifications"   value={fmtBool(exam.calcificationsPresentes)} />
-          <RapportRow label="Adéno. Axillaire" value={fmtBool(exam.adenopathieAxillaire)} />
-          <RapportRow label="Score BI-RADS"    value={fmt(exam.scoreBIRADS)} />
+          <RapportRow label="Calcifications"
+            value={fmtBool(exam.calcificationsPresentes)} />
+          <RapportRow label="Adéno. Axillaire"
+            value={fmtBool(exam.adenopathieAxillaire)} />
+          <RapportRow label="Score BI-RADS"
+            value={fmt(exam.scoreBIRADS)} />
           {exam.recommandation && (<>
             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400
                            mt-3 mb-1">Recommandation</p>
@@ -318,32 +330,47 @@ const PdfRapport = ({ selection, examensData, patient }) => {
         </>);
       })()}
 
-      {/* IRM */}
+      {/* ── IRM ── */}
       {hasIRM && (() => {
         const exam = examensData.RESULTAT_IRM[0];
         return (<>
           <RapportSection title="IRM Mammaire" />
-          <RapportRow label="Date"              value={fmtDate(exam.date)} />
+          <RapportRow label="Date"
+            value={fmtDate(exam.date)} />
           <RapportRow label="Médecin"
             value={`Dr. ${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`} />
-          <RapportRow label="Sein Examiné"      value={fmt(exam.seinExamine)} />
-          <RapportRow label="Séquences"         value={fmt(exam.sequences)} />
-          <RapportRow label="Produit Contraste" value={fmt(exam.produitContraste)} />
-          <RapportRow label="Quadrant"          value={fmt(exam.quadrant)} />
-          <RapportRow label="Forme Lésion"      value={fmt(exam.formeLesion)} />
-          <RapportRow label="Contours"          value={fmt(exam.contoursLesion)} />
-          <RapportRow label="Signal T2"         value={fmt(exam.signalT2)} />
-          <RapportRow label="Cinématique"       value={fmt(exam.cinematiqueRehaussement)} />
-          <RapportRow label="Diffusion"         value={fmt(exam.restrictionDiffusion)} />
+          <RapportRow label="Sein Examiné"
+            value={fmt(exam.seinExamine)} />
+          <RapportRow label="Séquences"
+            value={fmt(exam.sequences)} />
+          <RapportRow label="Produit Contraste"
+            value={fmt(exam.produitContraste)} />
+          <RapportRow label="Quadrant"
+            value={fmt(exam.quadrant)} />
+          <RapportRow label="Forme Lésion"
+            value={fmt(exam.formeLesion)} />
+          <RapportRow label="Contours"
+            value={fmt(exam.contoursLesion)} />
+          <RapportRow label="Signal T2"
+            value={fmt(exam.signalT2)} />
+          <RapportRow label="Cinématique Rehaussement"
+            value={fmt(exam.cinematiqueRehaussement)} />
+          <RapportRow label="Restriction Diffusion"
+            value={fmt(exam.restrictionDiffusion)} />
           <RapportRow label="Valeur ADC"
             value={exam.valeurAdc ? String(exam.valeurAdc) : '—'} />
-          <RapportRow label="Taille"
+          <RapportRow label="Taille (axe 1×2×3)"
             value={`${exam.tailleAxe1||'0'} × ${exam.tailleAxe2||'0'} × ${exam.tailleAxe3||'0'} mm`} />
-          <RapportRow label="Adéno. Axillaire"    value={fmt(exam.adenopathieAxillaire)} />
-          <RapportRow label="Adéno. Médiastinale" value={fmt(exam.adenopathieMediastinale)} />
-          <RapportRow label="Extension Paroi"     value={fmt(exam.extensionParoi)} />
-          <RapportRow label="Extension Cutanée"   value={fmt(exam.extensionCutanee)} />
-          <RapportRow label="Score BI-RADS IRM"   value={fmt(exam.scoreBIRADS)} />
+          <RapportRow label="Adéno. Axillaire"
+            value={fmt(exam.adenopathieAxillaire)} />
+          <RapportRow label="Adéno. Médiastinale"
+            value={fmt(exam.adenopathieMediastinale)} />
+          <RapportRow label="Extension Paroi"
+            value={fmt(exam.extensionParoi)} />
+          <RapportRow label="Extension Cutanée"
+            value={fmt(exam.extensionCutanee)} />
+          <RapportRow label="Score BI-RADS IRM"
+            value={fmt(exam.scoreBIRADS)} />
           {exam.recommandation && (<>
             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400
                            mt-3 mb-1">Recommandation</p>
@@ -357,7 +384,7 @@ const PdfRapport = ({ selection, examensData, patient }) => {
         </>);
       })()}
 
-      {/* BIOPSIE */}
+      {/* ── BIOPSIE ── */}
       {hasBiopsie && (() => {
         const exam    = examensData.RESULTAT_BIOPSIE[0];
         const isMalin = exam.classeBinaire === 'MALIN';
@@ -367,11 +394,14 @@ const PdfRapport = ({ selection, examensData, patient }) => {
           ? `${(exam.scoreTypeConfiance * 100).toFixed(1)}%` : '—';
         return (<>
           <RapportSection title="Analyse de Biopsie" />
-          <RapportRow label="Date"              value={fmtDate(exam.date)} />
+          <RapportRow label="Date"
+            value={fmtDate(exam.date)} />
           <RapportRow label="Médecin"
             value={`Dr. ${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`} />
-          <RapportRow label="Site Anatomique"   value={fmt(exam.siteAnatomique)} />
-          <RapportRow label="Grossissement"     value={fmt(exam.grossissement)} />
+          <RapportRow label="Site Anatomique"
+            value={fmt(exam.siteAnatomique)} />
+          <RapportRow label="Grossissement"
+            value={fmt(exam.grossissement)} />
           <RapportRow label="Régions Analysées"
             value={`${exam.imagesAnalysees?.length || 0} zone(s)`} />
           {exam.isAnalysed && (<>
@@ -381,16 +411,19 @@ const PdfRapport = ({ selection, examensData, patient }) => {
               <RapportRow label="Type Tumeur"
                 value={`${TYPE_LABELS_BIO[exam.typeTumeur] || exam.typeTumeur} — ${scoreT}`} />
             )}
-          
+            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-2">
+              Modèle : DenseNet121 · Dataset : BreaKHis · v1.2
+            </p>
           </>)}
           {exam.notes && (<>
             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400
-                           mt-3 mb-1">Compte-Rendu</p>
+                           mt-3 mb-1">Compte-Rendu Anatomopathologique</p>
             <RapportTexte text={exam.notes} />
           </>)}
         </>);
       })()}
 
+      {/* Rien sélectionné */}
       {!selection.infosGenerales && !hasManuel && !hasMammo &&
        !hasEcho && !hasIRM && !hasBiopsie && (
         <p className="text-[10px] text-slate-400 italic mt-8 text-center">
@@ -404,8 +437,37 @@ const PdfRapport = ({ selection, examensData, patient }) => {
 };
 
 // ══════════════════════════════════════════════════════════════
-// PDF PAR EXAMEN
+// CONFIG PAR TYPE
 // ══════════════════════════════════════════════════════════════
+const EXAM_CONFIG = {
+  RESULTAT_MANUEL: {
+    Icon: Stethoscope, color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-500',
+    label: 'Examen Manuel', PdfComponent: null,
+    docTitle: 'Examen Clinique Manuel', docIcon: Stethoscope,
+  },
+  RESULTAT_ECHOGRAPHIE: {
+    Icon: Zap, color: 'bg-sky-50 dark:bg-sky-900/20 text-sky-500',
+    label: 'Échographie', PdfComponent: null,
+    docTitle: 'Échographie Mammaire', docIcon: Zap,
+  },
+  RESULTAT_IRM: {
+    Icon: Layers, color: 'bg-violet-50 dark:bg-violet-900/20 text-violet-500',
+    label: 'IRM Mammaire', PdfComponent: null,
+    docTitle: 'IRM Mammaire', docIcon: Layers,
+  },
+  RESULTAT_BIOPSIE: {
+    Icon: Microscope, color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500',
+    label: 'Analyse tissulaire', PdfComponent: null,
+    docTitle: 'Analyse de Biopsie', docIcon: Microscope,
+  },
+  RESULTAT_MAMMOGRAPHIE: {
+    Icon: Activity, color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-500',
+    label: 'Mammographie', PdfComponent: null,
+    docTitle: 'Mammographie Numérique', docIcon: Activity,
+  },
+};
+
+// Assignation des composants PDF après leur définition
 const PdfExamenManuel = ({ data: consult }) => {
   const em = consult.examenManuel;
   return (
@@ -428,8 +490,7 @@ const PdfExamenManuel = ({ data: consult }) => {
         {consult.antecedentsMedicaux.map((a, i) => (
           <PdfRow key={i} label={a.maladie}
             value={`${a.statut?.replace('_', ' ')} — ${
-              a.dateDiagnostic
-                ? new Date(a.dateDiagnostic).getFullYear() : '—'}`} />
+              a.dateDiagnostic ? new Date(a.dateDiagnostic).getFullYear() : '—'}`} />
         ))}
       </>}
       {consult.antecedentsFamiliaux?.length > 0 && <>
@@ -457,7 +518,7 @@ const PdfEchographie = ({ data: exam }) => (
       docteur={`${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`}
     />
     <PdfSection title="Localisation" />
-    <PdfRow label="Sein Examiné"    value={fmt(exam.seinExamine)} accent="text-pink-700" />
+    <PdfRow label="Sein Examiné"    value={fmt(exam.seinExamine)}  accent="text-pink-700" />
     <PdfRow label="Quadrant"        value={fmt(exam.quadrant)} />
     <PdfRow label="Distance Mamelon"
       value={exam.distanceMamelon ? `${exam.distanceMamelon} cm` : '—'} />
@@ -501,7 +562,7 @@ const PdfIRM = ({ data: exam }) => (
       docteur={`${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`}
     />
     <PdfSection title="Protocole" />
-    <PdfRow label="Sein Examiné"      value={fmt(exam.seinExamine)} accent="text-pink-700" />
+    <PdfRow label="Sein Examiné"      value={fmt(exam.seinExamine)}      accent="text-pink-700" />
     <PdfRow label="Séquences"         value={fmt(exam.sequences)} />
     <PdfRow label="Produit Contraste" value={fmt(exam.produitContraste)} />
     <PdfRow label="Quadrant"          value={fmt(exam.quadrant)} />
@@ -567,15 +628,15 @@ const PdfBiopsie = ({ data: exam }) => {
       {exam.isAnalysed ? (<>
         <PdfSection title="Résultat Analyse IA — DenseNet121" />
         <PdfRow label="Diagnostic"
-          value={`${isMalin ? 'Malin' : 'Bénin'} — ${
-            ((exam.scoreBenignMalin||0)*100).toFixed(1)}% de confiance`}
+          value={`${isMalin ? 'Malin' : 'Bénin'} — ${((exam.scoreBenignMalin||0)*100).toFixed(1)}% de confiance`}
           accent={isMalin ? 'text-rose-700' : 'text-emerald-700'} />
         {exam.typeTumeur && (
           <PdfRow label="Type Tumeur"
-            value={`${TYPE_LABELS_BIO[exam.typeTumeur] || exam.typeTumeur} — ${
-              ((exam.scoreTypeConfiance||0)*100).toFixed(1)}%`} />
+            value={`${TYPE_LABELS_BIO[exam.typeTumeur] || exam.typeTumeur} — ${((exam.scoreTypeConfiance||0)*100).toFixed(1)}%`} />
         )}
-       
+        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-2">
+          Modèle : DenseNet121 · Dataset : BreaKHis · Version : IA v1.2
+        </p>
       </>) : (
         <PdfTexte text="Aucune analyse IA effectuée." />
       )}
@@ -591,91 +652,57 @@ const PdfBiopsie = ({ data: exam }) => {
 const PdfMammographie = ({ data: exam }) => {
   const isMalin = exam.predictionIA === 'MALIGNANT';
   const birads  = exam.scoreBIRADS?.replace('BIRADS_', 'BI-RADS ') || '—';
-  const conf    = exam.confidencePct != null
-    ? exam.confidencePct.toFixed(1)
-    : exam.scoreRisqueIA != null
-      ? (exam.scoreRisqueIA * 100).toFixed(1)
-      : '—';
-
+  const conf    = (exam.confidencePct || (exam.scoreRisqueIA * 100) || 0).toFixed(1);
   return (
     <PdfWrap>
       <PdfHeader
         title="Mammographie Numérique"
         subtitle="Analyse Assistée par Intelligence Artificielle"
         date={fmtDate(exam.dateExamen)}
-        docteur={exam.auteurPrenom || exam.auteurNom
-          ? `${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`
-          : null}
+        docteur={`${exam.auteurPrenom || ''} ${exam.auteurNom || ''}`}
       />
-      <PdfSection title="Résultat Diagnostic IA" />
-      <PdfRow
-        label="Prédiction"
-        value={isMalin ? 'MALIN' : 'BÉNIN'}
-        accent={isMalin ? 'text-rose-700' : 'text-emerald-700'}
-      />
+      <PdfSection title="Résultat Diagnostic IA — EfficientNet-B3" />
       <PdfRow label="Classification BI-RADS" value={birads} accent="text-pink-700" />
-      <PdfRow
-        label="Confiance IA"
-        value={conf !== '—' ? `${conf}%` : '—'}
-        accent={isMalin ? 'text-rose-700' : 'text-emerald-700'}
-      />
-      <PdfSection title="Localisation Anatomique" />
-      <PdfRow
-        label="Quadrant"
-        value={exam.quadrantShort
-          ? `${exam.quadrantShort} — ${exam.quadrant || ''}`
-          : fmt(exam.quadrant)}
-        accent="text-pink-700"
-      />
-      {exam.positionText && (
-        <PdfRow label="Position" value={exam.positionText} />
+      <PdfRow label="Diagnostic IA"
+        value={`${isMalin ? 'Malin' : 'Bénin'} — ${conf}% de confiance`}
+        accent={isMalin ? 'text-rose-700' : 'text-emerald-700'} />
+      {exam.typeTumeur && (
+        <PdfRow label="Type Tumeur"
+          value={TYPE_LABELS_BIO[exam.typeTumeur] || exam.typeTumeur} />
       )}
+      <PdfSection title="Localisation Anatomique" />
+      <PdfRow label="Position"  value={fmt(exam.positionText)} />
+      <PdfRow label="Quadrant"
+        value={`${exam.quadrantShort || '—'} — ${exam.quadrant || '—'}`}
+        accent="text-pink-700" />
       <PdfSection title="Recommandation Clinique" />
-      <PdfTexte text={
-        exam.recommendationIA ||
-        (isMalin
+      <PdfTexte text={exam.recommendationIA
+        || (isMalin
           ? '⚠ Biopsie recommandée — Confirmation histologique requise'
-          : '✓ Surveillance annuelle recommandée')
-      } />
+          : '✓ Surveillance annuelle recommandée')} />
       {exam.biradsDescription && <>
-        <PdfSection title="Observations BI-RADS" />
+        <PdfSection title="Observations" />
         <PdfTexte text={exam.biradsDescription} />
       </>}
+      <PdfSection title="Informations Techniques" />
+      <PdfRow label="Modèle IA"  value="EfficientNet-B3" />
+      <PdfRow label="Méthode"    value="GradCAM + Bounding Box" />
+      <PdfRow label="AUC Modèle" value="0.80" />
+      <PdfRow label="Seuil Opt." value="0.32 (Sensibilité 97.5%)" />
+      <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-3 italic">
+        Outil d'aide au diagnostic — La décision finale appartient au médecin.
+      </p>
       <PdfFooter id={exam.id} />
     </PdfWrap>
   );
 };
 
-// ══════════════════════════════════════════════════════════════
-// CONFIG PAR TYPE
-// ══════════════════════════════════════════════════════════════
-const EXAM_CONFIG = {
-  RESULTAT_MANUEL: {
-    Icon: Stethoscope, color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-500',
-    label: 'Examen Manuel', PdfComponent: PdfExamenManuel,
-    docTitle: 'Examen Clinique Manuel', docIcon: Stethoscope,
-  },
-  RESULTAT_ECHOGRAPHIE: {
-    Icon: Zap, color: 'bg-sky-50 dark:bg-sky-900/20 text-sky-500',
-    label: 'Échographie', PdfComponent: PdfEchographie,
-    docTitle: 'Échographie Mammaire', docIcon: Zap,
-  },
-  RESULTAT_IRM: {
-    Icon: Layers, color: 'bg-violet-50 dark:bg-violet-900/20 text-violet-500',
-    label: 'IRM Mammaire', PdfComponent: PdfIRM,
-    docTitle: 'IRM Mammaire', docIcon: Layers,
-  },
-  RESULTAT_BIOPSIE: {
-    Icon: Microscope, color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500',
-    label: 'Biopsie & IA', PdfComponent: PdfBiopsie,
-    docTitle: 'Analyse de Biopsie', docIcon: Microscope,
-  },
-  RESULTAT_MAMMOGRAPHIE: {
-    Icon: Activity, color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-500',
-    label: 'Mammographie', PdfComponent: PdfMammographie,
-    docTitle: 'Mammographie Numérique', docIcon: Activity,
-  },
-};
+// Assigner les composants après définition
+EXAM_CONFIG.RESULTAT_MANUEL.PdfComponent       = PdfExamenManuel;
+EXAM_CONFIG.RESULTAT_ECHOGRAPHIE.PdfComponent  = PdfEchographie;
+EXAM_CONFIG.RESULTAT_IRM.PdfComponent          = PdfIRM;
+EXAM_CONFIG.RESULTAT_BIOPSIE.PdfComponent      = PdfBiopsie;
+EXAM_CONFIG.RESULTAT_MAMMOGRAPHIE.PdfComponent = PdfMammographie;
 
 const getBadge = (type, data) => {
   if (!data) return { text: '—', color: 'text-slate-500 bg-slate-50 border-slate-200' };
@@ -752,7 +779,6 @@ const DocumentsPage = () => {
     biopsie        : false,
   });
 
-  // ── Chargement ───────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       try {
@@ -770,10 +796,8 @@ const DocumentsPage = () => {
             getConsultations(dId).catch(() => []),
             getEchographies(dId).catch(() => []),
             getIRMs(dId).catch(() => []),
-            // ← patientId pour biopsies (le backend cherche par patientId)
             getBiopsiesByDossier(patientId).then(r => r.data ?? []).catch(() => []),
-            // ← dossierId pour mammographies
-            mammographieService.getHistorique(patientId).catch(() => []),
+            mammographieService.getHistorique(dId).catch(() => []),
           ]);
 
         setOrdonnances(ords);
@@ -794,22 +818,19 @@ const DocumentsPage = () => {
     init();
   }, [patientId]);
 
-  // ── Sauvegarder un résultat en base + ouvrir PDF ─────────────
   const handleVoirExamen = useCallback(async (type, examenData) => {
     if (!dossierId || !examenData) return;
-
     const examenId   = examenData.id || examenData.examenManuel?.id;
     const dejaEnBase = savedResultats.some(r => r.examenSourceId === examenId);
 
     if (!dejaEnBase && examenId) {
       setSavingDoc(true);
       try {
-        const cfg    = EXAM_CONFIG[type];
-        const date   = getDate(type, examenData);
+        const cfg  = EXAM_CONFIG[type];
+        const date = getDate(type, examenData);
         const created = await creerDocument(dossierId, {
           nom             : `${cfg.label} — ${date}`,
           type,
-          // ↓ données complètes de l'examen sérialisées
           contenu         : JSON.stringify(examenData),
           partagePatient  : false,
           etape           : cfg.label,
@@ -823,46 +844,9 @@ const DocumentsPage = () => {
         setSavingDoc(false);
       }
     }
-
     setOpenDoc({ type, examenData });
   }, [dossierId, savedResultats]);
 
-  // ── Générer + sauvegarder le rapport de synthèse ─────────────
-  const handleGenererRapport = useCallback(async () => {
-    if (!dossierId) return;
-    const nbSections = Object.values(reportSelection).filter(Boolean).length;
-    if (nbSections === 0) return;
-
-    // Sauvegarder le rapport en base
-    setSavingDoc(true);
-    try {
-      await creerDocument(dossierId, {
-        nom            : `Rapport de Synthèse — ${new Date().toLocaleDateString('fr-FR')}`,
-        type           : 'RAPPORT_FINAL',
-        contenu        : JSON.stringify({
-          selection  : reportSelection,
-          examensData,
-          patient    : patientData,
-          dateGenere : new Date().toISOString(),
-        }),
-        partagePatient : false,
-        etape          : 'Rapport de Synthèse',
-      });
-    } catch (e) {
-      console.warn('Sauvegarde rapport échouée:', e);
-    } finally {
-      setSavingDoc(false);
-    }
-
-    // Ouvrir le PDF
-    setOpenDoc({
-      type           : 'RAPPORT',
-      reportSelection: { ...reportSelection },
-      examensData    : { ...examensData },
-    });
-  }, [dossierId, reportSelection, examensData, patientData]);
-
-  // ── Ordonnances ──────────────────────────────────────────────
   const handleAddOrdonnance = async (e) => {
     e.preventDefault();
     if (!newOrd.contenu.trim() || !dossierId) return;
@@ -883,12 +867,14 @@ const DocumentsPage = () => {
   const toggleReportPart = (part) =>
     setReportSelection(prev => ({ ...prev, [part]: !prev[part] }));
 
-  // ── Rendu document ouvert pleine page ─────────────────────────
   const renderOpenDoc = () => {
     if (!openDoc) return null;
 
+    // eslint-disable-next-line no-useless-assignment
     let pdfContent = null;
+    // eslint-disable-next-line no-useless-assignment
     let docTitle   = '';
+    // eslint-disable-next-line no-useless-assignment
     let DocIcon    = FileText;
 
     if (openDoc.type === 'ORDONNANCE') {
@@ -1023,9 +1009,10 @@ const DocumentsPage = () => {
     </div>
   );
 
-  const typesAvecDonnees         = Object.entries(examensData)
+  const typesAvecDonnees = Object.entries(examensData)
     .filter(([, list]) => list.length > 0);
-  const nbSectionsSelectionnees  = Object.values(reportSelection).filter(Boolean).length;
+
+  const nbSectionsSelectionnees = Object.values(reportSelection).filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 lg:p-8">
@@ -1101,8 +1088,7 @@ const DocumentsPage = () => {
         {/* Modal nouvelle ordonnance */}
         <AnimatePresence>
           {showNewOrdForm && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-[100] flex items-center justify-center
                          p-4 bg-slate-950/60 backdrop-blur-sm no-print">
               <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
@@ -1154,7 +1140,7 @@ const DocumentsPage = () => {
 
         <AnimatePresence mode="wait">
 
-          {/* ── Document ouvert pleine page ── */}
+          {/* Document ouvert pleine page */}
           {openDoc && (
             <motion.div key="open-doc"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -1278,8 +1264,7 @@ const DocumentsPage = () => {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 px-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <p className="text-[9px] font-black uppercase tracking-[0.25em]
-                                  text-slate-400">
+                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">
                       Seuls les examens réalisés sont affichés
                     </p>
                     {savingDoc && (
@@ -1342,9 +1327,7 @@ const DocumentsPage = () => {
                               </div>
                               <div className="space-y-1 mb-3">
                                 <h4 className="text-sm font-black uppercase tracking-tight
-                                               text-slate-900 dark:text-white">
-                                  {cfg.label}
-                                </h4>
+                                               text-slate-900 dark:text-white">{cfg.label}</h4>
                                 <p className="text-[9px] font-bold text-slate-400
                                               uppercase tracking-widest">
                                   {getSubtitle(type, last)}
@@ -1372,11 +1355,56 @@ const DocumentsPage = () => {
                           );
                         })}
                       </div>
+
+                      {/* Examens antérieurs */}
+                      {typesAvecDonnees.some(([, list]) => list.length > 1) && (
+                        <div className="bg-white dark:bg-slate-950 border
+                                        border-slate-200 dark:border-slate-800
+                                        rounded-2xl overflow-hidden">
+                          <div className="px-5 py-4 border-b border-slate-100
+                                          dark:border-slate-800">
+                            <p className="text-[9px] font-black uppercase
+                                          tracking-[0.25em] text-slate-400">
+                              Examens antérieurs
+                            </p>
+                          </div>
+                          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {typesAvecDonnees.flatMap(([type, list]) =>
+                              list.slice(1).map((item, i) => {
+                                const cfg = EXAM_CONFIG[type];
+                                if (!cfg) return null;
+                                return (
+                                  <button key={`${type}-${i}`}
+                                    onClick={() => handleVoirExamen(type, item)}
+                                    className="w-full flex items-center justify-between
+                                               px-5 py-4 hover:bg-slate-50
+                                               dark:hover:bg-slate-900 transition-all group">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-8 h-8 rounded-xl ${cfg.color}
+                                                      flex items-center justify-center`}>
+                                        <cfg.Icon size={14} />
+                                      </div>
+                                      <span className="text-[10px] font-black uppercase
+                                                       tracking-widest text-slate-700
+                                                       dark:text-slate-300">
+                                        {cfg.label} — {getDate(type, item)}
+                                      </span>
+                                    </div>
+                                    <ChevronRight size={13}
+                                      className="text-slate-300 group-hover:text-pink-400
+                                                 transition-colors" />
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
               )}
-              
+
               {/* ══ RAPPORT ══ */}
               {activeTab === 'rapport' && (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200
@@ -1452,30 +1480,23 @@ const DocumentsPage = () => {
                                       tracking-[0.2em]">Dossier Médical Complet</p>
                         <p className="text-[10px] text-slate-400 mt-1">
                           {nbSectionsSelectionnees} section
-                          {nbSectionsSelectionnees !== 1 ? 's' : ''} sélectionnée
-                          {nbSectionsSelectionnees !== 1 ? 's' : ''}
+                          {nbSectionsSelectionnees > 1 ? 's' : ''} sélectionnée
+                          {nbSectionsSelectionnees > 1 ? 's' : ''}
                         </p>
                       </div>
-
-                      {savingDoc && (
-                        <div className="flex items-center gap-2 text-pink-400">
-                          <Loader2 size={14} className="animate-spin" />
-                          <span className="text-[9px] font-black uppercase tracking-widest">
-                            Enregistrement...
-                          </span>
-                        </div>
-                      )}
-
                       <button
-                        disabled={nbSectionsSelectionnees === 0 || savingDoc}
-                        onClick={handleGenererRapport}
+                        disabled={nbSectionsSelectionnees === 0}
+                        onClick={() => setOpenDoc({
+                          type           : 'RAPPORT',
+                          reportSelection: { ...reportSelection },
+                          examensData    : { ...examensData },
+                        })}
                         className="h-12 px-8 rounded-xl bg-slate-950 dark:bg-pink-600
                                    text-white text-[11px] font-black uppercase
                                    tracking-widest hover:scale-[1.02] active:scale-[0.98]
                                    transition-all flex items-center justify-center
                                    gap-3 shadow-xl disabled:opacity-40
-                                   disabled:cursor-not-allowed
-                                   disabled:hover:scale-100">
+                                   disabled:cursor-not-allowed disabled:hover:scale-100">
                         <Eye size={18} />
                         Générer le Rapport
                       </button>

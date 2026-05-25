@@ -9,6 +9,7 @@ import '../widgets/questionnaire_bot_sheet.dart';
 import 'login_screen.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/ribbon_painter.dart';
 
 class MainContainerScreen extends StatefulWidget {
   final String patientNom;
@@ -38,24 +39,96 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
   int _currentIndex = 0;
   String _clinicalStatusText = "Suivi régulier";
   String _clinicalStatusTime = "Mise à jour aujourd'hui";
+  String _photoProfil = '';
 
-  late final _Patient _patient;
-
-  List<Map<String, dynamic>> _mockNotifications = [
-    {"id": "not-1", "title": "Rendez-vous à venir", "message": "Dr. Leila Mansouri vous attend le 27 mai à 14h30 au CHU.", "time": "Il y a 2h", "isRead": false},
-    {"id": "not-2", "title": "Nouveau Résultat disponible", "message": "Votre rapport de biopsie mammaire a été mis à disposition.", "time": "Hier", "isRead": false},
-    {"id": "not-3", "title": "Rappel d'hormonothérapie", "message": "Avez-vous bien validé votre prise de Tamoxifène ce matin ?", "time": "Lundi 19 mai", "isRead": true},
-  ];
+  // ── Notifications réelles backend ────────────────────────
+  List<Map<String, dynamic>> _notifications = [];
+  bool _notifLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _patient = _Patient(
-      firstName: widget.patientPrenom,
-      lastName: widget.patientNom,
-      birthDate: widget.dateNaissance,
-      folderID: widget.folderCode.isNotEmpty ? widget.folderCode : "#DOSS-0000",
-    );
+    _loadPhotoProfil();
+    _fetchNotifications();
+  }
+
+  Future<void> _loadPhotoProfil() async {
+    try {
+      final data = await ApiService.get('/patients/${widget.patientId}');
+      if (mounted) setState(() => _photoProfil = data['photoProfil'] ?? '');
+    } catch (_) {}
+  }
+
+  Future<void> _fetchNotifications() async {
+    if (!mounted) return;
+    setState(() => _notifLoading = true);
+    try {
+      final List<dynamic> data = await ApiService.get(
+          '/notifications/patient/${widget.patientId}');
+      if (!mounted) return;
+      setState(() {
+        _notifications = data.map((n) => Map<String, dynamic>.from(n)).toList();
+        _notifLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _notifLoading = false);
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    try {
+      await ApiService.put(
+          '/notifications/patient/${widget.patientId}/toutes-lues', {});
+      await _fetchNotifications();
+      _showToast("Toutes les notifications sont lues 🎀");
+    } catch (_) {
+      _showToast("Toutes les notifications sont lues 🎀");
+    }
+  }
+
+  Future<void> _markOneRead(String notifId) async {
+    try {
+      await ApiService.put('/notifications/$notifId/lue', {});
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        for (var n in _notifications) {
+          if (n['id'] == notifId) n['lue'] = true;
+        }
+      });
+    }
+  }
+
+  bool get _hasUnread => _notifications.any((n) => n['lue'] == false);
+
+  String get _avatarUrl {
+    if (_photoProfil.isEmpty) return '';
+    if (_photoProfil.startsWith('http')) return _photoProfil;
+    return 'http://10.0.2.2:8080/$_photoProfil';
+  }
+
+  // ── Helpers notif ─────────────────────────────────────────
+  String _notifIcon(Map<String, dynamic> n) {
+    final cat = n['categorie'] ?? '';
+    switch (cat) {
+      case 'rdv':     return '📅';
+      case 'dossier': return '📄';
+      case 'patient': return '👩‍⚕️';
+      default:        return '🔔';
+    }
+  }
+
+  String _notifTime(Map<String, dynamic> n) {
+    final raw = n['dateCreation'];
+    if (raw == null) return '';
+    try {
+      final d    = DateTime.parse(raw);
+      final diff = DateTime.now().difference(d);
+      if (diff.inMinutes < 60)  return 'Il y a ${diff.inMinutes}min';
+      if (diff.inHours < 24)    return 'Il y a ${diff.inHours}h';
+      if (diff.inDays == 1)     return 'Hier';
+      return 'Il y a ${diff.inDays}j';
+    } catch (_) { return ''; }
   }
 
   void _showToast(String text) {
@@ -66,7 +139,8 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
           children: [
             Container(width: 16, height: 16, margin: const EdgeInsets.only(right: 8),
                 child: CustomPaint(painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
-            Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white))),
+            Expanded(child: Text(text,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white))),
           ],
         ),
         backgroundColor: const Color(0xFF2D2D2D),
@@ -94,96 +168,210 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
     );
   }
 
-  void _markAllRead() {
-    setState(() { for (var n in _mockNotifications) n["isRead"] = true; });
-    _showToast("Toutes les notifications sont lues 🎀");
+  // ── Icône de chat AI (cercle + bulle + badge IA) ─────────
+  Widget _buildChatAiIcon() {
+    return GestureDetector(
+      onTap: _openChatBotModal,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        // left: 12 -> décale l'icône vers la droite (pas collée au bord)
+        padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8, right: 4),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Cercle rose/mauve clair avec la bulle de chat
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3E5F5),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: Color(0xFFB39DDB),
+                  size: 20,
+                ),
+              ),
+            ),
+            // Badge "IA" en haut à gauche
+            Positioned(
+              top: -2,
+              left: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE91E8C),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "IA",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openNotificationsDropdown() {
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
-      builder: (ctx) => Align(
-        alignment: Alignment.topRight,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 70, right: 8),
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 260,
-              constraints: const BoxConstraints(maxHeight: 320),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFEDE7F6)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 16, offset: const Offset(0, 4))],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("NOTIFICATIONS CLINIQUE",
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFB39DDB))),
-                        GestureDetector(
-                          onTap: () { Navigator.pop(ctx); _markAllRead(); },
-                          child: const Text("Tout lire",
-                              style: TextStyle(fontSize: 11, color: Color(0xFFE91E8C), fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFEDE7F6)),
-                  Flexible(
-                    child: ListView(
-                      padding: const EdgeInsets.all(8),
-                      shrinkWrap: true,
-                      children: _mockNotifications.map((notif) {
-                        final bool unread = notif["isRead"] == false;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => notif["isRead"] = true);
-                            Navigator.pop(ctx);
-                            _showToast("Notification : ${notif["title"]}");
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: unread ? const Color(0xFFFCE4EC) : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border(left: BorderSide(
-                                  color: unread ? const Color(0xFFE91E8C) : Colors.transparent, width: 2)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(child: Text(notif["title"],
-                                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 10,
-                                            color: unread ? const Color(0xFF2D2D2D) : Colors.grey),
-                                        overflow: TextOverflow.ellipsis)),
-                                    Text(notif["time"], style: const TextStyle(fontSize: 8, color: Colors.grey)),
-                                  ],
-                                ),
-                                const SizedBox(height: 3),
-                                Text(notif["message"],
-                                    style: TextStyle(fontSize: 9.5,
-                                        color: unread ? const Color(0xFF616161) : Colors.grey, height: 1.3),
-                                    maxLines: 2, overflow: TextOverflow.ellipsis),
-                              ],
-                            ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 70, right: 8),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 280,
+                constraints: const BoxConstraints(maxHeight: 380),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFEDE7F6)),
+                  boxShadow: [BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("MES NOTIFICATIONS",
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
+                                  color: Color(0xFFB39DDB))),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _markAllRead();
+                            },
+                            child: const Text("Tout lire",
+                                style: TextStyle(fontSize: 11, color: Color(0xFFE91E8C),
+                                    fontWeight: FontWeight.bold)),
                           ),
-                        );
-                      }).toList(),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const Divider(height: 1, color: Color(0xFFEDE7F6)),
+
+                    // Corps
+                    _notifLoading
+                        ? const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(
+                            color: Color(0xFFB39DDB), strokeWidth: 2))
+                        : _notifications.isEmpty
+                        ? const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(children: [
+                        Text("🔔", style: TextStyle(fontSize: 28)),
+                        SizedBox(height: 8),
+                        Text("Aucune notification",
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ]),
+                    )
+                        : Flexible(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        shrinkWrap: true,
+                        itemCount: _notifications.length,
+                        itemBuilder: (_, i) {
+                          final notif = _notifications[i];
+                          final bool unread = notif['lue'] == false;
+                          final String id = notif['id'] ?? '';
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _markOneRead(id);
+                              _showToast(notif['titre'] ?? 'Notification');
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: unread
+                                    ? const Color(0xFFFCE4EC)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border(
+                                    left: BorderSide(
+                                        color: unread
+                                            ? const Color(0xFFE91E8C)
+                                            : Colors.transparent,
+                                        width: 2)),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(_notifIcon(notif),
+                                      style: const TextStyle(fontSize: 16)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                notif['titre'] ?? '',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 10,
+                                                    color: unread
+                                                        ? const Color(0xFF2D2D2D)
+                                                        : Colors.grey),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Text(_notifTime(notif),
+                                                style: const TextStyle(
+                                                    fontSize: 8, color: Colors.grey)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          notif['message'] ?? '',
+                                          style: TextStyle(
+                                              fontSize: 9.5,
+                                              color: unread
+                                                  ? const Color(0xFF616161)
+                                                  : Colors.grey,
+                                              height: 1.3),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -217,7 +405,6 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Patient compatible avec AccueilScreen et ProfilScreen
     final patient = Patient(
       firstName: widget.patientPrenom,
       lastName: widget.patientNom,
@@ -227,7 +414,7 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       folderID: widget.folderCode.isNotEmpty ? widget.folderCode : "#DOSS-0000",
     );
 
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       AccueilScreen(
         patient: patient,
         clinicalStatusText: _clinicalStatusText,
@@ -236,6 +423,7 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         onShowToast: _showToast,
         patientId: widget.patientId,
         token: widget.token,
+        dossierMedicalId: widget.dossierMedicalId,
       ),
       suivi.SuiviScreen(
         onOpenQuestionnaire: _openQuestionnaireForm,
@@ -243,11 +431,17 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         patientId: widget.patientId,
         dossierMedicalId: widget.dossierMedicalId,
       ),
-      DocumentsScreen(onShowToast: _showToast),
+      DocumentsScreen(
+        onShowToast: _showToast,
+        dossierMedicalId: widget.dossierMedicalId,
+        patientNom: widget.patientNom,
+        patientPrenom: widget.patientPrenom,
+      ),
       ProfilScreen(
         patient: patient,
         onShowToast: _showToast,
         onLogout: _handleLogout,
+        patientId: widget.patientId,
       ),
     ];
 
@@ -258,31 +452,8 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: GestureDetector(
-          onTap: _openChatBotModal,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE7F6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(child: Icon(Icons.chat_rounded, color: Color(0xFFB39DDB), size: 20)),
-                ),
-                Positioned(
-                  top: 0, left: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(color: const Color(0xFFE91E8C), borderRadius: BorderRadius.circular(6)),
-                    child: const Text("IA", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        leadingWidth: 60,
+        leading: _buildChatAiIcon(),
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -291,32 +462,40 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text("OncoAssist",
-                    style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFB39DDB), fontSize: 22)),
+                    style: TextStyle(fontWeight: FontWeight.w800,
+                        color: Color(0xFFB39DDB), fontSize: 22)),
                 const SizedBox(width: 8),
                 SizedBox(width: 24, height: 24,
-                    child: CustomPaint(painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
+                    child: CustomPaint(
+                        painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
               ],
             ),
             const Text("Mon parcours de soins",
-                style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.normal)),
+                style: TextStyle(fontSize: 10, color: Color(0xFF757575),
+                    fontWeight: FontWeight.normal)),
           ],
         ),
         actions: [
+          // ── Cloche notifications ──────────────────────────
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none_outlined, color: Color(0xFFB39DDB)),
+                icon: const Icon(Icons.notifications_none_outlined,
+                    color: Color(0xFFB39DDB)),
                 onPressed: _openNotificationsDropdown,
               ),
-              if (_mockNotifications.any((n) => n["isRead"] == false))
+              if (_hasUnread)
                 Positioned(
                   right: 10, top: 10,
-                  child: Container(width: 8, height: 8,
-                      decoration: const BoxDecoration(color: Color(0xFFE91E8C), shape: BoxShape.circle)),
+                  child: Container(
+                      width: 8, height: 8,
+                      decoration: const BoxDecoration(
+                          color: Color(0xFFE91E8C), shape: BoxShape.circle)),
                 ),
             ],
           ),
+          // ── Menu hamburger ────────────────────────────────
           Builder(
             builder: (ctx) => IconButton(
               icon: const Icon(Icons.menu, color: Colors.grey),
@@ -348,16 +527,19 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                     children: [
                       Row(children: [
                         const Text("OncoAssist",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFE91E8C))),
+                            style: TextStyle(fontWeight: FontWeight.bold,
+                                fontSize: 16, color: Color(0xFFE91E8C))),
                         const SizedBox(width: 6),
                         SizedBox(width: 16, height: 16,
-                            child: CustomPaint(painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
+                            child: CustomPaint(
+                                painter: RibbonPainter(color: const Color(0xFFE91E8C)))),
                       ]),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Color(0xFFFAFAFA), shape: BoxShape.circle),
+                          decoration: const BoxDecoration(
+                              color: Color(0xFFFAFAFA), shape: BoxShape.circle),
                           child: const Icon(Icons.close, size: 16, color: Color(0xFF757575)),
                         ),
                       ),
@@ -376,12 +558,26 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                     children: [
                       Container(
                         width: 40, height: 40,
-                        decoration: BoxDecoration(color: const Color(0xFFFCE4EC), shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2)),
-                        child: Center(
-                          child: Text(
-                            "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFE91E8C)),
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFCE4EC), shape: BoxShape.circle),
+                        child: ClipOval(
+                          child: _avatarUrl.isNotEmpty
+                              ? Image.network(_avatarUrl, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}"
+                                      "${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
+                                  style: const TextStyle(fontWeight: FontWeight.bold,
+                                      fontSize: 12, color: Color(0xFFE91E8C)),
+                                ),
+                              ))
+                              : Center(
+                            child: Text(
+                              "${widget.patientPrenom.isNotEmpty ? widget.patientPrenom[0] : ''}"
+                                  "${widget.patientNom.isNotEmpty ? widget.patientNom[0] : ''}",
+                              style: const TextStyle(fontWeight: FontWeight.bold,
+                                  fontSize: 12, color: Color(0xFFE91E8C)),
+                            ),
                           ),
                         ),
                       ),
@@ -391,13 +587,17 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text("${widget.patientPrenom} ${widget.patientNom}",
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
+                                style: const TextStyle(fontSize: 12,
+                                    fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
                             const SizedBox(height: 4),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: const Color(0xFFFCE4EC), borderRadius: BorderRadius.circular(20)),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFFCE4EC),
+                                  borderRadius: BorderRadius.circular(20)),
                               child: const Text("Patiente",
-                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+                                  style: TextStyle(fontSize: 9,
+                                      fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
                             ),
                           ],
                         ),
@@ -406,20 +606,27 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _drawerLink("Mon profil patient", () { Navigator.pop(context); setState(() => _currentIndex = 3); }),
-                _drawerLink("Mes prochains rendez-vous", () { Navigator.pop(context); setState(() => _currentIndex = 0); }),
-                _drawerLink("Dossier d'examens", () { Navigator.pop(context); setState(() => _currentIndex = 2); }),
-                _drawerLink("Historique & Symptômes", () { Navigator.pop(context); setState(() => _currentIndex = 1); }),
+                _drawerLink("Mon profil patient",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 3); }),
+                _drawerLink("Mes prochains rendez-vous",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 0); }),
+                _drawerLink("Dossier d'examens",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 2); }),
+                _drawerLink("Historique & Symptômes",
+                        () { Navigator.pop(context); setState(() => _currentIndex = 1); }),
                 const SizedBox(height: 8),
                 const Divider(height: 1, color: Color(0xFFEDE7F6)),
                 const SizedBox(height: 8),
-                _drawerTextLink("⚙️ Paramètres de l'application", () { Navigator.pop(context); _showToast("Paramètres OncoAssist v1.2 ⚙️"); }),
-                _drawerTextLink("💡 Aide & Support client", () { Navigator.pop(context); _showToast("Aide et Support médical 24h/24 🎀"); }),
+                _drawerTextLink("⚙️ Paramètres de l'application",
+                        () { Navigator.pop(context); _showToast("Paramètres OncoAssist v1.2 ⚙️"); }),
+                _drawerTextLink("💡 Aide & Support client",
+                        () { Navigator.pop(context); _showToast("Aide et Support 24h/24 🎀"); }),
                 const Spacer(),
                 const Divider(height: 1, color: Color(0xFFEDE7F6)),
                 const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                  Text("OncoAssist Premium v1.2", style: TextStyle(fontSize: 10, color: Color(0xFF757575))),
+                  Text("OncoAssist Premium v1.2",
+                      style: TextStyle(fontSize: 10, color: Color(0xFF757575))),
                   SizedBox(width: 4),
                   Text("🎀", style: TextStyle(fontSize: 10)),
                 ]),
@@ -432,10 +639,12 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
                       foregroundColor: const Color(0xFFE91E8C),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () { Navigator.pop(context); _handleLogout(); },
-                    child: const Text("Se déconnecter", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    child: const Text("Se déconnecter",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -444,7 +653,7 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         ),
       ),
 
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -474,7 +683,8 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF2D2D2D))),
+            Text(label, style: const TextStyle(fontSize: 12,
+                fontWeight: FontWeight.w500, color: Color(0xFF2D2D2D))),
             const Icon(Icons.chevron_right, size: 16, color: Color(0xFFB39DDB)),
           ],
         ),
@@ -488,50 +698,9 @@ class _MainContainerScreenState extends State<MainContainerScreen> {
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF757575))),
+        child: Text(label, style: const TextStyle(fontSize: 12,
+            fontWeight: FontWeight.w500, color: Color(0xFF757575))),
       ),
     );
   }
-}
-
-// Classe interne pour éviter le conflit avec Patient de models.dart
-class _Patient {
-  final String firstName;
-  final String lastName;
-  final String birthDate;
-  final String folderID;
-  _Patient({required this.firstName, required this.lastName,
-    required this.birthDate, required this.folderID});
-}
-
-class RibbonPainter extends CustomPainter {
-  final Color color;
-  const RibbonPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = size.width * 0.12
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path();
-    path.moveTo(size.width * 0.5, size.width * 0.2);
-    path.cubicTo(size.width * 0.35, size.width * 0.2, size.width * 0.25, size.width * 0.35, size.width * 0.25, size.width * 0.5);
-    path.cubicTo(size.width * 0.25, size.width * 0.65, size.width * 0.35, size.width * 0.8, size.width * 0.5, size.width * 0.95);
-    path.cubicTo(size.width * 0.65, size.width * 0.8, size.width * 0.75, size.width * 0.65, size.width * 0.75, size.width * 0.5);
-    path.cubicTo(size.width * 0.75, size.width * 0.35, size.width * 0.65, size.width * 0.2, size.width * 0.5, size.width * 0.2);
-    canvas.drawPath(path, paint);
-
-    final pathTail = Path();
-    pathTail.moveTo(size.width * 0.35, size.width * 0.88);
-    pathTail.lineTo(size.width * 0.5, size.width * 0.68);
-    pathTail.lineTo(size.width * 0.65, size.width * 0.88);
-    canvas.drawPath(pathTail, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
