@@ -21,6 +21,8 @@ public class MammographieController {
         this.mammographieService = mammographieService;
     }
 
+// MammographieController.java
+
     @PostMapping("/dossier/{patientId}/analyze")
     public ResponseEntity<MammographieResponseDTO> analyze(
             @PathVariable UUID patientId,

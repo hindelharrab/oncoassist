@@ -28,6 +28,8 @@ public class PatientController {
     public ResponseEntity<PatientDetailDTO> creer(
             @RequestBody PatientRequestDTO dto) {
         Patient patient = patientService.creer(dto);
+        // Retourner le DTO complet via findByIdDetail
+        // pour avoir statut, medecinRef, age etc.
         return ResponseEntity.ok(
                 patientService.findByIdDetail(patient.getId())
         );
@@ -42,7 +44,7 @@ public class PatientController {
 
     // ── Lire un ───────────────────────────────────
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN', 'PATIENT')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN','PATIENT')")
     public ResponseEntity<PatientDetailDTO> findById(
             @PathVariable UUID id) {
         return ResponseEntity.ok(
@@ -83,6 +85,7 @@ public class PatientController {
         );
     }
 
+
     // ── Supprimer ─────────────────────────────────
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
@@ -94,15 +97,14 @@ public class PatientController {
 
     // ── Liste avec statut (vue médecin) ───────────
     @GetMapping("/medecin/{medecinId}/avec-statut")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE', 'PATIENT')")
-    public ResponseEntity<List<PatientListItemDTO>> findPatientsAvecStatut(
-            @PathVariable UUID medecinId) {
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE','PATIENT')")
+    public ResponseEntity<List<PatientListItemDTO>>
+    findPatientsAvecStatut(@PathVariable UUID medecinId) {
         return ResponseEntity.ok(
                 patientService.findByMedecinAvecStatut(medecinId)
         );
     }
-
-    // ── Modifier son propre profil (PATIENT) ──────
+    // ── Modifier son propre profil (PATIENT) ──────────────
     @PutMapping(value = "/{id}/profil", consumes = "multipart/form-data")
     @PreAuthorize("hasAnyAuthority('PATIENT', 'ADMIN', 'SECRETAIRE')")
     public ResponseEntity<PatientDetailDTO> modifierProfil(

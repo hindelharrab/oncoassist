@@ -3,12 +3,10 @@ package com.oncoassist.oncoassist.service;
 import com.oncoassist.oncoassist.model.dto.*;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
-import com.oncoassist.oncoassist.model.entity.Secretaire;
 import com.oncoassist.oncoassist.model.entity.Specialite;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
 import com.oncoassist.oncoassist.repository.PriseEnChargeRepository;
 import com.oncoassist.oncoassist.repository.RendezVousRepository;
-import com.oncoassist.oncoassist.repository.SecretaireRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +35,6 @@ public class MedecinService {
     private final PasswordEncoder passwordEncoder;
     private final RendezVousRepository rendezVousRepository;
     private final PriseEnChargeRepository priseEnChargeRepository;
-    private final SecretaireRepository secretaireRepository;
-
 
     @Transactional
     public Medecin creer(Medecin medecin, UUID specialiteId) {
@@ -230,50 +226,5 @@ public class MedecinService {
                             : 0);
             return map;
         }).collect(Collectors.toList());
-    }
-    public List<Medecin> findBySpecialiteDeSecretaire(String emailSecretaire) {
-        Secretaire secretaire = secretaireRepository.findByEmail(emailSecretaire)
-                .orElseThrow(() -> new EntityNotFoundException("Secrétaire non trouvée"));
-        if (secretaire.getSpecialite() == null) return List.of();
-        return medecinRepository.findBySpecialiteId(secretaire.getSpecialite().getId());
-    }
-    @Transactional(readOnly = true)
-    public List<MedecinAvecStatsDTO> findBySpecialiteDeSecretaireAvecStats(String emailSecretaire) {
-        Secretaire secretaire = secretaireRepository.findByEmail(emailSecretaire)
-                .orElseThrow(() -> new EntityNotFoundException("Secrétaire non trouvée"));
-
-        if (secretaire.getSpecialite() == null) return List.of();
-
-        List<Medecin> medecins = medecinRepository
-                .findBySpecialiteId(secretaire.getSpecialite().getId());
-
-        LocalDateTime debutJour = LocalDate.now().atStartOfDay();
-        LocalDateTime finJour   = debutJour.plusDays(1);
-
-        return medecins.stream().map(m -> {
-
-            // Nb patients distincts
-            long nbPatients = rendezVousRepository
-                    .countDistinctPatientsByMedecinId(m.getId());
-
-            // Nb RDV aujourd'hui
-            long rdvAujourdhui = rendezVousRepository
-                    .findByMedecinAndPeriodWithDetails(m.getId(), debutJour, finJour)
-                    .size();
-
-            return MedecinAvecStatsDTO.builder()
-                    .id(m.getId())
-                    .nom(m.getNom())
-                    .prenom(m.getPrenom())
-                    .email(m.getEmail())
-                    .telephone(m.getTelephone())
-                    .photoProfil(m.getPhotoProfil())
-                    .numeroOrdre(m.getNumeroOrdre())
-                    .specialiteNom(m.getSpecialite() != null
-                            ? m.getSpecialite().getNom() : "")
-                    .nbPatients(nbPatients)
-                    .rdvAujourdhui(rdvAujourdhui)
-                    .build();
-        }).toList();
     }
 }

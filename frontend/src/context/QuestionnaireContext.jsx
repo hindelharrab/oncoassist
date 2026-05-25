@@ -10,13 +10,13 @@ const QuestionnaireContext = createContext();
 // NOTE : le champ "type" (unique/multiple) n'existe pas encore en base.
 // On le stocke uniquement dans le state local pour l'affichage.
 // Si tu l'ajoutes côté backend plus tard, il suffit de mapper q.type ici.
-const toFront = (q, typeOverride = null) => ({
+const toFront = (q, type = 'unique') => ({
   id:       q.id,
   text:     q.texte,
   options:  q.choix  ?? [],
   ordre:    q.ordre  ?? 0,
   isGlobal: q.globale,
-  type:     typeOverride ?? q.type ?? 'unique',  // ← lit q.type depuis le backend
+  type,           // géré localement en attendant le backend
 });
 
 // ─── Mapper frontend → backend ────────────────────────────────────────────────
@@ -24,8 +24,7 @@ const toFront = (q, typeOverride = null) => ({
 const toBack = (q) => ({
   texte: q.text,
   choix: q.options ?? [],
-  ordre: q.ordre   ?? 0,
-  type:  q.type    ?? 'unique',  // ← envoie le type au backend
+  ordre: q.ordre  ?? 0,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,16 +77,18 @@ export const QuestionnaireProvider = ({ children }) => {
   // On met à jour uniquement le state local (cohérent avec l'ancien comportement).
   // Si tu ajoutes PUT /api/questionnaire/{id} plus tard, il suffit de décommenter le bloc.
   const updateGlobalQuestion = async (id, updatedFields) => {
-  try {
-    await axiosInstance.put(`/questionnaire/${id}`, toBack(updatedFields));
+    /* --- décommenter quand l'endpoint existe ---
+    try {
+      await axiosInstance.put(`/questionnaire/${id}`, toBack(updatedFields));
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+    */
     setGlobalQuestions(prev =>
       prev.map(q => q.id === id ? { ...q, ...updatedFields } : q)
     );
-  } catch (err) {
-    setError(err.message);
-    throw err;
-  }
-};
+  };
 
   const deleteGlobalQuestion = async (id) => {
     try {
@@ -163,20 +164,22 @@ export const QuestionnaireProvider = ({ children }) => {
   };
 
   // updatePatientQuestion : même remarque que updateGlobalQuestion (pas de PUT côté back)
- const updatePatientQuestion = async (patientId, questionId, updatedFields) => {
-  try {
-    await axiosInstance.put(`/questionnaire/${questionId}`, toBack(updatedFields));
+  const updatePatientQuestion = async (patientId, questionId, updatedFields) => {
+    /* --- décommenter quand l'endpoint existe ---
+    try {
+      await axiosInstance.put(`/questionnaire/${questionId}`, toBack(updatedFields));
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+    */
     setPatientQuestions(prev => ({
       ...prev,
       [patientId]: (prev[patientId] ?? []).map(q =>
         q.id === questionId ? { ...q, ...updatedFields } : q
       ),
     }));
-  } catch (err) {
-    setError(err.message);
-    throw err;
-  }
-};
+  };
 
   // ── Attribution questionnaire ──────────────────────────────────────────────
   // dto = { patientId, medecinId, frequence, dateFin }

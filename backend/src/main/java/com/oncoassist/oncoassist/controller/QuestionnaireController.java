@@ -28,6 +28,7 @@ public class QuestionnaireController {
     }
 
     // GET questions pour un patient → MEDECIN + PATIENT
+    // ✅ PATIENT ajouté : le Flutter appelle cet endpoint avec token PATIENT
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyAuthority('MEDECIN', 'PATIENT')")
     public ResponseEntity<List<QuestionSuiviResponseDTO>> getQuestions(
@@ -53,16 +54,6 @@ public class QuestionnaireController {
             @RequestBody QuestionSuiviRequestDTO dto) {
         return ResponseEntity.ok(
                 questionnaireService.ajouterQuestionCustom(patientId, dto));
-    }
-
-    // PUT modifier une question → MEDECIN seulement
-    @PutMapping("/{questionId}")
-    @PreAuthorize("hasAnyAuthority('MEDECIN')")
-    public ResponseEntity<QuestionSuiviResponseDTO> updateQuestion(
-            @PathVariable UUID questionId,
-            @RequestBody QuestionSuiviRequestDTO dto) {
-        return ResponseEntity.ok(
-                questionnaireService.updateQuestion(questionId, dto));
     }
 
     // DELETE supprimer une question → MEDECIN seulement

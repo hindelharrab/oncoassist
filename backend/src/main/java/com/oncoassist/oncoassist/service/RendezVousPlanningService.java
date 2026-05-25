@@ -4,14 +4,12 @@ import com.oncoassist.oncoassist.model.dto.RendezVousDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.model.entity.Patient;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
-import com.oncoassist.oncoassist.model.entity.Secretaire;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import com.oncoassist.oncoassist.model.entity.enums.StatutRDVEnum;
 import com.oncoassist.oncoassist.repository.MedecinRepository;
 import com.oncoassist.oncoassist.repository.PatientRepository;
 import com.oncoassist.oncoassist.repository.RendezVousRepository;
-import com.oncoassist.oncoassist.repository.SecretaireRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +21,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,8 +33,6 @@ public class RendezVousPlanningService {
     private final MedecinRepository    medecinRepository;
     private final PatientRepository    patientRepository;
     private final NotificationService  notificationService;
-    private final SecretaireRepository secretaireRepository;
-    private final RendezVousService rendezVousService;
 
     private static final DateTimeFormatter TIME_FMT =
             DateTimeFormatter.ofPattern("HH:mm");
@@ -48,34 +43,28 @@ public class RendezVousPlanningService {
     // ════════════════════════════════════════════════
     // PLANNING SEMAINE
     // ════════════════════════════════════════════════
-    public List<RendezVousDTO> getRdvBySemaine(LocalDate semaine, UUID medecinId, String emailConnecte) {
-        LocalDateTime debut = semaine.atStartOfDay();
-        LocalDateTime fin   = semaine.plusDays(7).atStartOfDay();
+    @Transactional(readOnly = true)
+    public List<RendezVousDTO> getRdvBySemaine(
+            LocalDate dateReference, UUID medecinId) {
 
-        List<RendezVous> rdvs;
-        if (medecinId != null) {
-            rdvs = rendezVousRepository.findByMedecinAndPeriodWithDetails(medecinId, debut, fin);
-        } else {
-            rdvs = rendezVousRepository.findByPeriodWithDetails(debut, fin);
-        }
+        LocalDate lundi = dateReference.with(
+                TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
+        );
+        LocalDateTime debut = lundi.atStartOfDay();
+        LocalDateTime fin   = lundi.plusDays(6).atTime(LocalTime.MAX);
 
-        // Filtrer par spécialité si c'est une secrétaire
-        Optional<Secretaire> secretaireOpt = secretaireRepository.findByEmail(emailConnecte);
-        if (secretaireOpt.isPresent() && secretaireOpt.get().getSpecialite() != null) {
-            UUID specialiteId = secretaireOpt.get().getSpecialite().getId();
-            rdvs = rdvs.stream()
-                    .filter(r -> r.getMedecin() != null
-                            && r.getMedecin().getSpecialite() != null
-                            && r.getMedecin().getSpecialite().getId().equals(specialiteId))
-                    .toList();
-        }
+        List<RendezVous> rdvs = medecinId != null
+                ? rendezVousRepository
+                .findByMedecinIdAndDateBetween(
+                        medecinId, debut, fin)
+                : rendezVousRepository
+                .findByDateBetween(debut, fin);
 
-        // Garder uniquement PLANIFIE
         return rdvs.stream()
-                .filter(r -> r.getStatut() == StatutRDVEnum.PLANIFIE)
-                .map(rendezVousService::toDTO)
-                .toList();
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
+
     // ════════════════════════════════════════════════
     // CRÉER
     // ════════════════════════════════════════════════
@@ -337,5 +326,4 @@ public class RendezVousPlanningService {
         return date.toLocalDate().format(DATE_FMT)
                 + " à " + date.format(TIME_FMT);
     }
-
 }

@@ -25,7 +25,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final MedecinRepository      medecinRepository;
-    private final PatientRepository      patientRepository;
+    private final PatientRepository       patientRepository;
 
     // ── MÉDECIN : notifications ───────────────────────────
     public List<NotificationDTO> getByMedecin(UUID medecinId) {

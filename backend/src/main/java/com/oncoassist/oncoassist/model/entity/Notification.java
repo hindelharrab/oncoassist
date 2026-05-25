@@ -4,7 +4,6 @@ import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 

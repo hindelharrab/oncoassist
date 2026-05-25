@@ -2,31 +2,63 @@ import axiosInstance from './axiosInstance';
 
 const secretairePrintService = {
 
-  // Patients de la spécialité de la secrétaire
+  // Liste tous les patients avec détails complets
   getAllPatients: async () => {
-    const res = await axiosInstance.get('/secretaire/print/patients');
+    const res = await axiosInstance.get('/patients');
     return res.data;
   },
 
-  // Rapport final JSON d'un patient (cheminFichier parsé)
-  getRapportFinal: async (patientId) => {
+  // Détail complet d'un patient pour le rapport
+  getPatientDetail: async (patientId) => {
+    const res = await axiosInstance.get(
+      `/patients/${patientId}`
+    );
+    return res.data;
+  },
+
+  // Biopsies d'un patient
+  getBiopsies: async (patientId) => {
+    const res = await axiosInstance.get(
+      `/biopsies/dossier/${patientId}`
+    );
+    return res.data;
+  },
+
+  // Mammographies d'un patient
+  getMammographies: async (patientId) => {
     try {
       const res = await axiosInstance.get(
-        `/secretaire/print/patients/${patientId}/rapport`
+        `/mammographie/dossier/${patientId}`
       );
-      if (!res.data) return null;
-      return typeof res.data === 'string'
-        ? JSON.parse(res.data)
-        : res.data;
+      return res.data;
     } catch {
-      return null;
+      return [];
     }
   },
 
-  // Garder pour compatibilité
-  getBiopsies: async () => [],
-  getPlansTraitement: async () => [],
-  getRendezVous: async () => [],
+  // Plans de traitement d'un patient
+  getPlansTraitement: async (patientId) => {
+    try {
+      const res = await axiosInstance.get(
+        `/plans-traitement/dossier/${patientId}`
+      );
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  // RDV d'un patient
+  getRendezVous: async (patientId) => {
+    try {
+      const res = await axiosInstance.get(
+        `/rendez-vous/patient/${patientId}`
+      );
+      return res.data;
+    } catch {
+      return [];
+    }
+  }
 };
 
 export default secretairePrintService;

@@ -21,18 +21,13 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             @Param("type") DocTypeEnum type
     );
 
+    // ── NOUVEAU : tous les résultats d'examens (multi-types) ──
     @Query("SELECT d FROM Document d WHERE d.dossierMedical.id = :dossierId AND d.type IN :types ORDER BY d.dateAjout DESC")
     List<Document> findByDossierMedicalIdAndTypeIn(
             @Param("dossierId") UUID dossierId,
             @Param("types") List<DocTypeEnum> types
     );
 
+    // ── NOUVEAU : vérifier si un résultat existe déjà pour un examen ──
     Optional<Document> findByExamenSourceId(UUID examenSourceId);
-
-    boolean existsByDossierMedicalIdAndType(UUID dossierMedicalId, DocTypeEnum type);
-
-    Optional<Document> findTopByDossierMedicalIdOrderByDateAjoutDesc(UUID dossierMedicalId);
-
-    Optional<Document> findTopByDossierMedical_Patient_IdAndTypeOrderByDateAjoutDesc(
-            UUID patientId, DocTypeEnum type);
 }

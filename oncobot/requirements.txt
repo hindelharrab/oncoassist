@@ -1,0 +1,11 @@
+langchain
+langchain-community
+langchain-text-splitters
+chromadb
+groq
+pypdf
+sentence-transformers
+fastapi
+uvicorn
+python-dotenv
+deep-translator

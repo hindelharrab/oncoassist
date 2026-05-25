@@ -158,6 +158,7 @@ function LinkedChart({ stat }) {
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
         <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }} dy={6} />
         <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }} />
+        // eslint-disable-next-line react-hooks/static-components
         <Tooltip content={<TT />} />
         <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2.5}
           dot={{ r: 4, fill: color, strokeWidth: 0 }} activeDot={{ r: 6 }} animationDuration={400} />
@@ -228,6 +229,7 @@ function LinkedStats({ stats }) {
   const [active, setActive] = useState(stats[0]);
 
   // Sync si les stats changent (refresh)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (stats.length > 0) setActive(stats[0]); }, [stats]);
 
   if (!active) return null;
@@ -682,6 +684,7 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   const stats = overview ? buildStats(overview.stats) : [];

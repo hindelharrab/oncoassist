@@ -1,7 +1,6 @@
 package com.oncoassist.oncoassist.controller;
 
 import com.oncoassist.oncoassist.model.dto.ChangePasswordDTO;
-import com.oncoassist.oncoassist.model.dto.MedecinAvecStatsDTO;
 import com.oncoassist.oncoassist.model.dto.MedecinProfilDTO;
 import com.oncoassist.oncoassist.model.dto.MedecinResponseDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
@@ -10,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -61,7 +58,6 @@ public class MedecinController {
                 medecinService.getPlanning(id, semaine)
         );
     }
-
     // ── Un médecin par ID ─────────────────────────
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SECRETAIRE', 'MEDECIN')")
@@ -109,7 +105,8 @@ public class MedecinController {
     }
 
     // ── Médecin modifie son propre profil ─────────
-    @PutMapping(value = "/profil/{id}", consumes = "multipart/form-data")
+    @PutMapping(value = "/profil/{id}",
+            consumes = "multipart/form-data")
     @PreAuthorize("hasAnyAuthority('MEDECIN')")
     public ResponseEntity<Medecin> modifierProfil(
             @PathVariable UUID id,
@@ -134,19 +131,10 @@ public class MedecinController {
     // ── Liste pour la secrétaire ──────────────────
     @GetMapping("/secretaire/liste")
     @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'ADMIN')")
-    public ResponseEntity<List<MedecinResponseDTO>> getListePourSecretaire() {
+    public ResponseEntity<List<MedecinResponseDTO>>
+    getListePourSecretaire() {
         return ResponseEntity.ok(
                 medecinService.findAllMedecins()
-        );
-    }
-
-    // ── Médecins de mon service (secrétaire) ──────
-    @GetMapping("/ma-specialite")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'ADMIN')")
-    public ResponseEntity<List<MedecinAvecStatsDTO>> getMedecinsDeMonService(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(
-                medecinService.findBySpecialiteDeSecretaireAvecStats(userDetails.getUsername())
         );
     }
 }

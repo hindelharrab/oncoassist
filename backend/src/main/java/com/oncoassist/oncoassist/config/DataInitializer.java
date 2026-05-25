@@ -25,7 +25,6 @@ public class DataInitializer implements CommandLineRunner {
             admin.setMotDePasse(passwordEncoder.encode("admin123"));
             admin.setTelephone("0600000000");
             admin.setRole(RoleEnum.ADMIN);
-
             utilisateurRepository.save(admin);
             System.out.println(" Admin par défaut créé : admin@oncoassist.ma / admin123");
         }

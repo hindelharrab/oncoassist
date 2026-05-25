@@ -354,6 +354,7 @@ export default function DoctorsPage() {
     } finally { setLoading(false); }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleDelete = async () => {

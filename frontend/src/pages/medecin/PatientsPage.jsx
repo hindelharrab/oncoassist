@@ -118,9 +118,6 @@ export default function PatientsPage() {
           followUpsCount: p.suiviActif ? 1 : 0,
           dernierBIRADS: p.dernierBIRADS ?? 'Non évalué',
           suiviActif: p.suiviActif,
-          antecFamiliauxCount: p.nombreAntecedentsFamiliaux ?? 0,
-          antecMedicauxCount:  p.nombreAntecedentsMedicaux  ?? 0,
-          treatmentPlansCount: p.nombrePlansTraitement       ?? 0,
         }));
         setPatients(patientsAdaptes);
         setPatientSelectionneLocal(patientsAdaptes[0] || null);
@@ -312,7 +309,7 @@ export default function PatientsPage() {
         </div>
 
         {/* DÉTAIL (droite) */}
-        <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-20 ">
+        <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-20">
           {patientSelectionneLocal && (
             <AnimatePresence mode="wait">
               <motion.div
@@ -323,11 +320,11 @@ export default function PatientsPage() {
                 className="space-y-3"
               >
                 {/* Header + Infos */}
-                <div className=" bg-pink-50/60 rounded-xl border border-slate-100 shadow-md overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-100 shadow-md overflow-hidden">
                   {/* header */}
                   <div
                     className="p-4 flex items-center gap-4 border-b"
-                    style={{ borderColor: '#f1f5f9', backgroundColor: ' bg-pink-50/60' }}
+                    style={{ borderColor: '#f1f5f9', backgroundColor: '#fafbfc' }}
                   >
                     <div className="w-11 h-11 rounded-xl bg-white border border-slate-100 text-slate-800 flex items-center justify-center font-black text-base shadow-sm shrink-0">
                       {patientSelectionneLocal.prenom[0]}{patientSelectionneLocal.nom[0]}
@@ -378,10 +375,10 @@ export default function PatientsPage() {
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-4">Résumé Médical</h4>
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                    { label: "Examens",      val: patientSelectionneLocal.examsCount,         col: "text-sky-600"     },
-{ label: "Plans",        val: patientSelectionneLocal.treatmentPlansCount, col: "text-indigo-600"  },
-{ label: "Antéc. Fam.",  val: patientSelectionneLocal.antecFamiliauxCount, col: "text-rose-500"    },
-{ label: "Antéc. Méd.",  val: patientSelectionneLocal.antecMedicauxCount,  col: "text-amber-600"   },
+                      { label: "Examens", val: patientSelectionneLocal.examsCount,         col: "text-sky-600" },
+                      { label: "Plans",   val: patientSelectionneLocal.treatmentPlansCount, col: "text-indigo-600" },
+                      { label: "Suivis",  val: patientSelectionneLocal.followUpsCount,      col: "text-emerald-600" },
+                      { label: "Antéc.",  val: patientSelectionneLocal.historyCount,        col: "text-rose-500" },
                     ].map((m, i) => (
                       <div key={i} className="flex flex-col">
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{m.label}</span>
@@ -391,7 +388,18 @@ export default function PatientsPage() {
                   </div>
                 </div>
 
-               
+                {/* Actions */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-md p-4 space-y-2">
+                  <button
+                    onClick={() => handleOpenDossier(patientSelectionneLocal)}
+                    className="w-full py-3 bg-slate-900 text-white font-black rounded-xl text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <FolderCheck size={14} /> Ouvrir le dossier
+                  </button>
+                  <button className="w-full py-3 bg-slate-900 text-white font-black rounded-xl text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2">
+                    <Calendar size={14} /> Demander un rdv
+                  </button>
+                </div>
 
               </motion.div>
             </AnimatePresence>
