@@ -63,7 +63,6 @@ const BiopsiePage = () => {
   // Autres images → Spring Boot (port 8080)
   return `http://localhost:8080${chemin}`;
 };
-
   useEffect(() => {
     if (!dossierId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect

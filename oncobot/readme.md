@@ -38,6 +38,7 @@ python ingest.py
 
 # 3. Lancez le serveur (port 8002 pour ne pas entrer en conflit
 #    avec les autres microservices 8000 / 8001)
+venv\Scripts\activate   
 uvicorn main:app --reload --port 8002
 ```
 
