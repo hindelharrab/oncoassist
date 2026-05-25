@@ -4,6 +4,7 @@ import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -50,8 +51,13 @@ public class Notification {
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation;
 
-    // Destinataire — le médecin
+    // ── Destinataire médecin (nullable si notif patient) ──
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "medecin_id", nullable = false)
+    @JoinColumn(name = "medecin_id", nullable = true)
     private Medecin medecin;
+
+    // ── Destinataire patient (nullable si notif médecin) ──
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_destinataire_id", nullable = true)
+    private Patient patientDestinataire;
 }

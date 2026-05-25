@@ -8,6 +8,7 @@ import com.oncoassist.oncoassist.service.BiopsieService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,6 +38,7 @@ public class BiopsieController {
 
     // ── GET toutes les biopsies d'un dossier
     @GetMapping("/dossier/{patientId}")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN', 'PATIENT')")
     public ResponseEntity<List<BiopsieResponseDTO>> getByDossier(
             @PathVariable UUID patientId) {
         System.out.println("✅ GET biopsies patient : " + patientId);

@@ -16,5 +16,5 @@ public class QuestionSuiviResponseDTO {
     private List<String> choix;
     private Integer ordre;
     private boolean globale;
-    private String type;  // ← NOUVEAU
+    private String type;
 }

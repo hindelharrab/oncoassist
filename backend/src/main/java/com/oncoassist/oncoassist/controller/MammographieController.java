@@ -4,6 +4,7 @@ import com.oncoassist.oncoassist.model.dto.mammographie.MammographieRequestDTO;
 import com.oncoassist.oncoassist.model.dto.mammographie.MammographieResponseDTO;
 import com.oncoassist.oncoassist.service.MammographieService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,8 +20,6 @@ public class MammographieController {
     public MammographieController(MammographieService mammographieService) {
         this.mammographieService = mammographieService;
     }
-
-// MammographieController.java
 
     @PostMapping("/dossier/{patientId}/analyze")
     public ResponseEntity<MammographieResponseDTO> analyze(
@@ -43,6 +42,7 @@ public class MammographieController {
     }
 
     @GetMapping("/dossier/{patientId}")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN', 'PATIENT')")
     public ResponseEntity<List<MammographieResponseDTO>> getByDossier(
             @PathVariable UUID patientId) {
         return ResponseEntity.ok(

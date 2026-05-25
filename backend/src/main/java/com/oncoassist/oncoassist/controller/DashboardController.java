@@ -1,16 +1,17 @@
 package com.oncoassist.oncoassist.controller;
 
+import com.oncoassist.oncoassist.model.dto.dashboard.DashboardSecretaireDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
 import com.oncoassist.oncoassist.service.DashboardService;
 import com.oncoassist.oncoassist.service.MedecinService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -57,5 +58,14 @@ public class DashboardController {
         dashboardData.put("todayAppointments", dashboardService.getTodayAppointments(medecinId));
 
         return ResponseEntity.ok(dashboardData);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // Endpoint dashboard secrétaire
+    // ─────────────────────────────────────────────────────────
+    @GetMapping("/secretaire")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'ADMIN')")
+    public ResponseEntity<DashboardSecretaireDTO> getDashboardSecretaire() {
+        return ResponseEntity.ok(dashboardService.getDashboardSecretaire());
     }
 }

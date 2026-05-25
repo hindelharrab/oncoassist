@@ -28,8 +28,6 @@ public class PatientController {
     public ResponseEntity<PatientDetailDTO> creer(
             @RequestBody PatientRequestDTO dto) {
         Patient patient = patientService.creer(dto);
-        // Retourner le DTO complet via findByIdDetail
-        // pour avoir statut, medecinRef, age etc.
         return ResponseEntity.ok(
                 patientService.findByIdDetail(patient.getId())
         );
@@ -44,7 +42,7 @@ public class PatientController {
 
     // ── Lire un ───────────────────────────────────
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN', 'PATIENT')")
     public ResponseEntity<PatientDetailDTO> findById(
             @PathVariable UUID id) {
         return ResponseEntity.ok(
@@ -96,11 +94,32 @@ public class PatientController {
 
     // ── Liste avec statut (vue médecin) ───────────
     @GetMapping("/medecin/{medecinId}/avec-statut")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE')")
-    public ResponseEntity<List<PatientListItemDTO>>
-    findPatientsAvecStatut(@PathVariable UUID medecinId) {
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MEDECIN', 'SECRETAIRE', 'PATIENT')")
+    public ResponseEntity<List<PatientListItemDTO>> findPatientsAvecStatut(
+            @PathVariable UUID medecinId) {
         return ResponseEntity.ok(
                 patientService.findByMedecinAvecStatut(medecinId)
+        );
+    }
+
+    // ── Modifier son propre profil (PATIENT) ──────
+    @PutMapping(value = "/{id}/profil", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyAuthority('PATIENT', 'ADMIN', 'SECRETAIRE')")
+    public ResponseEntity<PatientDetailDTO> modifierProfil(
+            @PathVariable UUID id,
+            @RequestParam(value = "telephone", required = false) String telephone,
+            @RequestParam(value = "adresse", required = false) String adresse,
+            @RequestParam(value = "personneConfiance", required = false) String personneConfiance,
+            @RequestParam(value = "photo", required = false) MultipartFile photo
+    ) throws IOException {
+        Patient data = new Patient();
+        data.setTelephone(telephone);
+        data.setAdresse(adresse);
+        data.setPersonneConfiance(personneConfiance);
+        return ResponseEntity.ok(
+                patientService.findByIdDetail(
+                        patientService.modifier(id, data, photo).getId()
+                )
         );
     }
 }

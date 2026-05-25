@@ -13,5 +13,5 @@ public class QuestionSuiviRequestDTO {
     private String texte;
     private List<String> choix;
     private Integer ordre;
-    private String type;  // ← NOUVEAU
+    private String type;
 }

@@ -28,7 +28,7 @@ public class RendezVousController {
 
     // ── Planning semaine ──────────────────────────
     @GetMapping("/planning")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<List<RendezVousDTO>> getPlanning(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate semaine,
             @RequestParam(required = false) UUID medecinId,
@@ -38,9 +38,9 @@ public class RendezVousController {
         );
     }
 
-    // ── Créer RDV (secrétaire) ────────────────────
+    // ── Créer RDV ─────────────────────────────────
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<RendezVousDTO> creer(
             @RequestBody RendezVousDTO dto) {
         return ResponseEntity.ok(
@@ -50,7 +50,7 @@ public class RendezVousController {
 
     // ── Modifier RDV ──────────────────────────────
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SECRETAIRE', 'ADMIN')")
     public ResponseEntity<RendezVousDTO> modifier(
             @PathVariable UUID id,
             @RequestBody RendezVousDTO dto) {
@@ -88,7 +88,7 @@ public class RendezVousController {
 
     // ── Marquer effectué ──────────────────────────
     @PutMapping("/{id}/effectue")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<RendezVous> marquerEffectue(
             @PathVariable UUID id) {
         return ResponseEntity.ok(
@@ -98,7 +98,7 @@ public class RendezVousController {
 
     // ── Annuler ───────────────────────────────────
     @PutMapping("/{id}/annuler")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<RendezVous> annuler(
             @PathVariable UUID id) {
         return ResponseEntity.ok(
@@ -108,13 +108,13 @@ public class RendezVousController {
 
     // ── Lectures ──────────────────────────────────
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<List<RendezVousDTO>> findAll() {
         return ResponseEntity.ok(rendezVousService.findAll());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<RendezVousDTO> findById(
             @PathVariable UUID id) {
         return ResponseEntity.ok(
@@ -124,7 +124,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/medecin/{medecinId}")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<List<RendezVousDTO>> findByMedecin(
             @PathVariable UUID medecinId) {
         return ResponseEntity.ok(
@@ -133,7 +133,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN', 'PATIENT')")
     public ResponseEntity<List<RendezVousDTO>> findByPatient(
             @PathVariable UUID patientId) {
         return ResponseEntity.ok(
@@ -141,14 +141,13 @@ public class RendezVousController {
         );
     }
 
+    // ── En attente (filtré par spécialité de la secrétaire) ──
     @GetMapping("/en-attente")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
     public ResponseEntity<List<RendezVousDTO>> findEnAttente(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(
                 rendezVousService.findEnAttenteParSpecialite(userDetails.getUsername())
         );
     }
-
-
 }

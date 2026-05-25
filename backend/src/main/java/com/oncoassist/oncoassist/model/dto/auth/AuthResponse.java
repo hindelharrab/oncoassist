@@ -14,4 +14,8 @@ public class AuthResponse {
     private String email;
     private RoleEnum role;
     private String photoProfil;
+    // patient
+    private UUID dossierMedicalId;
+    private String dateNaissance;
+    private String folderCode;
 }

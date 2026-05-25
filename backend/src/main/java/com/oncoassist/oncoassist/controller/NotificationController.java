@@ -4,6 +4,7 @@ import com.oncoassist.oncoassist.model.dto.notification.NotificationDTO;
 import com.oncoassist.oncoassist.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +26,8 @@ public class NotificationController {
                 notificationService.getByMedecin(medecinId)
         );
     }
-    // Notifications générales (pas liées à un médecin)
-// Pour la secrétaire — toutes les notifs récentes
+
+    // Pour la secrétaire — toutes les notifs récentes
     @GetMapping("/secretaire/{secretaireId}")
     public ResponseEntity<List<NotificationDTO>> getBySecretaire(
             @PathVariable UUID secretaireId) {
@@ -34,6 +35,7 @@ public class NotificationController {
                 notificationService.getForSecretaire()
         );
     }
+
     // Compter les non lues
     @GetMapping("/medecin/{medecinId}/count")
     public ResponseEntity<Map<String, Long>> countNonLues(
@@ -43,7 +45,6 @@ public class NotificationController {
                 notificationService.countNonLues(medecinId)
         ));
     }
-
 
     // Marquer une notification comme lue
     @PatchMapping("/{id}/lue")
@@ -67,6 +68,35 @@ public class NotificationController {
     public ResponseEntity<Void> archiver(
             @PathVariable UUID id) {
         notificationService.archiver(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // ── Notifications patient ─────────────────────
+
+    @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyAuthority('PATIENT', 'ADMIN', 'MEDECIN')")
+    public ResponseEntity<List<NotificationDTO>> getByPatient(
+            @PathVariable UUID patientId) {
+        return ResponseEntity.ok(
+                notificationService.getByPatient(patientId)
+        );
+    }
+
+    @GetMapping("/patient/{patientId}/count")
+    @PreAuthorize("hasAnyAuthority('PATIENT', 'ADMIN')")
+    public ResponseEntity<Map<String, Long>> countNonLuesPatient(
+            @PathVariable UUID patientId) {
+        return ResponseEntity.ok(Map.of(
+                "count",
+                notificationService.countNonLuesPatient(patientId)
+        ));
+    }
+
+    @PutMapping("/patient/{patientId}/toutes-lues")
+    @PreAuthorize("hasAnyAuthority('PATIENT', 'ADMIN')")
+    public ResponseEntity<Void> marquerToutesLuesPatient(
+            @PathVariable UUID patientId) {
+        notificationService.marquerToutesLuesPatient(patientId);
         return ResponseEntity.ok().build();
     }
 }
