@@ -50,27 +50,57 @@ const CATEGORIES = {
     bg: 'bg-violet-50',
     border: 'border-violet-200',
     dark: 'dark:bg-violet-950/30 dark:border-violet-900/40 dark:text-violet-400'
-  },
-  quest: {
-    label: 'Questionnaires',
-    icon: FileSearch,
-    color: 'amber',
-    accent: 'text-amber-500',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    dark: 'dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-400'
   }
 };
 
-const PRIORITES = {
-  CRITIQUE: { label: 'Critique', dot: 'bg-rose-500', text: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200' },
-  HAUTE:    { label: 'Haute',    dot: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-  NORMALE:  { label: 'Normale',  dot: 'bg-sky-500', text: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200' },
-  INFO:     { label: 'Info',     dot: 'bg-slate-400', text: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' }
+// Fallback category pour les valeurs inconnues du backend
+const CATEGORY_FALLBACK = {
+  label: 'Autre',
+  icon: Bell,
+  color: 'slate',
+  accent: 'text-slate-500',
+  bg: 'bg-slate-50',
+  border: 'border-slate-200',
+  dark: 'dark:bg-slate-900/30 dark:border-slate-800 dark:text-slate-400'
 };
 
-// Map pour convertir les valeurs backend en frontend
-const getIconForCategorie = (categorie) => {
+// Normalise la categorie backend → clé CATEGORIES
+const normalizeCategorie = (categorie) => {
+  if (!categorie) return null;
+  const lower = categorie.toLowerCase().trim();
+  // correspondances directes
+  if (CATEGORIES[lower]) return lower;
+  // correspondances alternatives possibles
+  if (lower.includes('ia') || lower.includes('intelligence')) return 'ia';
+  if (lower.includes('rdv') || lower.includes('rendez') || lower.includes('appointment')) return 'rdv';
+  if (lower.includes('clinique') || lower.includes('alerte') || lower.includes('alert')) return 'clinique';
+  if (lower.includes('dossier') || lower.includes('patient')) return 'dossier';
+  if (lower.includes('quest') || lower.includes('formulaire')) return 'quest';
+  return null; // inconnu → fallback
+};
+
+const getCategorie = (categorieRaw) => {
+  const key = normalizeCategorie(categorieRaw);
+  return key ? CATEGORIES[key] : CATEGORY_FALLBACK;
+};
+
+const PRIORITES = {
+  CRITIQUE: { label: 'Critique', dot: 'bg-rose-400',   text: 'text-rose-600',   bg: 'bg-rose-50',   border: 'border-rose-200',   bar: 'bg-rose-400'   },
+  HAUTE:    { label: 'Haute',    dot: 'bg-pink-400',   text: 'text-pink-600',   bg: 'bg-pink-50',   border: 'border-pink-200',   bar: 'bg-pink-400'   },
+  NORMALE:  { label: 'Normale',  dot: 'bg-slate-300',  text: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-200',  bar: 'bg-slate-300'  },
+  INFO:     { label: 'Info',     dot: 'bg-slate-200',  text: 'text-slate-400',  bg: 'bg-slate-50',  border: 'border-slate-100',  bar: 'bg-slate-200'  },
+};
+
+const PRIORITE_FALLBACK = { label: 'Info', dot: 'bg-slate-200', text: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' };
+
+const getPriorite = (prioriteRaw) => {
+  if (!prioriteRaw) return PRIORITE_FALLBACK;
+  const upper = prioriteRaw.toUpperCase().trim();
+  return PRIORITES[upper] ?? PRIORITE_FALLBACK;
+};
+
+const getIconForCategorie = (categorieRaw) => {
+  const key = normalizeCategorie(categorieRaw);
   const icons = {
     ia: Zap,
     rdv: CalendarClock,
@@ -78,10 +108,11 @@ const getIconForCategorie = (categorie) => {
     dossier: FileText,
     quest: MessageSquareWarning
   };
-  return icons[categorie] || Bell;
+  return (key && icons[key]) ? icons[key] : Bell;
 };
 
 const getTimeAgo = (dateCreation) => {
+  if (!dateCreation) return '—';
   const diff = Date.now() - new Date(dateCreation).getTime();
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
@@ -91,6 +122,16 @@ const getTimeAgo = (dateCreation) => {
   if (minutes < 60) return `Il y a ${minutes} min`;
   if (hours < 24) return `Il y a ${hours} h`;
   return `Il y a ${days} jours`;
+};
+
+const getDisplayText = (lienAction) => {
+  if (!lienAction) return 'Voir les détails';
+  if (lienAction.includes('mammographie')) return '📷 Ouvrir le rapport mammographie';
+  if (lienAction.includes('rendez-vous')) return '📅 Voir le rendez-vous';
+  if (lienAction.includes('questionnaire')) return '📋 Répondre au questionnaire';
+  if (lienAction.includes('biopsie')) return '🔬 Consulter la biopsie';
+  if (lienAction.includes('dossier')) return '👤 Ouvrir le dossier patient';
+  return '🔗 Voir les détails';
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -107,9 +148,7 @@ const AlertesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
-  // Charger les notifications depuis le backend
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
     fetchNotifications();
   }, []);
 
@@ -126,28 +165,18 @@ const AlertesPage = () => {
       setLoading(false);
     }
   };
-  // Convertir l'URL en texte lisible
-const getDisplayText = (lienAction) => {
-  if (!lienAction) return 'Voir les détails';
-  if (lienAction.includes('mammographie')) return '📷 Ouvrir le rapport mammographie';
-  if (lienAction.includes('rendez-vous')) return '📅 Voir le rendez-vous';
-  if (lienAction.includes('questionnaire')) return '📋 Répondre au questionnaire';
-  if (lienAction.includes('biopsie')) return '🔬 Consulter la biopsie';
-  if (lienAction.includes('dossier')) return '👤 Ouvrir le dossier patient';
-  return '🔗 Voir les détails';
-};
 
   /* ─── Statistiques ─── */
   const stats = useMemo(() => {
     const unread = notifications.filter(n => !n.lue).length;
-    const critiques = notifications.filter(n => n.priorite === 'CRITIQUE' && !n.lue).length;
+    const critiques = notifications.filter(n => n.priorite?.toUpperCase() === 'CRITIQUE' && !n.lue).length;
     const aujourdhui = notifications.filter(n => {
       const creationDate = new Date(n.dateCreation);
       const today = new Date();
       return creationDate.toDateString() === today.toDateString();
     }).length;
     const parCategorie = Object.keys(CATEGORIES).reduce((acc, cat) => {
-      acc[cat] = notifications.filter(n => n.categorie === cat && !n.lue).length;
+      acc[cat] = notifications.filter(n => normalizeCategorie(n.categorie) === cat && !n.lue).length;
       return acc;
     }, {});
     return { unread, critiques, aujourdhui, parCategorie, total: notifications.length };
@@ -156,14 +185,14 @@ const getDisplayText = (lienAction) => {
   /* ─── Filtrage ─── */
   const filtered = useMemo(() => {
     return notifications.filter(n => {
-      if (activeCategorie !== 'all' && n.categorie !== activeCategorie) return false;
-      if (activePriorite !== 'all' && n.priorite !== activePriorite) return false;
+      if (activeCategorie !== 'all' && normalizeCategorie(n.categorie) !== activeCategorie) return false;
+      if (activePriorite !== 'all' && n.priorite?.toUpperCase() !== activePriorite) return false;
       if (showUnreadOnly && n.lue) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        return n.titre.toLowerCase().includes(q) ||
-               (n.nomPatient && n.nomPatient.toLowerCase().includes(q)) ||
-               (n.message && n.message.toLowerCase().includes(q));
+        return (n.titre?.toLowerCase().includes(q)) ||
+               (n.nomPatient?.toLowerCase().includes(q)) ||
+               (n.message?.toLowerCase().includes(q));
       }
       return true;
     });
@@ -173,7 +202,7 @@ const getDisplayText = (lienAction) => {
   const markAsRead = async (id) => {
     try {
       await notificationService.marquerLue(id);
-      setNotifications(prev => prev.map(n => 
+      setNotifications(prev => prev.map(n =>
         n.id === id ? { ...n, lue: true } : n
       ));
     } catch (err) {
@@ -219,7 +248,7 @@ const getDisplayText = (lienAction) => {
         <div className="text-center">
           <AlertTriangle size={48} className="text-rose-500 mx-auto mb-4" />
           <p className="text-rose-600 font-bold">{error}</p>
-          <button 
+          <button
             onClick={fetchNotifications}
             className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-xl text-sm font-bold"
           >
@@ -283,7 +312,6 @@ const getDisplayText = (lienAction) => {
 
           {/* ─────── SIDEBAR CATÉGORIES ─────── */}
           <div className="xl:col-span-3">
-            {/* ... contenu identique à avant ... */}
             <div className="rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
               <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
                 <div className="flex items-center gap-2">
@@ -352,11 +380,20 @@ const getDisplayText = (lienAction) => {
               <div className="px-3 pb-3 pt-2 border-t border-slate-100 dark:border-slate-800 mt-2">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-3 mb-2">Priorité</p>
                 <div className="space-y-1">
-                  <button onClick={() => setActivePriorite('all')} className="w-full flex items-center justify-between p-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                  <button
+                    onClick={() => setActivePriorite('all')}
+                    className="w-full flex items-center justify-between p-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                  >
                     <span>Tous niveaux</span>
                   </button>
                   {Object.entries(PRIORITES).map(([key, prio]) => (
-                    <button key={key} onClick={() => setActivePriorite(key)} className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                    <button
+                      key={key}
+                      onClick={() => setActivePriorite(key)}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/50 ${
+                        activePriorite === key ? 'bg-slate-100 dark:bg-slate-900' : ''
+                      }`}
+                    >
                       <div className="flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full ${prio.dot}`} />
                         <span className="text-[10px] font-black uppercase tracking-widest">{prio.label}</span>
@@ -371,7 +408,10 @@ const getDisplayText = (lienAction) => {
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">
                     Non lues seulement
                   </span>
-                  <button onClick={() => setShowUnreadOnly(!showUnreadOnly)} className={`relative w-9 h-5 rounded-full transition-colors ${showUnreadOnly ? 'bg-pink-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                  <button
+                    onClick={() => setShowUnreadOnly(!showUnreadOnly)}
+                    className={`relative w-9 h-5 rounded-full transition-colors ${showUnreadOnly ? 'bg-pink-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  >
                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-transform ${showUnreadOnly ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </button>
                 </label>
@@ -381,13 +421,13 @@ const getDisplayText = (lienAction) => {
 
           {/* ─────── LISTE NOTIFICATIONS ─────── */}
           <div className={`${selected ? 'xl:col-span-5' : 'xl:col-span-9'} transition-all duration-300`}>
-            <div className="rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-180px)]">
+            <div className="rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(109vh-20px)]">
 
               <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 shrink-0">
                 <div className="flex items-center gap-2">
                   <Bell size={16} className="text-pink-500" />
                   <h3 className="text-[10px] font-black uppercase tracking-widest">
-                    {activeCategorie === 'all' ? 'Toutes les notifications' : CATEGORIES[activeCategorie].label}
+                    {activeCategorie === 'all' ? 'Toutes les notifications' : (CATEGORIES[activeCategorie]?.label ?? 'Notifications')}
                   </h3>
                 </div>
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest tabular-nums">
@@ -395,7 +435,13 @@ const getDisplayText = (lienAction) => {
                 </span>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
+             <div
+  className="flex-1 overflow-y-auto"
+  style={{
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#e2e8f0 transparent',
+  }}
+>
                 {filtered.length === 0 ? (
                   <div className="py-20 text-center flex flex-col items-center gap-4">
                     <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-300">
@@ -408,8 +454,9 @@ const getDisplayText = (lienAction) => {
                 ) : (
                   <AnimatePresence>
                     {filtered.map((notif) => {
-                      const cat = CATEGORIES[notif.categorie];
-                      const prio = PRIORITES[notif.priorite];
+                      // Utilise les helpers avec fallback — plus jamais d'erreur .bg undefined
+                      const cat = getCategorie(notif.categorie);
+                      const prio = getPriorite(notif.priorite);
                       const Icon = getIconForCategorie(notif.categorie);
                       const isSelected = selectedId === notif.id;
                       const timeAgo = getTimeAgo(notif.dateCreation);
@@ -481,13 +528,13 @@ const getDisplayText = (lienAction) => {
                               </p>
 
                               <div className="flex items-center justify-between pt-1">
-<button 
-  onClick={(e) => { e.stopPropagation(); window.location.href = notif.lienAction; }}
-  className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-pink-500 hover:text-pink-600 transition-colors"
->
-  📷 Consulter la mammographie
-  <ChevronRight size={11} />
-</button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); if (notif.lienAction) window.location.href = notif.lienAction; }}
+                                  className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-pink-500 hover:text-pink-600 transition-colors"
+                                >
+                                  {getDisplayText(notif.lienAction)}
+                                  <ChevronRight size={11} />
+                                </button>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   {!notif.lue && (
                                     <button
@@ -520,90 +567,111 @@ const getDisplayText = (lienAction) => {
 
           {/* ─────── PANEL DÉTAIL ─────── */}
           <AnimatePresence>
-            {selected && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="xl:col-span-4"
-              >
-                <div className="rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className={`p-6 ${CATEGORIES[selected.categorie]?.bg} dark:bg-slate-900/30 border-b ${CATEGORIES[selected.categorie]?.border} dark:border-slate-800 relative`}>
-                    <button onClick={() => setSelectedId(null)} className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/60 dark:bg-slate-900/50 hover:bg-white flex items-center justify-center text-slate-500 transition-colors">
-                      <X size={14} />
-                    </button>
-                    <div className={`w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 ${CATEGORIES[selected.categorie]?.accent} flex items-center justify-center mb-4 shadow-sm`}>
-                      {React.createElement(getIconForCategorie(selected.categorie), { size: 22, strokeWidth: 2.3 })}
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border bg-white/60 dark:bg-slate-900/50 ${PRIORITES[selected.priorite]?.text} ${PRIORITES[selected.priorite]?.border}`}>
-                        {PRIORITES[selected.priorite]?.label}
-                      </span>
-                      <span className={`text-[8px] font-black uppercase tracking-widest ${CATEGORIES[selected.categorie]?.accent}`}>
-                        {CATEGORIES[selected.categorie]?.label}
-                      </span>
-                    </div>
-                    <h2 className="text-lg font-black tracking-tight leading-tight text-slate-900 dark:text-white">
-                      {selected.titre}
-                    </h2>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
-                      <Clock size={11} />
-                      {getTimeAgo(selected.dateCreation)}
-                    </p>
-                  </div>
-
-<div className="p-6 space-y-5">
-  {selected.nomPatient && (
-    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800">
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Patient concerné</p>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
-            {selected.nomPatient}
-          </p>
-          <p className="text-[10px] font-bold text-slate-500 mt-0.5">
-            📅 Dernière notification • {getTimeAgo(selected.dateCreation)}
-          </p>
-        </div>
-        <button 
-          onClick={() => window.location.href = selected.lienAction}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-pink-500 hover:bg-pink-50 transition-colors"
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
-    </div>
-  )}
-
-                   <div className="pt-2 space-y-2">
-  <button 
-    onClick={() => window.location.href = selected.lienAction}
-    className="w-full h-11 rounded-xl bg-slate-950 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
-  >
-    <Eye size={12} />
-    {getDisplayText(selected.lienAction)}
-  </button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => { markAsRead(selected.id); setSelectedId(null); }} className="h-10 rounded-xl bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5">
-                          <CheckCheck size={11} /> Marquer lu
-                        </button>
-                        <button onClick={() => archiver(selected.id)} className="h-10 rounded-xl bg-rose-50 border border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40 text-rose-600 text-[9px] font-black uppercase tracking-widest hover:bg-rose-100 transition-colors flex items-center justify-center gap-1.5">
-                          <Trash2 size={11} /> Archiver
-                        </button>
+            {selected && (() => {
+              const selectedCat = getCategorie(selected.categorie);
+              const selectedPrio = getPriorite(selected.priorite);
+              return (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="xl:col-span-4"
+                >
+                  <div className="rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div className={`p-6 ${selectedCat.bg} dark:bg-slate-900/30 border-b ${selectedCat.border} dark:border-slate-800 relative`}>
+                      <button
+                        onClick={() => setSelectedId(null)}
+                        className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/60 dark:bg-slate-900/50 hover:bg-white flex items-center justify-center text-slate-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                      <div className={`w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 ${selectedCat.accent} flex items-center justify-center mb-4 shadow-sm`}>
+                        {React.createElement(getIconForCategorie(selected.categorie), { size: 22, strokeWidth: 2.3 })}
                       </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border bg-white/60 dark:bg-slate-900/50 ${selectedPrio.text} ${selectedPrio.border}`}>
+                          {selectedPrio.label}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${selectedCat.accent}`}>
+                          {selectedCat.label}
+                        </span>
+                      </div>
+                      <h2 className="text-lg font-black tracking-tight leading-tight text-slate-900 dark:text-white">
+                        {selected.titre}
+                      </h2>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <Clock size={11} />
+                        {getTimeAgo(selected.dateCreation)}
+                      </p>
                     </div>
 
-                    <p className="text-[8px] text-slate-400 italic leading-relaxed pt-3 border-t border-slate-100 dark:border-slate-800">
-                      Notification générée automatiquement par le système OncoAssist. Toute action clinique reste à l'appréciation du médecin.
-                    </p>
+                    <div className="p-6 space-y-5">
+                      {selected.nomPatient && (
+                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Patient concerné</p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                {selected.nomPatient}
+                              </p>
+                              <p className="text-[10px] font-bold text-slate-500 mt-0.5">
+                                📅 Dernière notification • {getTimeAgo(selected.dateCreation)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => { if (selected.lienAction) window.location.href = selected.lienAction; }}
+                              className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-pink-500 hover:bg-pink-50 transition-colors"
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {selected.message && (
+                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Message</p>
+                          <p className="text-[12px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                            {selected.message}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="pt-2 space-y-2">
+                        <button
+                          onClick={() => { if (selected.lienAction) window.location.href = selected.lienAction; }}
+                          className="w-full h-11 rounded-xl bg-slate-950 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Eye size={12} />
+                          {getDisplayText(selected.lienAction)}
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => { markAsRead(selected.id); setSelectedId(null); }}
+                            className="h-10 rounded-xl bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <CheckCheck size={11} /> Marquer lu
+                          </button>
+                          <button
+                            onClick={() => archiver(selected.id)}
+                            className="h-10 rounded-xl bg-rose-50 border border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40 text-rose-600 text-[9px] font-black uppercase tracking-widest hover:bg-rose-100 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Trash2 size={11} /> Archiver
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-[8px] text-slate-400 italic leading-relaxed pt-3 border-t border-slate-100 dark:border-slate-800">
+                        Notification générée automatiquement par le système OncoAssist. Toute action clinique reste à l'appréciation du médecin.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
+                </motion.div>
+              );
+            })()}
           </AnimatePresence>
 
         </div>
-
       </div>
     </div>
   );

@@ -11,8 +11,8 @@ import { useQuestionnaire } from '../../context/QuestionnaireContext';
 // ─── Type Badge ──────────────────────────────────────────────────────────────
 const TypeBadge = ({ type }) => {
   const styles = type === 'multiple'
-    ? { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', icon: CheckSquare, label: 'Choix multiple' }
-    : { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', icon: Circle, label: 'Choix unique' };
+    ? { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', icon: CheckSquare, label: 'Choix multiple' }
+    : { bg: 'bg-sky-50',    text: 'text-sky-600',    border: 'border-sky-200',    icon: Circle,      label: 'Choix unique'  };
   const Icon = styles.icon;
   return (
     <span className={`inline-flex items-center gap-1.5 text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${styles.bg} ${styles.text} ${styles.border}`}>
@@ -22,14 +22,18 @@ const TypeBadge = ({ type }) => {
   );
 };
 
-// ─── Question Row (style table dense) ────────────────────────────────────────
+// ─── Question Row ─────────────────────────────────────────────────────────────
 const QuestionRow = ({ q, idx, isLast, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
+  const isEven = idx % 2 === 0;
 
   return (
     <div
       className="group transition-colors hover:bg-slate-50/60"
-      style={{ borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}
+      style={{
+        borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
+        backgroundColor: isEven ? '#ffffff' : '#fdfcff',
+      }}
     >
       {/* Main row */}
       <div className="px-5 py-3.5 flex items-center gap-4">
@@ -64,7 +68,7 @@ const QuestionRow = ({ q, idx, isLast, onEdit, onDelete }) => {
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => onEdit(q)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 hover:border-indigo-200"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white hover:bg-pink-50 text-slate-500 hover:text-pink-600 transition-colors border border-slate-100 hover:border-pink-200"
             title="Modifier"
           >
             <Edit3 size={12} strokeWidth={2.5} />
@@ -98,9 +102,9 @@ const QuestionRow = ({ q, idx, isLast, onEdit, onDelete }) => {
                   {q.options.map((opt, i) => (
                     <div key={i} className="flex items-center gap-2.5">
                       {q.type === 'multiple' ? (
-                        <div className="w-3.5 h-3.5 rounded-[3px] border-[1.5px] border-slate-300 shrink-0" />
+                        <div className="w-3.5 h-3.5 rounded-[3px] border-[1.5px] border-violet-300 shrink-0" />
                       ) : (
-                        <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-slate-300 shrink-0" />
+                        <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-pink-300 shrink-0" />
                       )}
                       <span className="text-[12px] font-semibold text-slate-700">{opt}</span>
                     </div>
@@ -117,7 +121,7 @@ const QuestionRow = ({ q, idx, isLast, onEdit, onDelete }) => {
 
 // ─── Shared input style ──────────────────────────────────────────────────────
 const inputClass =
-  "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+  "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-pink-300 focus:ring-2 focus:ring-pink-100";
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 const QuestionnairesPage = () => {
@@ -223,7 +227,7 @@ const QuestionnairesPage = () => {
             value={recherche}
             onChange={e => setRecherche(e.target.value)}
             placeholder="Rechercher une question..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
           />
         </div>
 
@@ -255,14 +259,14 @@ const QuestionnairesPage = () => {
         </div>
       </div>
 
-      {/* ── LISTE DES QUESTIONS (style table) ───────────────────────── */}
+      {/* ── LISTE DES QUESTIONS ─────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-100 shadow-md overflow-hidden">
         <div
           className="px-5 py-3 flex items-center justify-between"
           style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fafbfc' }}
         >
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
               Bibliothèque de questions
             </span>
@@ -341,9 +345,9 @@ const QuestionnairesPage = () => {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
                     {currentQuestion ? (
-                      <Edit3 size={16} className="text-indigo-600" strokeWidth={2.5} />
+                      <Edit3 size={16} className="text-pink-500" strokeWidth={2.5} />
                     ) : (
-                      <Plus size={16} className="text-indigo-600" strokeWidth={2.5} />
+                      <Plus size={16} className="text-pink-500" strokeWidth={2.5} />
                     )}
                   </div>
                   <div>
@@ -370,20 +374,21 @@ const QuestionnairesPage = () => {
                   </label>
                   <div className="grid grid-cols-2 gap-2.5">
                     {[
-                      { id: 'unique', label: 'Choix unique', icon: Circle, color: 'sky' },
-                      { id: 'multiple', label: 'Choix multiple', icon: CheckSquare, color: 'indigo' },
+                      { id: 'unique', label: 'Choix unique', icon: Circle },
+                      { id: 'multiple', label: 'Choix multiple', icon: CheckSquare },
                     ].map(opt => {
                       const Icon = opt.icon;
                       const active = formType === opt.id;
+                      const isPink = opt.id === 'unique';
                       return (
                         <button
                           key={opt.id}
                           onClick={() => setFormType(opt.id)}
                           className={`flex items-center justify-center gap-2 py-3 rounded-lg border-[1.5px] transition-all text-[10px] font-black uppercase tracking-widest ${
                             active
-                              ? opt.color === 'sky'
-                                ? 'bg-sky-50 border-sky-300 text-sky-700'
-                                : 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                              ? isPink
+                                ? 'bg-pink-50 border-pink-300 text-pink-800'
+                                : 'bg-violet-50 border-violet-300 text-violet-700'
                               : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                           }`}
                         >
@@ -415,7 +420,7 @@ const QuestionnairesPage = () => {
                     </label>
                     <button
                       onClick={handleAddOption}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 rounded-md text-[9px] font-black uppercase tracking-widest border border-slate-200 hover:border-indigo-200 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-pink-50 text-slate-600 hover:text-pink-700 rounded-md text-[9px] font-black uppercase tracking-widest border border-slate-200 hover:border-pink-200 transition-colors"
                     >
                       <Plus size={10} strokeWidth={3} /> Ajouter
                     </button>

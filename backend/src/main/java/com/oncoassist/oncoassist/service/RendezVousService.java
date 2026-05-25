@@ -2,10 +2,12 @@ package com.oncoassist.oncoassist.service;
 
 import com.oncoassist.oncoassist.model.dto.RendezVousDTO;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
+import com.oncoassist.oncoassist.model.entity.Secretaire;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import com.oncoassist.oncoassist.model.entity.enums.StatutRDVEnum;
 import com.oncoassist.oncoassist.repository.RendezVousRepository;
+import com.oncoassist.oncoassist.repository.SecretaireRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,6 +28,7 @@ public class RendezVousService {
     private final MedecinService        medecinService;
     private final PatientService        patientService;
     private final NotificationService   notificationService;
+    private final SecretaireRepository secretaireRepository;
 
     // ── Demander RDV (médecin → secrétaire) ─────────────
     @Transactional
@@ -118,25 +122,37 @@ public class RendezVousService {
                 .duree(30)
                 .build();
 
+        // Patient
         if (rdv.getPatient() != null) {
             dto.setPatientId(rdv.getPatient().getId());
             dto.setPatientNom(rdv.getPatient().getNom());
             dto.setPatientPrenom(rdv.getPatient().getPrenom());
         }
+
+        // 🔥 MÉDECIN — AJOUTER CES LIGNES
         if (rdv.getMedecin() != null) {
             dto.setMedecinId(rdv.getMedecin().getId());
             dto.setMedecinNom(rdv.getMedecin().getNom());
             dto.setMedecinPrenom(rdv.getMedecin().getPrenom());
-            if (rdv.getMedecin().getSpecialite() != null)
+            if (rdv.getMedecin().getSpecialite() != null) {
                 dto.setMedecinSpecialite(rdv.getMedecin().getSpecialite().getNom());
+            }
         }
+
+        // 🔥 HEURE ET JOUR OFFSET — AJOUTER CES LIGNES
         if (rdv.getDate() != null) {
-            dto.setHeure(rdv.getDate().format(DateTimeFormatter.ofPattern("HH:mm")));
+            java.time.format.DateTimeFormatter timeFmt =
+                    java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+            dto.setHeure(rdv.getDate().format(timeFmt));
+
+            // 1 = lundi, 7 = dimanche → -1 pour avoir 0-6
             int jourOffset = rdv.getDate().getDayOfWeek().getValue() - 1;
             dto.setJourOffset(jourOffset);
-            String[] jours = {"Lun","Mar","Mer","Jeu","Ven","Sam","Dim"};
+
+            String[] jours = {"Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"};
             dto.setJour(jours[jourOffset]);
         }
+
         return dto;
     }
 
@@ -156,5 +172,23 @@ public class RendezVousService {
 
     public List<RendezVousDTO> findEnAttente() {
         return rendezVousRepository.findByStatut(StatutRDVEnum.EN_ATTENTE).stream().map(this::toDTO).toList();
+    }
+    @Transactional(readOnly = true)
+    public List<RendezVousDTO> findEnAttenteParSpecialite(String emailSecretaire) {
+        Optional<Secretaire> secretaireOpt = secretaireRepository.findByEmail(emailSecretaire);
+
+        if (secretaireOpt.isEmpty() || secretaireOpt.get().getSpecialite() == null) {
+            return List.of();
+        }
+
+        UUID specialiteId = secretaireOpt.get().getSpecialite().getId();
+
+        return rendezVousRepository.findByStatut(StatutRDVEnum.EN_ATTENTE)
+                .stream()
+                .filter(r -> r.getMedecin() != null
+                        && r.getMedecin().getSpecialite() != null
+                        && r.getMedecin().getSpecialite().getId().equals(specialiteId))
+                .map(this::toDTO)
+                .toList();
     }
 }

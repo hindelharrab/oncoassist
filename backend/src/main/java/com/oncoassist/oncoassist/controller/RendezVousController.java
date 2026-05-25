@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -141,11 +143,15 @@ public class RendezVousController {
         );
     }
 
+
+    // ── En attente (filtré par spécialité de la secrétaire) ──
     @GetMapping("/en-attente")
-    @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
-    public ResponseEntity<List<RendezVousDTO>> findEnAttente() {
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'MEDECIN', 'ADMIN')")
+    public ResponseEntity<List<RendezVousDTO>> findEnAttente(
+            @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(
-                rendezVousService.findEnAttente()
+                rendezVousService.findEnAttenteParSpecialite(userDetails.getUsername())
         );
-    }
+
+}
 }
