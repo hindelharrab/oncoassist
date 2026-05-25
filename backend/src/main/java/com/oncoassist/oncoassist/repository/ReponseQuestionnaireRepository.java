@@ -19,4 +19,7 @@ public interface ReponseQuestionnaireRepository
 
     // Toutes les réponses d'une attribution
     List<ReponseQuestionnaire> findByAttributionIdOrderByDateReponse(UUID attributionId);
+
+
+
 }

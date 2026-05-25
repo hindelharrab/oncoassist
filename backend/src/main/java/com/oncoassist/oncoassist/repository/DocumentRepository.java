@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     @Query("SELECT d FROM Document d WHERE d.dossierMedical.id = :dossierId ORDER BY d.dateAjout DESC")
@@ -30,4 +31,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     // ── NOUVEAU : vérifier si un résultat existe déjà pour un examen ──
     Optional<Document> findByExamenSourceId(UUID examenSourceId);
+    boolean existsByDossierMedicalIdAndType(UUID dossierMedicalId, DocTypeEnum type);
+
+    Optional<Document> findTopByDossierMedicalIdOrderByDateAjoutDesc(UUID dossierMedicalId);
+
+    Optional<Document> findTopByDossierMedical_Patient_IdAndTypeOrderByDateAjoutDesc(UUID patientId, DocTypeEnum type);
 }

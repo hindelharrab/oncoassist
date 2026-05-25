@@ -51,4 +51,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             @Param("from") LocalDateTime from,
             @Param("to")   LocalDateTime to
     );
+
+
+
 }
