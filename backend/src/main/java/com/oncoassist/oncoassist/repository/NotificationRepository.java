@@ -2,11 +2,11 @@ package com.oncoassist.oncoassist.repository;
 
 import com.oncoassist.oncoassist.model.entity.Notification;
 import com.oncoassist.oncoassist.model.entity.enums.NotificationCategorie;
-import com.oncoassist.oncoassist.model.entity.enums.NotificationPriorite;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,31 +16,26 @@ import java.util.UUID;
 public interface NotificationRepository
         extends JpaRepository<Notification, UUID> {
 
-    // Toutes les notifications d'un médecin non archivées
-    List<Notification> findByMedecinIdAndArchiveeFalseOrderByDateCreationDesc(
-            UUID medecinId
-    );
+    // ── MÉDECIN ───────────────────────────────────────────
+    List<Notification> findByMedecinIdAndArchiveeFalseOrderByDateCreationDesc(UUID medecinId);
     List<Notification> findTop20ByArchiveeFalseOrderByDateCreationDesc();
-
-    // Non lues uniquement
-    List<Notification> findByMedecinIdAndLueFalseAndArchiveeFalseOrderByDateCreationDesc(
-            UUID medecinId
-    );
-
-    // Par catégorie
-    List<Notification> findByMedecinIdAndCategorieAndArchiveeFalseOrderByDateCreationDesc(
-            UUID medecinId, NotificationCategorie categorie
-    );
-    List<Notification> findTop20ByArchiveeFalseAndCategorieIn(
-            List<NotificationCategorie> categories,
-            Sort sort
-    );
-    // Compter les non lues
+    List<Notification> findByMedecinIdAndLueFalseAndArchiveeFalseOrderByDateCreationDesc(UUID medecinId);
+    List<Notification> findByMedecinIdAndCategorieAndArchiveeFalseOrderByDateCreationDesc(UUID medecinId, NotificationCategorie categorie);
+    List<Notification> findTop20ByArchiveeFalseAndCategorieIn(List<NotificationCategorie> categories, Sort sort);
     long countByMedecinIdAndLueFalseAndArchiveeFalse(UUID medecinId);
+    long countByArchiveeFalseAndLueFalse();
+    long countByArchiveeFalse();
 
-    // Marquer toutes comme lues
     @Modifying
     @Query("UPDATE Notification n SET n.lue = true WHERE n.medecin.id = :medecinId")
-    void markAllAsRead(UUID medecinId);
+    void markAllAsRead(@Param("medecinId") UUID medecinId);
 
+    // ── PATIENT ───────────────────────────────────────────
+    List<Notification> findByPatientDestinataireIdAndArchiveeFalseOrderByDateCreationDesc(UUID patientId);
+
+    long countByPatientDestinataireIdAndLueFalseAndArchiveeFalse(UUID patientId);
+
+    @Modifying
+    @Query("UPDATE Notification n SET n.lue = true WHERE n.patientDestinataire.id = :patientId")
+    void markAllAsReadForPatient(@Param("patientId") UUID patientId);
 }

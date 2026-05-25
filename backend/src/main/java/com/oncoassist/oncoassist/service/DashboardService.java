@@ -13,6 +13,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// ── Ajouter ces imports en haut ───────────────
+import com.oncoassist.oncoassist.model.dto.dashboard.DashboardSecretaireDTO;
+import com.oncoassist.oncoassist.repository.NotificationRepository;
+import com.oncoassist.oncoassist.repository.UtilisateurRepository;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -25,6 +30,9 @@ public class DashboardService {
     private final EchographieRepository   echographieRepository;
     private final BiopsieRepository       biopsieRepository;
     private final ExamenManuelRepository  examenManuelRepository;
+    // ── Ajouter ces champs dans la classe ─────────
+    private final NotificationRepository  notificationRepository;
+    private final UtilisateurRepository   utilisateurRepository;
 
     // ── KPI : Patientes actives ───────────────────
     public int getActivePatientsCount(UUID medecinId) {
@@ -317,4 +325,5 @@ public class DashboardService {
         String[] months = { "Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc" };
         return months[date.getMonthValue() - 1];
     }
+
 }

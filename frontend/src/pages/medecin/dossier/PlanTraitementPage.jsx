@@ -20,11 +20,11 @@ import { motion, AnimatePresence } from "framer-motion";
 // CONSTANTES
 // ─────────────────────────────────────────────────────────────
 const etapesList = [
-  { id: 'Examen manuel', label: 'Examen manuel', icon: <Stethoscope size={18} /> },
-  { id: 'Mammographie',  label: 'Mammographie',  icon: <Zap size={18} /> },
-  { id: 'Échographie',   label: 'Échographie',   icon: <Activity size={18} /> },
-  { id: 'IRM',           label: 'IRM',           icon: <Layers size={18} /> },
-  { id: 'Biopsie',       label: 'Biopsie',       icon: <Microscope size={18} /> },
+  { id: 'Examen manuel',      label: 'Examen manuel',      icon: <Stethoscope size={18} /> },
+  { id: 'Mammographie',       label: 'Mammographie',       icon: <Zap size={18} /> },
+  { id: 'Échographie',        label: 'Échographie',        icon: <Activity size={18} /> },
+  { id: 'IRM',                label: 'IRM',                icon: <Layers size={18} /> },
+  { id: 'Analyse tissulaire', label: 'Analyse tissulaire', icon: <Microscope size={18} /> },
 ];
 
 const formatDate = (dateStr) => {
