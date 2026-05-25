@@ -131,6 +131,7 @@ export default function DoctorDetailPage() {
     } finally { setLoading(false); }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (id) fetchDoctor(); }, [id]);
 
   const handleDeleteDoc = async (docId) => {
