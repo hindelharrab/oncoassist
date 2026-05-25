@@ -32,6 +32,9 @@ public class QuestionnaireSuivi {
     @Column(nullable = false)
     private Integer ordre = 0;
 
+    @Column(nullable = false)
+    private String type = "unique";
+
     // NULL = globale, sinon = custom pour ce patient
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = true)

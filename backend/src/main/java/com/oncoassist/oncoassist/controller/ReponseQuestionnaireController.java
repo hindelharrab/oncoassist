@@ -1,4 +1,5 @@
 package com.oncoassist.oncoassist.controller;
+import com.oncoassist.oncoassist.model.dto.QuestionSyntheseDTO;
 import com.oncoassist.oncoassist.model.dto.ReponseQuestionnaireRequestDTO;
 import com.oncoassist.oncoassist.model.dto.ReponseQuestionnaireResponseDTO;
 import com.oncoassist.oncoassist.service.ReponseQuestionnaireService;
@@ -43,5 +44,12 @@ public class ReponseQuestionnaireController {
             @PathVariable UUID questionId) {
         return ResponseEntity.ok(
                 reponseService.getReponsesParQuestion(patientId, questionId));
+    }
+    // GET réponses groupées par question pour la vue ensemble
+    @GetMapping("/medecin/patient/{patientId}/synthese")
+    @PreAuthorize("hasAnyAuthority('MEDECIN')")
+    public ResponseEntity<List<QuestionSyntheseDTO>> getSynthese(
+            @PathVariable UUID patientId) {
+        return ResponseEntity.ok(reponseService.getSynthese(patientId));
     }
 }

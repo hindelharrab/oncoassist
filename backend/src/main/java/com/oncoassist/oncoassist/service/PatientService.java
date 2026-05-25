@@ -283,6 +283,14 @@ public class PatientService {
                 LocalDate.now()
         ).getYears()
                 : 0;
+        int nombreAntecFamiliaux = (dossier != null && dossier.getAntecedentsFamiliaux() != null)
+                ? dossier.getAntecedentsFamiliaux().size() : 0;
+
+        int nombreAntecMedicaux = (dossier != null && dossier.getAntecedentsMedicaux() != null)
+                ? dossier.getAntecedentsMedicaux().size() : 0;
+
+        int nombrePlans = (dossier != null && dossier.getPlansTraitement() != null)
+                ? dossier.getPlansTraitement().size() : 0;
 
         return PatientListItemDTO.builder()
                 .id(patient.getId())
@@ -298,6 +306,9 @@ public class PatientService {
                 .dernierBIRADS(calculerDernierBIRADS(dossier))
                 .nombreExamens(nombreExamens)
                 .suiviActif(calculerSuiviActif(patient))
+                .nombreAntecedentsFamiliaux(nombreAntecFamiliaux)
+                .nombreAntecedentsMedicaux(nombreAntecMedicaux)
+                .nombrePlansTraitement(nombrePlans)
                 .build();
     }
 

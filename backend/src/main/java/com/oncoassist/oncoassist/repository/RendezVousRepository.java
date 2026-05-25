@@ -129,4 +129,9 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, UUID> {
             @Param("from")      LocalDateTime from,
             @Param("to")        LocalDateTime to
     );
+
+    @Query("SELECT COUNT(DISTINCT r.patient.id) FROM RendezVous r WHERE r.medecin.id = :medecinId")
+    long countDistinctPatientsByMedecinId(@Param("medecinId") UUID medecinId);
+
+
 }

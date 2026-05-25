@@ -34,4 +34,5 @@ public interface SecretaireRepository extends JpaRepository<Secretaire, UUID> {
         LEFT JOIN FETCH s.rendezVousGeres
     """)
     List<Secretaire> findAllWithRdv();
+    Optional<Secretaire> findByEmail(String email);
 }

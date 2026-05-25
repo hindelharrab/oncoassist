@@ -3,53 +3,67 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-
-
+import notificationService from '../../services/notificationService';
 
 export default function Topbar({ recherche, setRecherche }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, getInitiales, getPhotoUrl } = useAuth(); // ← ajouter getPhotoUrl
+  const { user, logout, getInitiales, getPhotoUrl } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
 
   const showSearch = location.pathname === '/medecin/patients' || location.pathname === '/medecin/dossiers';
+  const photoUrl = getPhotoUrl();
 
-  
+  // ── Notifications dynamiques ──
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
 
-const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
-
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Résultat analyse critique', time: '10 min', unread: true },
-    { id: 2, title: 'Questionnaire post-op', time: '2 h', unread: true },
-    { id: 3, title: 'Nouveau document patient', time: '5 h', unread: false },
-    { id: 4, title: 'Rendez-vous annulé', time: '1 j', unread: false },
-  ]);
-
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, unread: false } : n));
+  const fetchNotifications = async () => {
+    setLoadingNotifs(true);
+    try {
+      const data = await notificationService.getAll();
+      // On prend les 4 plus récentes non archivées
+      setNotifications(data.slice(0, 4));
+    } catch (err) {
+      console.error('Erreur chargement notifications topbar:', err);
+    } finally {
+      setLoadingNotifs(false);
+    }
   };
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  // Charger au montage + quand on ouvre le dropdown
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const handleOpenNotif = () => {
+    const next = !showNotifDropdown;
+    setShowNotifDropdown(next);
+    if (next) fetchNotifications(); // rafraîchit à chaque ouverture
+  };
+
+  const markAsRead = async (id) => {
+    try {
+      await notificationService.marquerLue(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, lue: true } : n));
+    } catch (err) {
+      console.error('Erreur marquer lu:', err);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.lue).length;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifDropdown(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifDropdown(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
- 
-
- 
 
   const nomComplet = user ? `Dr. ${user.prenom} ${user.nom}` : 'Dr. Médecin';
   const specialite = user?.role === 'MEDECIN' ? 'Médecin Sénologue' : user?.role ?? 'Oncologue';
@@ -67,20 +81,30 @@ const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
     return 'OncoAssist';
   };
 
+  // Formate le temps depuis dateCreation
+  const getTimeAgo = (dateCreation) => {
+    if (!dateCreation) return '—';
+    const diff = Date.now() - new Date(dateCreation).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (minutes < 1) return 'À l\'instant';
+    if (minutes < 60) return `${minutes} min`;
+    if (hours < 24) return `${hours} h`;
+    return `${days} j`;
+  };
+
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 h-16 flex items-center justify-between sticky top-0 z-30 transition-colors">
 
-      {/* Titre page */}
       <div className="flex flex-col">
         <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">
           {pageTitle()}
         </h1>
       </div>
 
-      {/* Droite */}
       <div className="flex items-center gap-6">
 
-        {/* Barre de recherche — uniquement sur /medecin/patients */}
         {showSearch && (
           <div className="hidden md:flex items-center gap-2 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-700/50 rounded-lg px-3 py-1.5 w-64 focus-within:border-pink-300 dark:focus-within:border-pink-500 transition-all shadow-sm">
             <Search size={14} className="text-gray-400 transition-colors" />
@@ -97,12 +121,12 @@ const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
         {/* Cloche notification */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+            onClick={handleOpenNotif}
             className="text-gray-500 hover:text-pink-500 transition-colors p-1"
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-900" />
             )}
           </button>
 
@@ -116,23 +140,57 @@ const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
               >
                 <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between mb-2">
                   <h3 className="font-black text-[10px] uppercase tracking-widest text-gray-900 dark:text-white">Notifications</h3>
-                  <span className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-[9px] px-2 py-0.5 rounded-full font-black">{unreadCount} NON LUES</span>
+                  <span className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-[9px] px-2 py-0.5 rounded-full font-black">
+                    {unreadCount} NON LUES
+                  </span>
                 </div>
-                <div className="max-h-80 overflow-y-auto space-y-1">
-                  {notifications.map((notif) => (
-                    <button
-                      key={notif.id}
-                      onClick={() => markAsRead(notif.id)}
-                      className={`w-full text-left p-3 rounded-xl transition-all group flex items-start gap-3 ${notif.unread ? 'bg-pink-50/30 dark:bg-pink-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                    >
-                      <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${notif.unread ? 'bg-pink-500' : 'bg-gray-200 dark:bg-gray-700'}`} />
-                      <div>
-                        <p className={`text-xs font-bold leading-tight mb-1 ${notif.unread ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500 font-medium'}`}>{notif.title}</p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-600 font-bold">{notif.time}</p>
-                      </div>
-                    </button>
-                  ))}
+
+                <div
+                  className="max-h-80 overflow-y-auto space-y-1"
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}
+                >
+                  {loadingNotifs ? (
+                    <div className="py-8 text-center text-[11px] text-gray-400 font-bold">
+                      Chargement...
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="py-8 text-center text-[11px] text-gray-400 font-bold">
+                      Aucune notification
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <button
+                        key={notif.id}
+                        onClick={() => markAsRead(notif.id)}
+                        className={`w-full text-left p-3 rounded-xl transition-all group flex items-start gap-3 ${
+                          !notif.lue ? 'bg-slate-50 dark:bg-slate-800/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                         !notif.lue ? 'bg-slate-400' : 'bg-gray-200 dark:bg-gray-700'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-bold leading-tight mb-1 truncate ${
+                            !notif.lue
+                              ? 'text-gray-900 dark:text-white'
+                              : 'text-gray-400 dark:text-gray-500 font-medium'
+                          }`}>
+                            {notif.titre}
+                          </p>
+                          {notif.nomPatient && (
+                           <p className="text-[10px] text-slate-400 font-bold truncate mb-0.5">
+                              {notif.nomPatient}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-gray-400 dark:text-gray-600 font-bold">
+                            {getTimeAgo(notif.dateCreation)}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
+
                 <div className="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
                   <button
                     onClick={() => { navigate('/medecin/alertes'); setShowNotifDropdown(false); }}
@@ -153,13 +211,7 @@ const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
             className="w-9 h-9 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-500 dark:text-pink-400 font-bold text-sm hover:ring-2 hover:ring-pink-200 dark:hover:ring-pink-800 transition-all overflow-hidden"
           >
             {photoUrl ? (
-              <img
-               key={photoUrl}    
-                src={photoUrl}
-                alt="Profil"
-                className="w-full h-full object-cover"
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
+              <img key={photoUrl} src={photoUrl} alt="Profil" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
             ) : (
               getInitiales()
             )}
@@ -174,17 +226,10 @@ const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 top-12 bg-white dark:bg-gray-900 shadow-xl rounded-2xl border border-gray-100 dark:border-gray-800 w-64 p-2 z-50 origin-top-right"
               >
-                {/* Header dropdown */}
                 <div className="p-4 flex flex-col items-center border-b border-gray-50 dark:border-gray-800 mb-1">
                   <div className="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-500 dark:text-pink-400 font-bold text-xl mb-3 overflow-hidden">
                     {photoUrl ? (
-                      <img
-                       key={photoUrl}    
-                        src={photoUrl}
-                        alt="Profil"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
+                      <img key={photoUrl} src={photoUrl} alt="Profil" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                     ) : (
                       getInitiales()
                     )}
@@ -192,12 +237,11 @@ const photoUrl = getPhotoUrl(); // ← une seule ligne, centralisée
                   <p className="font-bold text-gray-800 dark:text-white text-base">{nomComplet}</p>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mb-2">{specialite}</p>
                   <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/10 px-2.5 py-0.5 rounded-full ring-1 ring-green-100 dark:ring-green-900/30">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <span className="text-[11px] font-bold text-green-600 dark:text-green-400">En ligne</span>
                   </div>
                 </div>
 
-                {/* Actions */}
                 <button
                   onClick={() => { navigate('/medecin/settings'); setShowDropdown(false); }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm text-gray-600 dark:text-gray-400 font-medium"

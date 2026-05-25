@@ -7,6 +7,7 @@ import {
   Pill, HeartPulse, ShieldAlert, Dna, MapPin, UserCheck, CalendarClock,
 } from 'lucide-react';
 import { getVueEnsemble } from '../../../services/vueEnsembleService';
+import axiosInstance from '../../../services/axiosInstance';
 
 /* ─────────────────────────────────────────────
    CONFIG EXAMENS — INCHANGÉ
@@ -557,6 +558,7 @@ function ExamensSection({ examens, onConsulterExamen }) {
   );
 }
 
+
 /* ─────────────────────────────────────────────
    TIMELINE — IDENTIQUE À L'ORIGINAL
 ───────────────────────────────────────────── */
@@ -713,6 +715,288 @@ function GanttTimeline({ plans }) {
     </div>
   );
 }
+// ─────────────────────────────────────────────
+// RÉPONSES QUESTIONNAIRE
+// ─────────────────────────────────────────────
+
+const PERIODE_OPTIONS = [
+  { value: 'HEBDOMADAIRE',   label: 'Hebdomadaire'  },
+  { value: 'BIHEBDOMADAIRE', label: 'Bihebdomadaire'},
+  { value: 'MENSUELLE',      label: 'Mensuelle'     },
+];
+
+// Couleurs pour les barres / badges multiples
+const MULTI_COLORS = ['#7F77DD','#D4537E','#378ADD','#1D9E75','#D85A30','#a855f7'];
+
+// Ordre des choix "unique" pour scoring
+const SCORE_MAP = {
+  'Aucune douleur': 0, 'Légère': 1, 'Modérée': 2, 'Intense': 3,
+  'Pas de fatigue': 0, 'Fatigue légère': 1, 'Fatigue modérée': 2, 'Épuisement total': 3,
+  'Oui, complètement': 2, 'Partiellement': 1, 'Non': 0,
+  'Oui': 1,
+};
+
+// Tendance : compare la dernière réponse à l'avant-dernière
+function getTendance(evolution) {
+  if (!evolution || evolution.length < 2) return null;
+  const last = SCORE_MAP[evolution[evolution.length - 1]?.choix];
+  const prev = SCORE_MAP[evolution[evolution.length - 2]?.choix];
+  if (last === undefined || prev === undefined) return null;
+  if (last < prev) return 'better';
+  if (last > prev) return 'worse';
+  return 'stable';
+}
+
+// Mini sparkline SVG pour questions unique
+function Sparkline({ evolution, color = '#7F77DD' }) {
+  if (!evolution || evolution.length < 2) return null;
+  const scores = evolution.map(e => SCORE_MAP[e.choix] ?? 0);
+  const max = Math.max(...scores, 1);
+  const W = 120, H = 36, pad = 4;
+  const pts = scores.map((s, i) => {
+    const x = pad + (i / (scores.length - 1)) * (W - pad * 2);
+    const y = pad + (1 - s / max) * (H - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+      {scores.map((s, i) => {
+        const x = pad + (i / (scores.length - 1)) * (W - pad * 2);
+        const y = pad + (1 - s / max) * (H - pad * 2);
+        return <circle key={i} cx={x} cy={y} r={i === scores.length - 1 ? 3.5 : 2} fill={color} opacity={i === scores.length - 1 ? 1 : 0.4} />;
+      })}
+    </svg>
+  );
+}
+
+// Carte question unique — évolution + dernière réponse
+function CarteUnique({ q, color }) {
+  const derniere = q.evolution?.[q.evolution.length - 1];
+  const tendance = getTendance(q.evolution);
+  const tendIcon = tendance === 'better' ? '↓' : tendance === 'worse' ? '↑' : '→';
+  const tendColor = tendance === 'better' ? '#1D9E75' : tendance === 'worse' ? '#D4537E' : '#94a3b8';
+
+  return (
+    <div className="rounded-2xl overflow-hidden transition-all duration-200 cursor-default"
+      style={{ border: '0.5px solid #f1f5f9', background: '#fafbfc' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = '#CECBF6'; e.currentTarget.style.background = '#fff'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#f1f5f9'; e.currentTarget.style.background = '#fafbfc'; }}
+    >
+      <div className="flex items-stretch">
+        <div style={{ width: 3, flexShrink: 0, background: color }} />
+        <div className="flex-1 px-4 py-3 min-w-0">
+          {/* Badge globale/perso + question */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <p className="text-[12px] font-bold text-slate-800 leading-snug flex-1">{q.texte}</p>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{ background: q.globale ? '#EEEDFE' : '#fdf2f8', color: q.globale ? '#534AB7' : '#be185d' }}>
+              {q.globale ? 'Globale' : 'Perso'}
+            </span>
+          </div>
+
+          {/* Dernière réponse + tendance + sparkline */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[9px] text-slate-400 mb-0.5">Dernière réponse</p>
+              <span className="text-[11px] font-black" style={{ color }}>
+                {derniere?.choix || '—'}
+              </span>
+              <span className="text-[10px] ml-2 font-bold" style={{ color: tendColor }}>
+                {tendIcon}
+              </span>
+            </div>
+            <Sparkline evolution={q.evolution} color={color} />
+          </div>
+
+          {/* Historique pills */}
+          {q.evolution?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {q.evolution.slice(-5).map((e, i) => (
+                <span key={i} className="text-[9px] px-2 py-0.5 rounded-full"
+                  style={{ background: '#f1f5f9', color: '#64748b', border: '0.5px solid #e2e8f0' }}>
+                  {new Date(e.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — {e.choix}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Carte question multiple — barres de fréquence
+function CarteMultiple({ q, color }) {
+  const total = q.repartition?.reduce((s, c) => s + c.count, 0) || 1;
+
+  return (
+    <div className="rounded-2xl overflow-hidden transition-all duration-200 cursor-default"
+      style={{ border: '0.5px solid #f1f5f9', background: '#fafbfc' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = '#CECBF6'; e.currentTarget.style.background = '#fff'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#f1f5f9'; e.currentTarget.style.background = '#fafbfc'; }}
+    >
+      <div className="flex items-stretch">
+        <div style={{ width: 3, flexShrink: 0, background: color }} />
+        <div className="flex-1 px-4 py-3 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <p className="text-[12px] font-bold text-slate-800 leading-snug flex-1">{q.texte}</p>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{ background: q.globale ? '#EEEDFE' : '#fdf2f8', color: q.globale ? '#534AB7' : '#be185d' }}>
+              {q.globale ? 'Globale' : 'Perso'}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {q.repartition?.map((c, i) => {
+              const pct = Math.round((c.count / total) * 100);
+              const col = MULTI_COLORS[i % MULTI_COLORS.length];
+              return (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] font-semibold text-slate-600">{c.choix}</span>
+                    <span className="text-[9px] font-bold" style={{ color: col }}>{c.count}× ({pct}%)</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, background: col }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Composant principal
+function ReponsesQuestionnaire({ patientId }) {
+  const [synthese, setSynthese]   = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
+  const [periode, setPeriode]     = useState('HEBDOMADAIRE');
+  const [filtre, setFiltre]       = useState('TOUS'); // TOUS / GLOBALE / PERSO
+
+  useEffect(() => {
+    if (!patientId) return;
+    setLoading(true);
+    setError(null);
+    axiosInstance.get(`/reponses/medecin/patient/${patientId}/synthese`)
+      .then(r => setSynthese(r.data))
+      .catch(e => setError(e?.response?.data?.message || 'Erreur de chargement'))
+      .finally(() => setLoading(false));
+  }, [patientId]);
+
+  // Filtrer par période — on garde les N dernières réponses selon fréquence
+  const filtrerParPeriode = (evolution) => {
+    if (!evolution) return evolution;
+    const n = periode === 'HEBDOMADAIRE' ? 8 : periode === 'BIHEBDOMADAIRE' ? 4 : 3;
+    return evolution.slice(-n);
+  };
+
+  const questionsFiltrees = (synthese || [])
+    .filter(q => filtre === 'TOUS' || (filtre === 'GLOBALE' && q.globale) || (filtre === 'PERSO' && !q.globale))
+    .map(q => ({
+      ...q,
+      evolution: filtrerParPeriode(q.evolution),
+    }));
+
+  const globales = questionsFiltrees.filter(q => q.globale).length;
+  const persos   = questionsFiltrees.filter(q => !q.globale).length;
+
+  return (
+    <section className="bg-white rounded-3xl border border-slate-100 shadow-md overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-8 pt-7 pb-5 border-b border-slate-100">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl" style={{ background: '#EEEDFE' }}>
+            <Activity size={18} color="#7F77DD" strokeWidth={2} />
+          </div>
+          <div>
+            <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-900">
+              Suivi des réponses au questionnaire
+            </h2>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              {globales} globale{globales > 1 ? 's' : ''} · {persos} personnalisée{persos > 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Filtres période */}
+        <div className="flex items-center gap-2">
+          {PERIODE_OPTIONS.map(p => (
+            <button key={p.value} onClick={() => setPeriode(p.value)}
+              className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border"
+              style={{
+                background: periode === p.value ? '#7F77DD' : 'transparent',
+                color: periode === p.value ? 'white' : '#94a3b8',
+                borderColor: periode === p.value ? '#7F77DD' : '#e2e8f0',
+              }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filtres type */}
+      <div className="flex items-center gap-2 px-8 py-3 border-b border-slate-50">
+        {[
+          { id: 'TOUS',    label: 'Toutes' },
+          { id: 'GLOBALE', label: 'Globales' },
+          { id: 'PERSO',   label: 'Personnalisées' },
+        ].map(f => (
+          <button key={f.id} onClick={() => setFiltre(f.id)}
+            className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border"
+            style={{
+              background: filtre === f.id ? '#f1f5f9' : 'transparent',
+              color: filtre === f.id ? '#334155' : '#94a3b8',
+              borderColor: filtre === f.id ? '#cbd5e1' : '#e2e8f0',
+            }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Contenu */}
+      <div className="px-6 py-5">
+        {loading && (
+          <div className="flex items-center justify-center py-16 gap-3">
+            <Loader2 size={20} className="text-violet-400 animate-spin" />
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Chargement…</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-[11px] font-bold text-rose-400 uppercase tracking-widest">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && questionsFiltrees.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Activity size={28} className="text-slate-200" />
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Aucune réponse enregistrée
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && questionsFiltrees.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {questionsFiltrees.map((q, i) =>
+              q.type === 'multiple' ? (
+                <CarteMultiple key={q.questionId} q={q} color={MULTI_COLORS[i % MULTI_COLORS.length]} />
+              ) : (
+                <CarteUnique key={q.questionId} q={q} color={MULTI_COLORS[i % MULTI_COLORS.length]} />
+              )
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 /* ─────────────────────────────────────────────
    PAGE PRINCIPALE
@@ -747,6 +1031,9 @@ function VueEnsemblePage() {
         <div className="lg:col-span-4"><ProchainRendezVous rdv={data.prochainRendezVous} /></div>
         <div className="lg:col-span-12"><ExamensSection examens={data.examens || []} onConsulterExamen={handleConsulterExamen} /></div>
         <div className="lg:col-span-12"><GanttTimeline plans={data.plansTraitement || []} /></div>
+        <div className="lg:col-span-12">
+  <ReponsesQuestionnaire patientId={patientId} />
+</div>
       </div>
     </div>
   );

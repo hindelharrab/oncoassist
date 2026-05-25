@@ -3,8 +3,10 @@ package com.oncoassist.oncoassist.service;
 import com.oncoassist.oncoassist.model.dto.RendezVousDTO;
 import com.oncoassist.oncoassist.model.entity.Patient;
 import com.oncoassist.oncoassist.model.entity.RendezVous;
+import com.oncoassist.oncoassist.model.entity.Secretaire;
 import com.oncoassist.oncoassist.model.entity.enums.StatutRDVEnum;
 import com.oncoassist.oncoassist.repository.RendezVousRepository;
+import com.oncoassist.oncoassist.repository.SecretaireRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,9 +24,11 @@ import java.util.UUID;
 public class RendezVousService {
 
     private final RendezVousRepository rendezVousRepository;
+    private final SecretaireRepository secretaireRepository;
     private final MedecinService medecinService;
     private final PatientService patientService;
 
+    @Transactional
     // ── Mutations (restent avec RendezVous) ──────────────────────────────
     public RendezVous demander(UUID medecinId, UUID patientId, String motif) {
         RendezVous rdv = new RendezVous();
@@ -115,7 +120,7 @@ public class RendezVousService {
                 .map(this::toDTO)
                 .toList();
     }
-
+    @Transactional
     public List<RendezVousDTO> findByMedecin(UUID medecinId) {
         return rendezVousRepository.findByMedecinId(medecinId)
                 .stream()
@@ -133,6 +138,24 @@ public class RendezVousService {
     public List<RendezVousDTO> findEnAttente() {
         return rendezVousRepository.findByStatut(StatutRDVEnum.EN_ATTENTE)
                 .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+    @Transactional(readOnly = true)
+    public List<RendezVousDTO> findEnAttenteParSpecialite(String emailSecretaire) {
+        Optional<Secretaire> secretaireOpt = secretaireRepository.findByEmail(emailSecretaire);
+
+        if (secretaireOpt.isEmpty() || secretaireOpt.get().getSpecialite() == null) {
+            return List.of();
+        }
+
+        UUID specialiteId = secretaireOpt.get().getSpecialite().getId();
+
+        return rendezVousRepository.findByStatut(StatutRDVEnum.EN_ATTENTE)
+                .stream()
+                .filter(r -> r.getMedecin() != null
+                        && r.getMedecin().getSpecialite() != null
+                        && r.getMedecin().getSpecialite().getId().equals(specialiteId))
                 .map(this::toDTO)
                 .toList();
     }

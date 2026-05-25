@@ -55,7 +55,7 @@ export default function SidebarGlobal() {
       <NavItem to="/medecin/agenda" icon={Calendar}>Agenda</NavItem>
 
       <GroupLabel>Clinique</GroupLabel>
-      <NavItem to="/medecin/alertes" icon={Bell} badge="3">Alertes</NavItem>
+      <NavItem to="/medecin/alertes" icon={Bell}>Alertes</NavItem>
       <NavItem to="/medecin/questionnaires" icon={ClipboardList}>Questionnaires</NavItem>
       {/* On utilise /medecin/dossiers pour éviter que ça se coche en même temps que /medecin/patients */}
       <NavItem to="/medecin/dossiers" icon={FolderOpen}>Dossiers médicaux</NavItem>

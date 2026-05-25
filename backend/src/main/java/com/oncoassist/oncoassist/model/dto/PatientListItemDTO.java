@@ -23,4 +23,7 @@ public class PatientListItemDTO {
     private String dernierBIRADS;
     private Integer nombreExamens;
     private Boolean suiviActif;
+    private int nombreAntecedentsFamiliaux;
+    private int nombreAntecedentsMedicaux;
+    private int nombrePlansTraitement;
 }

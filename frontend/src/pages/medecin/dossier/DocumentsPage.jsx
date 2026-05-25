@@ -51,10 +51,10 @@ const PdfHeader = ({ title, subtitle, date, docteur }) => (
   <div className="mb-8 pb-5 border-b-2 border-slate-900 flex justify-between items-start">
     <div>
       <h2 className="text-xl font-black tracking-tighter text-slate-900 italic uppercase">
-        CLINIQUE DU SEIN
+      CENTRE DE SÉNOLOGIE
       </h2>
       <p className="text-[9px] font-bold text-slate-500 mt-0.5 italic">
-        Pôle d'excellence en oncologie
+       Pôle d’excellence en sénologie
       </p>
     </div>
     <div className="text-right">
@@ -157,10 +157,10 @@ const PdfRapport = ({ selection, examensData, patient }) => {
       <div className="mb-8 pb-5 border-b-2 border-slate-900 flex justify-between items-start">
         <div>
           <h2 className="text-xl font-black tracking-tighter text-slate-900 italic uppercase">
-            CLINIQUE DU SEIN
+          CENTRE DE SÉNOLOGIE
           </h2>
           <p className="text-[9px] font-bold text-slate-500 mt-0.5 italic">
-            Pôle d'excellence en oncologie
+            Pôle d’excellence en sénologie
           </p>
         </div>
         <div className="text-right">
@@ -899,10 +899,10 @@ const DocumentsPage = () => {
           <div className="mb-8 flex justify-between items-start">
             <div>
               <h2 className="text-lg font-black tracking-tighter text-slate-900 italic">
-                CLINIQUE DU SEIN
+              CENTRE DE SÉNOLOGIE
               </h2>
               <p className="text-[9px] font-bold text-slate-500 mt-1 italic">
-                Pôle d'excellence en oncologie
+             Pôle d’excellence en sénologie
               </p>
             </div>
             <div className="text-right">
@@ -1376,7 +1376,7 @@ const DocumentsPage = () => {
                   )}
                 </div>
               )}
-              
+             
               {/* ══ RAPPORT ══ */}
               {activeTab === 'rapport' && (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200

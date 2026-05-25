@@ -30,7 +30,6 @@ public class QuestionnaireService {
     private final MedecinRepository            medecinRepo;
     private final AttributionQuestionnaireRepository attributionRepo;
 
-    // GET questions globales
     @Transactional(readOnly = true)
     public List<QuestionSuiviResponseDTO> getQuestionsGlobales() {
         return questionRepo.findByPatientIsNullOrderByOrdre()
@@ -39,14 +38,10 @@ public class QuestionnaireService {
                 .toList();
     }
 
-    // GET questions pour un patient (globales + custom)
     @Transactional(readOnly = true)
-    public List<QuestionSuiviResponseDTO> getQuestionsForPatient(
-            UUID patientId) {
-        List<QuestionnaireSuivi> globales =
-                questionRepo.findByPatientIsNullOrderByOrdre();
-        List<QuestionnaireSuivi> custom =
-                questionRepo.findByPatientIdOrderByOrdre(patientId);
+    public List<QuestionSuiviResponseDTO> getQuestionsForPatient(UUID patientId) {
+        List<QuestionnaireSuivi> globales = questionRepo.findByPatientIsNullOrderByOrdre();
+        List<QuestionnaireSuivi> custom   = questionRepo.findByPatientIdOrderByOrdre(patientId);
 
         List<QuestionSuiviResponseDTO> result = new ArrayList<>();
         globales.forEach(q -> result.add(toDTO(q, true)));
@@ -54,60 +49,54 @@ public class QuestionnaireService {
         return result;
     }
 
-    // POST ajouter question globale
     @Transactional
-    public QuestionSuiviResponseDTO ajouterQuestionGlobale(
-            QuestionSuiviRequestDTO dto) {
+    public QuestionSuiviResponseDTO ajouterQuestionGlobale(QuestionSuiviRequestDTO dto) {
         QuestionnaireSuivi q = new QuestionnaireSuivi();
         q.setTexte(dto.getTexte());
-        q.setChoix(dto.getChoix() != null
-                ? new ArrayList<>(dto.getChoix())
-                : new ArrayList<>());
+        q.setChoix(dto.getChoix() != null ? new ArrayList<>(dto.getChoix()) : new ArrayList<>());
         q.setOrdre(dto.getOrdre() != null ? dto.getOrdre() : 0);
+        q.setType(dto.getType() != null ? dto.getType() : "unique");  // ← NOUVEAU
         q.setPatient(null);
-        QuestionnaireSuivi saved = questionRepo.save(q);
-        return toDTO(saved, true);
+        return toDTO(questionRepo.save(q), true);
     }
 
-    // POST ajouter question custom pour un patient
     @Transactional
-    public QuestionSuiviResponseDTO ajouterQuestionCustom(
-            UUID patientId, QuestionSuiviRequestDTO dto) {
+    public QuestionSuiviResponseDTO ajouterQuestionCustom(UUID patientId, QuestionSuiviRequestDTO dto) {
         Patient patient = patientRepo.findById(patientId)
-                .orElseThrow(() ->
-                        new RuntimeException("Patient non trouvé")
-                );
+                .orElseThrow(() -> new RuntimeException("Patient non trouvé"));
         QuestionnaireSuivi q = new QuestionnaireSuivi();
         q.setTexte(dto.getTexte());
-        q.setChoix(dto.getChoix() != null
-                ? new ArrayList<>(dto.getChoix())
-                : new ArrayList<>());
+        q.setChoix(dto.getChoix() != null ? new ArrayList<>(dto.getChoix()) : new ArrayList<>());
         q.setOrdre(dto.getOrdre() != null ? dto.getOrdre() : 0);
+        q.setType(dto.getType() != null ? dto.getType() : "unique");  // ← NOUVEAU
         q.setPatient(patient);
-        QuestionnaireSuivi saved = questionRepo.save(q);
-        return toDTO(saved, false);
+        return toDTO(questionRepo.save(q), false);
     }
 
-    // DELETE supprimer une question
+    @Transactional
+    public QuestionSuiviResponseDTO updateQuestion(UUID id, QuestionSuiviRequestDTO dto) {
+        QuestionnaireSuivi q = questionRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Question non trouvée"));
+        q.setTexte(dto.getTexte());
+        q.setChoix(dto.getChoix() != null ? new ArrayList<>(dto.getChoix()) : new ArrayList<>());
+        q.setOrdre(dto.getOrdre() != null ? dto.getOrdre() : q.getOrdre());
+        q.setType(dto.getType() != null ? dto.getType() : q.getType());  // ← NOUVEAU
+        return toDTO(questionRepo.save(q), q.getPatient() == null);
+    }
+
     @Transactional
     public void supprimerQuestion(UUID questionId) {
         questionRepo.deleteById(questionId);
     }
 
-    // POST attribuer questionnaire
     @Transactional
     public void attribuerQuestionnaire(AttributionRequestDTO dto) {
         Patient patient = patientRepo.findById(dto.getPatientId())
-                .orElseThrow(() ->
-                        new RuntimeException("Patient non trouvé")
-                );
+                .orElseThrow(() -> new RuntimeException("Patient non trouvé"));
         Medecin medecin = medecinRepo.findById(dto.getMedecinId())
-                .orElseThrow(() ->
-                        new RuntimeException("Médecin non trouvé")
-                );
+                .orElseThrow(() -> new RuntimeException("Médecin non trouvé"));
 
-        AttributionQuestionnaire attribution =
-                new AttributionQuestionnaire();
+        AttributionQuestionnaire attribution = new AttributionQuestionnaire();
         attribution.setPatient(patient);
         attribution.setMedecin(medecin);
         attribution.setFrequence(dto.getFrequence());
@@ -117,24 +106,14 @@ public class QuestionnaireService {
         attributionRepo.save(attribution);
     }
 
-    // ── Mapper ────────────────────────────────────
-    private QuestionSuiviResponseDTO toDTO(
-            QuestionnaireSuivi q, boolean globale) {
-        QuestionSuiviResponseDTO dto =
-                new QuestionSuiviResponseDTO();
+    private QuestionSuiviResponseDTO toDTO(QuestionnaireSuivi q, boolean globale) {
+        QuestionSuiviResponseDTO dto = new QuestionSuiviResponseDTO();
         dto.setId(q.getId());
         dto.setTexte(q.getTexte());
         dto.setOrdre(q.getOrdre());
         dto.setGlobale(globale);
-
-        // Force le chargement de la collection
-        // DANS la transaction avant sérialisation Jackson
-        dto.setChoix(
-                q.getChoix() != null
-                        ? new ArrayList<>(q.getChoix())
-                        : new ArrayList<>()
-        );
-
+        dto.setType(q.getType() != null ? q.getType() : "unique");  // ← NOUVEAU
+        dto.setChoix(q.getChoix() != null ? new ArrayList<>(q.getChoix()) : new ArrayList<>());
         return dto;
     }
 }

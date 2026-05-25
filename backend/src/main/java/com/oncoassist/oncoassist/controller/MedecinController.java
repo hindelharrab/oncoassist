@@ -1,6 +1,7 @@
 package com.oncoassist.oncoassist.controller;
 
 import com.oncoassist.oncoassist.model.dto.ChangePasswordDTO;
+import com.oncoassist.oncoassist.model.dto.MedecinAvecStatsDTO;
 import com.oncoassist.oncoassist.model.dto.MedecinProfilDTO;
 import com.oncoassist.oncoassist.model.dto.MedecinResponseDTO;
 import com.oncoassist.oncoassist.model.entity.Medecin;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -135,6 +138,15 @@ public class MedecinController {
     getListePourSecretaire() {
         return ResponseEntity.ok(
                 medecinService.findAllMedecins()
+        );
+    }
+
+    @GetMapping("/ma-specialite")
+    @PreAuthorize("hasAnyAuthority('SECRETAIRE', 'ADMIN')")
+    public ResponseEntity<List<MedecinAvecStatsDTO>> getMedecinsDeMonService(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+                medecinService.findBySpecialiteDeSecretaireAvecStats(userDetails.getUsername())
         );
     }
 }

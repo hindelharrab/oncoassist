@@ -46,6 +46,11 @@ const secretaireRendezVousService = {
     return res.data;
   },
 
+  getDemandesEnAttente: async () => {
+  const res = await axiosInstance.get('/rendez-vous/en-attente');
+  return res.data;
+},
+
   // Marquer effectué
   marquerEffectue: async (id) => {
     const res = await axiosInstance.put(
@@ -53,6 +58,9 @@ const secretaireRendezVousService = {
     );
     return res.data;
   }
+
+  
+
 };
 
 export default secretaireRendezVousService;

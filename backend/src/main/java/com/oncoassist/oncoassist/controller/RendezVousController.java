@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -28,12 +30,11 @@ public class RendezVousController {
     @GetMapping("/planning")
     @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
     public ResponseEntity<List<RendezVousDTO>> getPlanning(
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate semaine,
-            @RequestParam(required = false) UUID medecinId) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate semaine,
+            @RequestParam(required = false) UUID medecinId,
+            @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(
-                planningService.getRdvBySemaine(semaine, medecinId)
+                planningService.getRdvBySemaine(semaine, medecinId, userDetails.getUsername())
         );
     }
 
@@ -142,9 +143,12 @@ public class RendezVousController {
 
     @GetMapping("/en-attente")
     @PreAuthorize("hasAnyAuthority('SECRETAIRE','MEDECIN','ADMIN')")
-    public ResponseEntity<List<RendezVousDTO>> findEnAttente() {
+    public ResponseEntity<List<RendezVousDTO>> findEnAttente(
+            @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(
-                rendezVousService.findEnAttente()
+                rendezVousService.findEnAttenteParSpecialite(userDetails.getUsername())
         );
     }
+
+
 }

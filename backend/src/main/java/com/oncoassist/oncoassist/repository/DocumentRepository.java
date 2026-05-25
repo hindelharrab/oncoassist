@@ -30,4 +30,10 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     // ── NOUVEAU : vérifier si un résultat existe déjà pour un examen ──
     Optional<Document> findByExamenSourceId(UUID examenSourceId);
+    boolean existsByDossierMedicalIdAndType(UUID dossierMedicalId, DocTypeEnum type);
+
+    Optional<Document> findTopByDossierMedicalIdOrderByDateAjoutDesc(UUID dossierMedicalId);
+
+    Optional<Document> findTopByDossierMedical_Patient_IdAndTypeOrderByDateAjoutDesc(
+            UUID patientId, DocTypeEnum type);
 }
